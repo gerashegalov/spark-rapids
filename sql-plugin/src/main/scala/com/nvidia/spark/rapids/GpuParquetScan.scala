@@ -38,12 +38,14 @@ import org.apache.commons.io.IOUtils
 import org.apache.commons.io.output.{CountingOutputStream, NullOutputStream}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, FSDataInputStream, Path}
+import org.apache.parquet.ParquetReadOptions
 import org.apache.parquet.bytes.BytesUtils
-import org.apache.parquet.column.ColumnDescriptor
+import org.apache.parquet.filter2.compat.FilterCompat
 import org.apache.parquet.filter2.predicate.FilterApi
 import org.apache.parquet.format.converter.ParquetMetadataConverter
-import org.apache.parquet.hadoop.{ParquetFileReader, ParquetInputFormat}
+import org.apache.parquet.hadoop.ParquetFileReader
 import org.apache.parquet.hadoop.metadata._
+import org.apache.parquet.hadoop.util.HadoopInputFile
 import org.apache.parquet.schema.{GroupType, MessageType, Types}
 
 import org.apache.spark.TaskContext
@@ -303,10 +305,13 @@ private case class GpuParquetFileFilterHandler(@transient sqlConf: SQLConf) exte
       readDataSchema: StructType): ParquetFileInfoWithBlockMeta = {
 
     val filePath = new Path(new URI(file.filePath))
-    //noinspection ScalaDeprecation
-    val footer = ParquetFileReader.readFooter(conf, filePath,
-      ParquetMetadataConverter.range(file.start, file.start + file.length))
-    val fileSchema = footer.getFileMetaData.getSchema
+    val inputFile = HadoopInputFile.fromPath(filePath, conf)
+    val reader = ParquetFileReader.open(inputFile, ParquetReadOptions.builder()
+      .withRange(file.start, file.start + file.length).build())
+    val fileMetaData = reader.getFileMetaData
+    val fileSchema = fileMetaData.getSchema
+    val fileBlocks = reader.getFooter.getBlocks
+
     val pushedFilters = if (enableParquetFilterPushDown) {
       val parquetFilters = new ParquetFilters(fileSchema, pushDownDate, pushDownTimestamp,
         pushDownDecimal, pushDownStringStartWith, pushDownInFilterThreshold, isCaseSensitive)
@@ -317,19 +322,15 @@ private case class GpuParquetFileFilterHandler(@transient sqlConf: SQLConf) exte
 
     val isCorrectedRebaseForThisFile =
     GpuParquetPartitionReaderFactoryBase.isCorrectedRebaseMode(
-      footer.getFileMetaData.getKeyValueMetaData.get, isCorrectedRebase)
+      fileMetaData.getKeyValueMetaData.get, isCorrectedRebase)
 
-    val blocks = if (pushedFilters.isDefined) {
-      // Use the ParquetFileReader to perform dictionary-level filtering
-      ParquetInputFormat.setFilterPredicate(conf, pushedFilters.get)
-      //noinspection ScalaDeprecation
-      withResource(new ParquetFileReader(conf, footer.getFileMetaData, filePath,
-        footer.getBlocks, Collections.emptyList[ColumnDescriptor])) { parquetReader =>
+    val blocks = pushedFilters.map { filterPredicate =>
+      val recordFilter = FilterCompat.get(filterPredicate)
+      withResource(ParquetFileReader.open(HadoopInputFile.fromPath(filePath, conf),
+        ParquetReadOptions.builder().withRecordFilter(recordFilter).build())) { parquetReader =>
         parquetReader.getRowGroups
       }
-    } else {
-      footer.getBlocks
-    }
+    }.getOrElse(fileBlocks)
 
     val clippedSchemaTmp = ParquetReadSupport.clipParquetSchema(fileSchema, readDataSchema,
       isCaseSensitive)
@@ -377,7 +378,7 @@ case class GpuParquetMultiFilePartitionReaderFactory(
   private val CLOUD_SCHEMES = HashSet("dbfs", "s3", "s3a", "s3n", "wasbs", "gs")
   private val allCloudSchemes = CLOUD_SCHEMES ++ configCloudSchemes.getOrElse(Seq.empty)
 
-  private val filterHandler = new GpuParquetFileFilterHandler(sqlConf)
+  private val filterHandler = GpuParquetFileFilterHandler(sqlConf)
 
   override def supportColumnarReads(partition: InputPartition): Boolean = true
 
@@ -392,7 +393,7 @@ case class GpuParquetMultiFilePartitionReaderFactory(
         return uri
       }
     } catch {
-      case e: URISyntaxException =>
+      case _: URISyntaxException =>
     }
     new File(path).getAbsoluteFile().toURI()
   }
@@ -473,7 +474,7 @@ case class GpuParquetPartitionReaderFactory(
   private val maxReadBatchSizeRows = rapidsConf.maxReadBatchSizeRows
   private val maxReadBatchSizeBytes = rapidsConf.maxReadBatchSizeBytes
 
-  private val filterHandler = new GpuParquetFileFilterHandler(sqlConf)
+  private val filterHandler = GpuParquetFileFilterHandler(sqlConf)
 
   override def supportColumnarReads(partition: InputPartition): Boolean = true
 
@@ -1029,7 +1030,6 @@ class MultiFileParquetPartitionReader(
     // and concatenate those together then go to the next column
     for ((field, colIndex) <- partitionSchema.fields.zipWithIndex) {
       val dataType = field.dataType
-      val partitionColumns = new Array[GpuColumnVector](inPartitionValues.size)
       withResource(new Array[GpuColumnVector](inPartitionValues.size)) {
         partitionColumns =>
           for ((rowsInPart, partIndex) <- rowsPerPartition.zipWithIndex) {
@@ -1505,7 +1505,7 @@ class MultiFileCloudParquetPartitionReader(
     // in cases close got called early for like limit() calls
     isDone = true
     currentFileHostBuffers.foreach { current =>
-      current.memBuffersAndSizes.foreach { case (buf, size) =>
+      current.memBuffersAndSizes.foreach { case (buf, _) =>
         if (buf != null) {
           buf.close()
         }
@@ -1516,7 +1516,7 @@ class MultiFileCloudParquetPartitionReader(
     batch = None
     tasks.asScala.foreach { task =>
       if (task.isDone()) {
-        task.get.memBuffersAndSizes.foreach { case (buf, size) =>
+        task.get.memBuffersAndSizes.foreach { case (buf, _) =>
           if (buf != null) {
             buf.close()
           }

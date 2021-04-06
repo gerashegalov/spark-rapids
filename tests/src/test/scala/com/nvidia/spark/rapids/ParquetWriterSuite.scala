@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets
 
 import org.apache.hadoop.fs.Path
 import org.apache.parquet.hadoop.ParquetFileReader
+import org.apache.parquet.hadoop.util.HadoopInputFile
 
 import org.apache.spark.{SparkConf, SparkException}
 
@@ -35,11 +36,10 @@ class ParquetWriterSuite extends SparkQueryCompareTestSuite {
         val df = mixedDfWithNulls(spark)
         df.write.mode("overwrite").parquet(tempFile.getAbsolutePath)
 
-        val footer = ParquetFileReader.readFooters(spark.sparkContext.hadoopConfiguration,
-          new Path(tempFile.getAbsolutePath)).get(0)
-
-        val parquetMeta = footer.getParquetMetadata
-        val fileMeta = footer.getParquetMetadata.getFileMetaData
+        val inputFile = HadoopInputFile.fromPath(new Path(tempFile.getAbsolutePath),
+          spark.sparkContext.hadoopConfiguration)
+        val parquetMeta = ParquetFileReader.open(inputFile).getFooter
+        val fileMeta = parquetMeta.getFileMetaData
         val extra = fileMeta.getKeyValueMetaData
         assert(extra.containsKey("org.apache.spark.version"))
         assert(extra.containsKey("org.apache.spark.sql.parquet.row.metadata"))
