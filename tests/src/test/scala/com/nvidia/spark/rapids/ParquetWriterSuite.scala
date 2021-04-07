@@ -30,13 +30,13 @@ import org.apache.spark.{SparkConf, SparkException}
  */
 class ParquetWriterSuite extends SparkQueryCompareTestSuite {
   test("file metadata") {
-    val tempFile = File.createTempFile("stats", ".parquet")
+    val tempDir = File.createTempFile("stats", ".parquet")
     try {
       withGpuSparkSession(spark => {
         val df = mixedDfWithNulls(spark)
-        df.write.mode("overwrite").parquet(tempFile.getAbsolutePath)
-
-        val inputFile = HadoopInputFile.fromPath(new Path(tempFile.getAbsolutePath),
+        df.write.mode("overwrite").parquet(tempDir.getAbsolutePath)
+        val parquetFileList = tempDir.listFiles(f => f.getName.endsWith(".parquet"))
+        val inputFile = HadoopInputFile.fromPath(new Path(parquetFileList.head.getAbsolutePath),
           spark.sparkContext.hadoopConfiguration)
         val parquetMeta = ParquetFileReader.open(inputFile).getFooter
         val fileMeta = parquetMeta.getFileMetaData
@@ -72,7 +72,7 @@ class ParquetWriterSuite extends SparkQueryCompareTestSuite {
         }
       })
     } finally {
-      tempFile.delete()
+      tempDir.delete()
     }
   }
 
