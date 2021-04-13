@@ -465,3 +465,7 @@ def test_spark_32639(std_input_path):
         lambda spark: spark.read.schema(schema_str).parquet(data_path),
         conf=original_parquet_file_reader_conf)
 
+def test_many_column_project(std_input_path):
+    data_path = f"{std_input_path}/issue-2036"
+    assert_gpu_and_cpu_are_equal_collect(lambda spark: spark.read.parquet(data_path))
+
