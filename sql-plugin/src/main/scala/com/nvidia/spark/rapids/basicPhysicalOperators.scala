@@ -60,11 +60,10 @@ object GpuProjectExec extends Arm {
   }
 }
 
-case class GpuProjectExec(projectList: Seq[Expression], child: SparkPlan) extends GpuUnaryExecNode {
+case class GpuProjectExec(projectList: List[Expression], child: SparkPlan)
+  extends GpuUnaryExecNode {
 
-  private val sparkProjectList = projectList.asInstanceOf[Seq[NamedExpression]]
-
-  override def output: Seq[Attribute] = sparkProjectList.map(_.toAttribute)
+  override def output: Seq[Attribute] = projectList.map(_.asInstanceOf[NamedExpression].toAttribute)
 
   override def outputOrdering: Seq[SortOrder] = child.outputOrdering
 
