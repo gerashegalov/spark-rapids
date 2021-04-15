@@ -269,7 +269,7 @@ object GpuDivModLike {
 }
 
 trait GpuDivModLike extends CudfBinaryArithmetic {
-  val failOnError: Boolean = ShimLoader.getSparkShims.shouldFailDivByZero()
+  lazy val failOnError: Boolean = ShimLoader.getSparkShims.shouldFailDivByZero()
 
   override def nullable: Boolean = true
 
@@ -331,9 +331,12 @@ object GpuDivideUtil {
 
 // This is for doubles and floats...
 case class GpuDivide(
-  left: Expression, right: Expression,
-  override val failOnError: Boolean = ShimLoader.getSparkShims.shouldFailDivByZero()
+  left: Expression,
+  right: Expression,
+  failOnErrorOverride: Boolean = ShimLoader.getSparkShims.shouldFailDivByZero()
 ) extends GpuDivModLike {
+  override lazy val failOnError: Boolean = failOnErrorOverride
+
   override def inputType: AbstractDataType = TypeCollection(DoubleType, DecimalType)
 
   override def symbol: String = "/"
