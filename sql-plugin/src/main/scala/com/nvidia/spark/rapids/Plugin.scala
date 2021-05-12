@@ -62,7 +62,7 @@ class SQLExecPlugin extends (SparkSessionExtensions => Unit) with Logging {
     logInfo(s"cudf build: $cudfProps")
     val pluginVersion = pluginProps.getProperty("version", "UNKNOWN")
     val cudfVersion = cudfProps.getProperty("version", "UNKNOWN")
-    logWarning(s"RAPIDS Accelerator $pluginVersion using cudf $cudfVersion." +
+    logInfo(s"RAPIDS Accelerator $pluginVersion using cudf $cudfVersion." +
       s" To disable GPU support set `${RapidsConf.SQL_ENABLED}` to false")
     extensions.injectColumnar(_ => ColumnarOverrideRules())
     extensions.injectQueryStagePrepRule(_ => GpuQueryStagePrepOverrides())
@@ -162,7 +162,37 @@ class RapidsDriverPlugin extends DriverPlugin with Logging {
         conf.shuffleTransportEarlyStart) {
       rapidsShuffleHeartbeatManager = new RapidsShuffleHeartbeatManager()
     }
+    displayBannerInRepl(sparkConf)
     conf.rapidsConfMap
+  }
+
+
+  private def displayBannerInRepl(conf: SparkConf): Unit = {
+    if (runningInRepl(conf)) {
+      val pluginProps = RapidsPluginUtils.loadProps(RapidsPluginUtils.PLUGIN_PROPS_FILENAME)
+      val cudfProps = RapidsPluginUtils.loadProps(RapidsPluginUtils.CUDF_PROPS_FILENAME)
+      val pluginVersion = pluginProps.getProperty("version", "UNKNOWN")
+      val banner =
+        """
+          |   / __ \/   |  / __ \/  _/ __ \/ ___/
+          |   / /_/ / /| | / /_/ // // / / /\__ \
+          |  / _, _/ ___ |/ ____// // /_/ /___/ /
+          | /_/ |_/_/  |_/_/   /___/_____//____/""".stripMargin
+
+      println()
+      println(banner + "  version " + pluginVersion)
+      println()
+
+      println("spark-rapids plugin build info: " + pluginProps)
+      println()
+      println("               cuDF build info: " + cudfProps)
+      println()
+    }
+  }
+
+  private def runningInRepl(conf: SparkConf) = {
+    conf.getOption("spark.app.name").contains("PySparkShell") ||
+      conf.getOption("spark.repl.class.outputDir").nonEmpty
   }
 }
 
