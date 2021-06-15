@@ -41,6 +41,7 @@ object GenerateDot {
   private val GPU_COLOR = "#76b900" // NVIDIA Green
   private val CPU_COLOR = "#0071c5"
   private val TRANSITION_COLOR = "red"
+  private val maxDotFileLabelLength = 16384
 
   /**
    * Generate a query plan visualization in dot format.
@@ -56,7 +57,8 @@ object GenerateDot {
     comparisonPlan: Option[QueryPlanWithMetrics],
     fileWriter: ToolTextFileWriter,
     sqlId: Long,
-    appId: String
+    appId: String,
+    outputDir: String
   ): Unit = {
 
     val fileName  = s"$sqlId.dot"
@@ -171,21 +173,21 @@ object GenerateDot {
       }
     }
 
-    val leftAlignedLabel =
-      s"""
-         |Application: $appId
-         |Query: $sqlId
-         |
-         |$physicalPlanString"""
-          .stripMargin
-          .replace("\n", "\\l")
-
+    val sqlPlanFile = s"file://$outputDir/planDescriptions-$appId"
     // write the dot graph to a file
     fileWriter.write(
       s"""digraph G {
          |
-         |label="$leftAlignedLabel"
-         |labelloc=b
+         |label=<
+         |<table border="0" align="left">
+         |<tr><td>Application: $appId, Query: $sqlId</td></tr>
+         |<tr><td align="text" href="$sqlPlanFile">
+         |Add --print-plans and open the link to locate <font color="blue">
+         |<u>Plan for SQL ID : $sqlId</u></font>
+         |</td></tr>
+         |</table>
+         |>
+         |labelloc=t
          |fontname=Courier
          |
          |""".stripMargin)

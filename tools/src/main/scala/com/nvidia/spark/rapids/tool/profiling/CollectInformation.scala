@@ -149,7 +149,7 @@ class CollectInformation(apps: ArrayBuffer[ApplicationInfo],
           try {
             val metrics = map.getOrElse(sqlID, Seq.empty).toMap
             GenerateDot.generateDotGraph(QueryPlanWithMetrics(planInfo, metrics),
-              physicalPlan, None, dotFileWriter, sqlID, app.appId)
+              physicalPlan, None, dotFileWriter, sqlID, app.appId, outputDirectory)
           } finally {
             dotFileWriter.close()
           }
