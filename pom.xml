@@ -600,7 +600,7 @@
                 <rat.consoleOutput>true</rat.consoleOutput>
                 <parquet.hadoop.version>1.12.0</parquet.hadoop.version>
                 <spark.shim.sources>${spark330db.sources}</spark.shim.sources>
-                <iceberg.version>${spark330db.iceberg.version}</iceberg.version>
+                <iceberg.version>${spark330.iceberg.version}</iceberg.version>
                 <spark.shim.test.sources>${project.basedir}/src/test/${buildver}/scala</spark.shim.test.sources>
             </properties>
             <modules>
