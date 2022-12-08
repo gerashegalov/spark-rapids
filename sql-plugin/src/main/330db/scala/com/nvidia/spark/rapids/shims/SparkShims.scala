@@ -16,13 +16,17 @@
 
 package com.nvidia.spark.rapids.shims
 
+import com.databricks.sql.execution.window.RunningWindowFunctionExec
+
 import com.nvidia.spark.rapids._
 import org.apache.parquet.schema.MessageType
 
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.trees.TreePattern._
+import org.apache.spark.sql.execution._
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFilters
+import org.apache.spark.sql.execution.window.WindowExecBase
 
 object SparkShimImpl extends Spark320PlusShims
   with Spark321PlusDBShims
@@ -45,6 +49,30 @@ object SparkShimImpl extends Spark320PlusShims
     new ParquetFilters(schema, pushDownDate, pushDownTimestamp, pushDownDecimal, pushDownStartWith,
       pushDownInFilterThreshold, caseSensitive, datetimeRebaseMode)
   }
+
+  override def isWindowFunctionExec(plan: SparkPlan): Boolean =
+    plan.isInstanceOf[WindowExecBase] || plan.isInstanceOf[RunningWindowFunctionExec]
+
+  private val shimExecs: Map[Class[_ <: SparkPlan], ExecRule[_ <: SparkPlan]] = {
+    Seq(
+      GpuOverrides.exec[RunningWindowFunctionExec](
+        "Databricks-specific window function exec, for \"running\" windows, " +
+            "i.e. (UNBOUNDED PRECEDING TO CURRENT ROW)",
+        ExecChecks(
+          (TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128 +
+              TypeSig.STRUCT + TypeSig.ARRAY + TypeSig.MAP).nested(),
+          TypeSig.all,
+          Map("partitionSpec" ->
+              InputCheck(TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128,
+                TypeSig.all))),
+        (runningWindowFunctionExec, conf, p, r) =>
+          new GpuRunningWindowExecMeta(runningWindowFunctionExec, conf, p, r)
+      )
+    ).map(r => (r.getClassFor.asSubclass(classOf[SparkPlan]), r)).toMap
+  }
+
+  override def getExecs: Map[Class[_ <: SparkPlan], ExecRule[_ <: SparkPlan]] =
+    super.getExecs ++ shimExecs
 }
 
 trait ShimExtractValue extends ExtractValue {
