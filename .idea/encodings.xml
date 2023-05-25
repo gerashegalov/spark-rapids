@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/aggregator/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/aggregator/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/api_validation/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/api_validation/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/delta-lake/delta-20x/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/delta-lake/delta-20x/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/delta-lake/delta-stub/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/delta-lake/delta-stub/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/dist/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/dist/target/extra-resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/integration_tests/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/integration_tests/target/extra-resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/python" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/shuffle-plugin/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/shuffle-plugin/target/spark311/extra-resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/shuffle-plugin/target/spark320/extra-resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/sql-plugin/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/sql-plugin/target/spark311/extra-resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/sql-plugin/target/spark320/extra-resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/target/spark311/extra-resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/tests/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/tests/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/udf-compiler/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/udf-compiler/target/spark311/extra-resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/udf-compiler/target/spark320/extra-resources" charset="UTF-8" />
+  </component>
+</project>
