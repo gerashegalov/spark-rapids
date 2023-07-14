@@ -164,13 +164,13 @@
 
     <build>
         <plugins>
-	    <plugin>
-		<groupId>net.alchim31.maven</groupId>
-            <artifactId>scala-maven-plugin</artifactId>
-            <configuration>
-			    <mainClass>com.nvidia.spark.rapids.api.ApiValidation</mainClass>
-            </configuration>
-	    </plugin>
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.nvidia.spark.rapids.api.ApiValidation</mainClass>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

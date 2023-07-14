@@ -344,6 +344,20 @@
         </resources>
         <plugins>
             <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-scaladocs</id>
+                        <!-- TODO
+                        attach-scaladocs triggers rexecution of all plugins but it's not needed
+                        to begin with
+                        -->
+                        <phase>none</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>3.2.0</version>
@@ -570,7 +584,6 @@ self.log("... OK")
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-install-plugin</artifactId>
-                <version>3.0.1</version>
                 <executions>
                     <execution>
                         <id>default-install</id>
