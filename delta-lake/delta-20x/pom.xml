@@ -21,9 +21,8 @@
 
     <parent>
         <groupId>com.nvidia</groupId>
-        <artifactId>rapids-4-spark-parent</artifactId>
+        <artifactId>rapids-4-spark-delta-parent</artifactId>
         <version>23.08.0-SNAPSHOT</version>
-        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>rapids-4-spark-delta-20x_2.12</artifactId>
@@ -31,20 +30,7 @@
     <description>Delta Lake 2.0.x support for the RAPIDS Accelerator for Apache Spark</description>
     <version>23.08.0-SNAPSHOT</version>
 
-    <properties>
-        <rapids.compressed.artifact>false</rapids.compressed.artifact>
-        <rapids.default.jar.excludePattern>**/*</rapids.default.jar.excludePattern>
-        <rapids.shim.jar.phase>package</rapids.shim.jar.phase>
-    </properties>
-
     <dependencies>
-        <dependency>
-            <groupId>com.nvidia</groupId>
-            <artifactId>rapids-4-spark-sql_${scala.binary.version}</artifactId>
-            <version>${project.version}</version>
-            <classifier>${spark.version.classifier}</classifier>
-            <scope>provided</scope>
-        </dependency>
         <dependency>
             <groupId>io.delta</groupId>
             <artifactId>delta-core_2.12</artifactId>

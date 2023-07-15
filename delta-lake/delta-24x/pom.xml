@@ -21,9 +21,8 @@
 
     <parent>
         <groupId>com.nvidia</groupId>
-        <artifactId>rapids-4-spark-parent</artifactId>
+        <artifactId>rapids-4-spark-delta-parent</artifactId>
         <version>23.08.0-SNAPSHOT</version>
-        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>rapids-4-spark-delta-24x_2.12</artifactId>
@@ -31,53 +30,12 @@
     <description>Delta Lake 2.4.x support for the RAPIDS Accelerator for Apache Spark</description>
     <version>23.08.0-SNAPSHOT</version>
 
-    <properties>
-        <rapids.compressed.artifact>false</rapids.compressed.artifact>
-        <rapids.default.jar.excludePattern>**/*</rapids.default.jar.excludePattern>
-        <rapids.shim.jar.phase>package</rapids.shim.jar.phase>
-    </properties>
-
     <dependencies>
-        <dependency>
-            <groupId>com.nvidia</groupId>
-            <artifactId>rapids-4-spark-sql_${scala.binary.version}</artifactId>
-            <version>${project.version}</version>
-            <classifier>${spark.version.classifier}</classifier>
-            <scope>provided</scope>
-        </dependency>
         <dependency>
             <groupId>io.delta</groupId>
             <artifactId>delta-core_2.12</artifactId>
             <version>2.4.0</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-sql_${scala.binary.version}</artifactId>
-        </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>add-common-sources</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>${project.basedir}/../common/src/main/scala</source>
-                                <source>${project.basedir}/../common/src/main/delta-io/scala</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 </project>
