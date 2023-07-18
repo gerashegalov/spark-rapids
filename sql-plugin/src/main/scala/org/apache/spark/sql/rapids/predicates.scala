@@ -209,6 +209,7 @@ case class GpuEqualTo(left: Expression, right: Expression) extends CudfBinaryCom
   override def outputTypeOverride: DType = DType.BOOL8
   override def binaryOp: BinaryOp = BinaryOp.EQUAL
 
+  // comment 3
   override def doColumnar(lhs: GpuColumnVector, rhs: GpuColumnVector): ColumnVector = {
     evaluateAndFixFloatingPointResult(super.doColumnar(lhs, rhs), lhs.getBase.isNan,
       rhs.getBase.isNan)

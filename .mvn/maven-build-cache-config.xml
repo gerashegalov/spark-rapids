@@ -20,7 +20,7 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/BUILD-CACHE-CONFIG/1.0.0 http://maven.apache.org/xsd/cache-config-1.0.0.xsd">
     <configuration>
-        <enabled>true</enabled>
+        <enabled>false</enabled>
         <hashAlgorithm>XX</hashAlgorithm>
     </configuration>
     <input>
@@ -42,6 +42,8 @@
                 <plugin artifactId="scalatest-maven-plugin" goal="test">
                     <reconciles>
                         <reconcile propertyName="skipTests" skipValue="true"/>
+                        <reconcile propertyName="suites"/>
+                        <reconcile propertyName="wildcardSuites"/>
                     </reconciles>
                 </plugin>
             </plugins>

@@ -41,7 +41,7 @@ class CastOpSuite extends GpuExpressionTestSuite with BeforeAndAfterAll {
   override def afterAll(): Unit = {
     TrampolineUtil.cleanupAnyExistingSession()
   }
-
+//none
   private val sparkConf = new SparkConf()
     .set(RapidsConf.ENABLE_CAST_FLOAT_TO_INTEGRAL_TYPES.key, "true")
     .set(RapidsConf.ENABLE_CAST_STRING_TO_FLOAT.key, "true")

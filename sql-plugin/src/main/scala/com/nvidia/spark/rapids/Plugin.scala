@@ -221,6 +221,7 @@ object RapidsPluginUtils extends Logging {
  * The Spark driver plugin provided by the RAPIDS Spark plugin.
  */
 class RapidsDriverPlugin extends DriverPlugin with Logging {
+  System.err.println("GERA_DEBUG test 1")
   var rapidsShuffleHeartbeatManager: RapidsShuffleHeartbeatManager = null
   private lazy val extraDriverPlugins =
     RapidsPluginUtils.extraPlugins.map(_.driverPlugin()).filterNot(_ == null)
@@ -294,7 +295,7 @@ class RapidsExecutorPlugin extends ExecutorPlugin with Logging {
       extraConf: java.util.Map[String, String]): Unit = {
     try {
       if (Cuda.getComputeCapabilityMajor < 6) {
-        throw new RuntimeException(s"GPU compute capability ${Cuda.getComputeCapabilityMajor}" + 
+        throw new RuntimeException(s"GPU compute capability ${Cuda.getComputeCapabilityMajor}" +
           " is unsupported, requires 6.0+")
       }
       // if configured, re-register checking leaks hook.
