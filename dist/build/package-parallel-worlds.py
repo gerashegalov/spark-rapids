@@ -72,19 +72,25 @@ for bv in buildver_list:
             shell_exec(mvn_cmd)
 
         dist_dir = os.sep.join([project_basedir, 'dist'])
-        with open(os.sep.join([dist_dir, 'unshimmed-common-from-spark311.txt']), 'r') as f:
-            from_spark311 = f.read().splitlines()
-        with open(os.sep.join([dist_dir, 'unshimmed-from-each-spark3xx.txt']), 'r') as f:
-            from_each = f.read().splitlines()
         with zipfile.ZipFile(os.sep.join([deps_dir, art_jar]), 'r') as zip_handle:
             if project.getProperty('should.build.conventional.jar'):
                 zip_handle.extractall(path=top_dist_jar_dir)
             else:
-                zip_handle.extractall(path=os.sep.join([top_dist_jar_dir, classifier]))
-                # IMPORTANT unconditional extract from first to the top
-                if bv == buildver_list[0] and art == 'sql-plugin-api':
-                    zip_handle.extractall(path=top_dist_jar_dir)
-                # TODO deprecate
+                parallel_world_path = os.sep.join([top_dist_jar_dir, classifier])
+                zip_handle.extractall(parallel_world_path)
+                # IMPORTANT extract from first to the top based on the list compiles in sql-plugin-api
+                if bv == buildver_list[0]:
+                    nonshimmable_path = os.sep.join([parallel_world_path, 'rapids4spark-nonshimmable.txt'])
+                    with open(nonshimmable_path, 'r') as nonshimmable_generated_by_api_module:
+                        generated_nonshimmable_list = nonshimmable_generated_by_api_module.read().splitlines()
+                    print("#### GERA_DEBUG %s" % generated_nonshimmable_list)
+                    zip_handle.extractall(path=top_dist_jar_dir, members=generated_nonshimmable_list)
+                # deprecating explicit pattern lists checked in git
+                # last PR completing the move to sql-plugin-api should remove the code below
+                with open(os.sep.join([dist_dir, 'unshimmed-common-from-spark311.txt']), 'r') as f:
+                    from_spark311 = f.read().splitlines()
+                with open(os.sep.join([dist_dir, 'unshimmed-from-each-spark3xx.txt']), 'r') as f:
+                    from_each = f.read().splitlines()
                 namelist = zip_handle.namelist()
                 matching_members = []
                 glob_list = from_spark311 + from_each if bv == buildver_list[0] else from_each

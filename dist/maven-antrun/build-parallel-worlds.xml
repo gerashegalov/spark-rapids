@@ -77,7 +77,7 @@
             src="${project.basedir}/build/package-parallel-worlds.py">
             <attribute name="artifact_csv"/>
         </scriptdef>
-        <doCopyDependencies artifact_csv="sql-plugin-api,aggregator"/>
+        <doCopyDependencies artifact_csv="aggregator"/>
     </target>
     <target name="build-parallel-worlds"
             depends="copy-dependencies"

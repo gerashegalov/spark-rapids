@@ -238,47 +238,6 @@
         </resources>
         <plugins>
             <plugin>
-              <artifactId>maven-antrun-plugin</artifactId>
-              <executions>
-                <execution>
-                  <id>copy-notice</id>
-                  <goals>
-                    <goal>run</goal>
-                  </goals>
-                  <phase>process-resources</phase>
-                  <configuration>
-                    <target>
-                      <!-- copy NOTICE-binary to NOTICE -->
-                      <copy
-                          todir="${project.build.directory}/classes/META-INF/"
-                          verbose="true">
-                        <fileset dir="${project.basedir}/..">
-                          <include name="NOTICE-binary"/>
-                        </fileset>
-                        <mapper type="glob" from="*-binary" to="*"/>
-                      </copy>
-                    </target>
-                  </configuration>
-                </execution>
-                <execution>
-                  <id>generate-shim-service</id>
-                  <phase>generate-resources</phase>
-                  <goals>
-                      <goal>run</goal>
-                  </goals>
-                  <configuration>
-                      <target>
-                          <property name="servicesDir"
-                                    value="${project.build.directory}/extra-resources/META-INF/services"/>
-                          <mkdir dir="${servicesDir}"/>
-                          <echo file="${servicesDir}/com.nvidia.spark.rapids.SparkShimServiceProvider"
-                                message="com.nvidia.spark.rapids.shims.${spark.version.classifier}.SparkShimServiceProvider${line.separator}"/>
-                      </target>
-                  </configuration>
-                </execution>
-              </executions>
-            </plugin>
-            <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
             </plugin>
