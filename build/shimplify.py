@@ -198,6 +198,7 @@ __shim_dir_pattern = re.compile(r'spark\d{3}')
 __shim_comment_pattern = re.compile(re.escape(__opening_shim_tag) +
                                     r'\n(.*)\n' +
                                     re.escape(__closing_shim_tag), re.DOTALL)
+__package_pattern = re.compile('^package .+', re.MULTILINE)
 
 def __upsert_shim_json(filename, bv_list):
     with open(filename, 'r') as file:
@@ -361,6 +362,7 @@ def __generate_symlinks():
     for src_type in ['main', 'test']:
         __log.info("# generating symlinks for shim %s %s files", buildver, src_type)
         __traverse_source_tree_of_all_shims(
+            buildver,
             src_type,
             lambda src_type, path, build_ver_arr: __generate_symlink_to_file(buildver,
                                                                              src_type,
@@ -368,7 +370,7 @@ def __generate_symlinks():
                                                                              build_ver_arr))
 
 
-def __traverse_source_tree_of_all_shims(src_type, func):
+def __traverse_source_tree_of_all_shims(buildver, src_type, func):
     """Walks src/<src_type>/sparkXYZ"""
     base_dir = str(__project().getBaseDir())
     src_root = os.path.join(base_dir, 'src', src_type)
@@ -391,6 +393,12 @@ def __traverse_source_tree_of_all_shims(src_type, func):
                 __log.debug("extracted shims %s", build_ver_arr)
                 assert build_ver_arr == sorted(build_ver_arr),\
                     "%s shim list is not properly sorted" % shim_file_path
+                # package template?
+                package_match = __package_pattern.search(shim_file_txt)
+                package_line = package_match.group(0)
+                new_package_line = package_line.replace('${buildver}', buildver)
+                if package_line != new_package_line:
+                    __log.info("GERA_DEBUG: %s" % new_package_line)
                 func(src_type, shim_file_path, build_ver_arr)
 
 
