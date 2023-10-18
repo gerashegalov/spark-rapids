@@ -364,10 +364,8 @@ def __generate_symlinks():
         __traverse_source_tree_of_all_shims(
             buildver,
             src_type,
-            lambda src_type, path, build_ver_arr: __generate_symlink_to_file(buildver,
-                                                                             src_type,
-                                                                             path,
-                                                                             build_ver_arr))
+            lambda buildver, src_type, path, build_ver_arr:\
+                __generate_symlink_to_file(buildver, src_type, path, build_ver_arr))
 
 
 def __traverse_source_tree_of_all_shims(buildver, src_type, func):
@@ -393,13 +391,7 @@ def __traverse_source_tree_of_all_shims(buildver, src_type, func):
                 __log.debug("extracted shims %s", build_ver_arr)
                 assert build_ver_arr == sorted(build_ver_arr),\
                     "%s shim list is not properly sorted" % shim_file_path
-                # package template?
-                package_match = __package_pattern.search(shim_file_txt)
-                package_line = package_match.group(0)
-                new_package_line = package_line.replace('${buildver}', buildver)
-                if package_line != new_package_line:
-                    __log.info("GERA_DEBUG: %s" % new_package_line)
-                func(src_type, shim_file_path, build_ver_arr)
+                func(buildver, src_type, shim_file_path, build_ver_arr)
 
 
 def __generate_symlink_to_file(buildver, src_type, shim_file_path, build_ver_arr):
