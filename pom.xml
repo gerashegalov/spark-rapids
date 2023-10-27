@@ -544,6 +544,9 @@
                 <maven.compiler.source>11</maven.compiler.source>
                 <maven.compiler.target>11</maven.compiler.target>
             </properties>
+            <activation>
+                <jdk>11</jdk>
+            </activation>
         </profile>
         <profile>
             <id>jdk17</id>
@@ -553,6 +556,9 @@
                 <maven.compiler.source>17</maven.compiler.source>
                 <maven.compiler.target>17</maven.compiler.target>
             </properties>
+            <activation>
+                <jdk>17</jdk>
+            </activation>
         </profile>
         <profile>
             <id>scala-2.12</id>
@@ -1346,13 +1352,13 @@
                             <skip>${maven.cleanall.skip}</skip>
                             <target>
                                 <!-- #if scala-2.12 -->
-                                <dirset dir="${project.basedir}" 
+                                <dirset dir="${project.basedir}"
                                     includes="**/target"
                                     excludes="scala2.13/**"
                                     id="target.dirs.for.clean"/>
                                 <!-- #endif scala-2.12 -->
                                 <!-- #if scala-2.13 --><!--
-                                <dirset dir="${project.basedir}" 
+                                <dirset dir="${project.basedir}"
                                     includes="**/target"
                                     id="target.dirs.for.clean"/>
                                 --><!-- #endif scala-2.13 -->
