@@ -32,6 +32,7 @@ import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class CastOpSuite extends GpuExpressionTestSuite {
   import CastOpSuite._
 

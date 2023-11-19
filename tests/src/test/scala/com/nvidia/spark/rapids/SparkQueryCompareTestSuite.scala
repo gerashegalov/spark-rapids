@@ -82,6 +82,7 @@ object SparkSessionHolder extends Logging {
         .master("local[1]")
         .config("spark.sql.adaptive.enabled", "false")
         .config("spark.rapids.sql.enabled", "false")
+        .config("spark.rapids.memory.gpu.allocSize", "1536m")
         .config("spark.rapids.sql.test.enabled", "false")
         .config("spark.plugins", "com.nvidia.spark.SQLPlugin")
         .config("spark.sql.queryExecutionListeners",
@@ -1458,7 +1459,7 @@ trait SparkQueryCompareTestSuite extends AnyFunSuite with BeforeAndAfterAll {
       -9223183700000000000L
     ).toDF("longs")
   }
-  
+
   def datesPostEpochDf(session: SparkSession): DataFrame = {
     import session.sqlContext.implicits._
     Seq(

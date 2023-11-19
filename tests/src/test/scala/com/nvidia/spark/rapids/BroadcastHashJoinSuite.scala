@@ -22,6 +22,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.functions.broadcast
 import org.apache.spark.sql.rapids.execution.{GpuBroadcastHashJoinExec, GpuHashJoin}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class BroadcastHashJoinSuite extends SparkQueryCompareTestSuite {
 
   test("broadcast hint isn't propagated after a join") {

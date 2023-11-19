@@ -30,6 +30,7 @@ import org.apache.spark.sql.execution.ProjectExec
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class AnsiCastOpSuite extends GpuExpressionTestSuite {
 
   import CastOpSuite._
