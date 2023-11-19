@@ -29,6 +29,7 @@ import org.apache.spark.sql.rapids.execution.TrampolineUtil
 import org.apache.spark.sql.types.{DecimalType, DoubleType, IntegerType, StringType}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuPartitioningSuite extends AnyFunSuite {
   var rapidsConf = new RapidsConf(Map[String, String]())
 

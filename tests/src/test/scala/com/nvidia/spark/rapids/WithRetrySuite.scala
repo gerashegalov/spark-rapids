@@ -29,6 +29,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.{DataType, LongType}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class WithRetrySuite
     extends AnyFunSuite
         with BeforeAndAfterEach with MockitoSugar {
@@ -42,7 +43,7 @@ class WithRetrySuite
       spy(SpillableColumnarBatch(cb, -1))
     }
   }
-  
+
   private var rmmWasInitialized = false
 
   override def beforeEach(): Unit = {

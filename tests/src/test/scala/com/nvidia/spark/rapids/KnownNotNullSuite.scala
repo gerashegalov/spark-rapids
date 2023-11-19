@@ -22,6 +22,7 @@ import com.nvidia.spark.rapids.Arm.withResource
 
 import org.apache.spark.sql.functions.col
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class KnownNotNullSuite extends SparkQueryCompareTestSuite {
   // Technically "GpuKnownNotNull" itself supports all the types, although in reality it
   // is only ever going to use it on 8 primitive types(byte, short, int, long,

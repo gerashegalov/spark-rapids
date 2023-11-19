@@ -25,6 +25,7 @@ import org.apache.spark.sql.execution.{RangeExec, UnionExec}
 import org.apache.spark.sql.execution.exchange.{BroadcastExchangeExec, ReusedExchangeExec}
 import org.apache.spark.sql.execution.joins.{BroadcastHashJoinExec, HashedRelationBroadcastMode}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ReusedExchangeFixupSuite extends SparkQueryCompareTestSuite {
   /**
    * Tests reuse exchange fixup. Ideally this would be an integration test, but

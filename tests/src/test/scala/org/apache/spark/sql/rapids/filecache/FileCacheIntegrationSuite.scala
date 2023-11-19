@@ -24,6 +24,7 @@ import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.rapids.GpuFileSourceScanExec
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class FileCacheIntegrationSuite extends SparkQueryCompareTestSuite {
   import com.nvidia.spark.rapids.GpuMetric._
 

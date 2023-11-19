@@ -21,6 +21,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.apache.spark.sql.catalyst.dsl.expressions._
 import org.apache.spark.sql.catalyst.expressions.Literal
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class CanonicalizeSuite extends AnyFunSuite {
   /* In the future, if we decide to implement the Spark 3.3 algorithm to perform canonicalization
    * this unit test should still pass. We should use the implementation made in

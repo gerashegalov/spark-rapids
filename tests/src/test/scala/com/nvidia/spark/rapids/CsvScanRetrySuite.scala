@@ -21,6 +21,7 @@ import com.nvidia.spark.rapids.jni.RmmSpark
 
 import org.apache.spark.sql.types._
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class CsvScanRetrySuite extends RmmSparkRetrySuiteBase {
   test("test simple retry") {
     val bufferer = HostLineBuffererFactory.createBufferer(100, Array('\n'.toByte))

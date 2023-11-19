@@ -29,6 +29,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.rapids.ExecutionPlanCaptureCallback
 import org.apache.spark.sql.types.{DataType, DataTypes}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class HashAggregatesSuite extends SparkQueryCompareTestSuite {
   private def floatAggConf: SparkConf = enableCsvConf()
       .set(RapidsConf.ENABLE_FLOAT_AGG.key, "true")

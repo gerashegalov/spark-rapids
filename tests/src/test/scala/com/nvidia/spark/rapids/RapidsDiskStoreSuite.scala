@@ -32,6 +32,7 @@ import org.apache.spark.sql.types.{DataType, DecimalType, DoubleType, IntegerTyp
 import org.apache.spark.storage.{BlockId, ShuffleBlockId}
 
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class RapidsDiskStoreSuite extends FunSuiteWithTempDir with MockitoSugar {
 
   private def buildContiguousTable(): ContiguousTable = {

@@ -29,6 +29,7 @@ import org.apache.spark.sql.types.{DecimalType, DoubleType, IntegerType, StringT
  * Many of these tests were derived from SubexpressionEliminationSuite in Apache Spark,
  * and changed to use GPU expressions.
  */
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuEquivalentExpressionsSuite extends AnyFunSuite with Logging {
 
   test("Gpu Expression Equivalence - basic") {

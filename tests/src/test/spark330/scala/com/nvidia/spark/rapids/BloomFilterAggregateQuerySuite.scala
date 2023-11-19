@@ -38,6 +38,7 @@ import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.rapids.ExecutionPlanCaptureCallback
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class BloomFilterAggregateQuerySuite extends SparkQueryCompareTestSuite {
   val bloomFilterEnabledConf = new SparkConf()
   val funcId_bloom_filter_agg = new FunctionIdentifier("bloom_filter_agg")

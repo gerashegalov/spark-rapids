@@ -21,6 +21,7 @@ import scala.collection.mutable
 import com.nvidia.spark.rapids.Arm.withResource
 import com.nvidia.spark.rapids.jni.RmmSpark
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class RangeRetrySuite extends RmmSparkRetrySuiteBase {
   private val maxRows = 20
   private val start = BigInt(0)

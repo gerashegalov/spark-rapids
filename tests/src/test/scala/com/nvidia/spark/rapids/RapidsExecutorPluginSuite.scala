@@ -18,6 +18,7 @@ package com.nvidia.spark.rapids
 
 import org.scalatest.funsuite.AnyFunSuite
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class RapidsExecutorPluginSuite extends AnyFunSuite {
   test("cudf version check") {
     assert(RapidsExecutorPlugin.cudfVersionSatisfied("7", "7"))

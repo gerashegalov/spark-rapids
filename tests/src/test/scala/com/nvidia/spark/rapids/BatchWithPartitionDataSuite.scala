@@ -29,6 +29,7 @@ import org.apache.spark.unsafe.types.UTF8String
 /**
  * Unit tests for utility methods in [[ BatchWithPartitionDataUtils ]]
  */
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class BatchWithPartitionDataSuite extends RmmSparkRetrySuiteBase with SparkQueryCompareTestSuite {
 
   test("test splitting partition data into groups") {

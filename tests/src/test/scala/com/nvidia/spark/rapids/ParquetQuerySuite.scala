@@ -30,6 +30,7 @@ import org.apache.spark.sql.types._
  * This corresponds to the Spark class:
  * org.apache.spark.sql.execution.datasources.parquet.ParquetQuerySuite
  */
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ParquetQuerySuite extends SparkQueryCompareTestSuite {
 
   private def getSchema: StructType = new StructType(Array(

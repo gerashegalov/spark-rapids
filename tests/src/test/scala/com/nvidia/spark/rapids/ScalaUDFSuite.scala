@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022, NVIDIA CORPORATION.
+ * Copyright (c) 2021-2023, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import com.nvidia.spark.rapids.tests.udf.scala.{AlwaysTrueUDF, URLDecode, URLEnc
 
 import org.apache.spark.sql.functions.col
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ScalaUDFSuite extends SparkQueryCompareTestSuite {
   testSparkResultsAreEqual("Scala urldecode", nullableStringsFromCsv) { frame =>
     // This is a basic smoke-test of the Scala UDF framework, not an

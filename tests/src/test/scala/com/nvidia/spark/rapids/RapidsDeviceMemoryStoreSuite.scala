@@ -33,6 +33,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.apache.spark.sql.rapids.RapidsDiskBlockManager
 import org.apache.spark.sql.types.{DataType, DecimalType, DoubleType, IntegerType, StringType}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class RapidsDeviceMemoryStoreSuite extends AnyFunSuite with MockitoSugar {
   private def buildTable(): Table = {
     new Table.TestBuilder()

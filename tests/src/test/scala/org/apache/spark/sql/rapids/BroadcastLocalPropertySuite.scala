@@ -25,6 +25,7 @@ import org.apache.spark.sql.{Dataset, SparkSession}
 import org.apache.spark.sql.internal.StaticSQLConf
 import org.apache.spark.util.Utils
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class BroadcastLocalPropertySuite extends SparkQueryCompareTestSuite {
 
   private def withTable(spark: SparkSession, tableNames: String*)(f: => Unit): Unit = {

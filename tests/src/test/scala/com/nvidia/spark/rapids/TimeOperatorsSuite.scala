@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, NVIDIA CORPORATION.
+ * Copyright (c) 2020-2023, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.lang.RuntimeException
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.functions._
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class TimeOperatorsSuite extends SparkQueryCompareTestSuite {
   testSparkResultsAreEqual("Test from_unixtime", datesPostEpochDf) {
     frame => frame.select(from_unixtime(col("dates")))

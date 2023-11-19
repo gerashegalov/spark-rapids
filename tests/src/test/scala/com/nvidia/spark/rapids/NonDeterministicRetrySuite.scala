@@ -27,6 +27,7 @@ import org.apache.spark.sql.rapids.catalyst.expressions.GpuRand
 import org.apache.spark.sql.types.{DoubleType, IntegerType}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class NonDeterministicRetrySuite extends RmmSparkRetrySuiteBase {
   private val NUM_ROWS = 500
   private val RAND_SEED = 10

@@ -41,6 +41,7 @@ import org.apache.spark.sql.execution.{FilterExec, InSubqueryExec, LocalTableSca
  * physical plans with InSubqueryExec and manually invoke the GPU optimization rules
  * to make sure we're exercising GpuInSubqueryExec.
  */
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuInSubqueryExecSuite extends SparkQueryCompareTestSuite {
   private def readToPhysicalPlan(df: DataFrame): SparkPlan = {
     // Since we're building up the low-level plan manually, Spark won't

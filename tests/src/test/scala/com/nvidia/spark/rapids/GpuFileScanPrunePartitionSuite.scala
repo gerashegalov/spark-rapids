@@ -20,6 +20,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.rapids.GpuFileSourceScanExec
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuFileScanPrunePartitionSuite extends SparkQueryCompareTestSuite {
 
   private def testGpuFileScanOutput(

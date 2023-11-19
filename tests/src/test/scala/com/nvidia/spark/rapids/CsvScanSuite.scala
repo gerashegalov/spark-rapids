@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2022, NVIDIA CORPORATION.
+ * Copyright (c) 2019-2023, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import org.apache.spark.sql.functions.{col, date_add, lit}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.{StructField, StructType, TimestampType}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class CsvScanSuite extends SparkQueryCompareTestSuite {
   testSparkResultsAreEqual("Test CSV projection with whitespace delimiter between date and time",
       mixedTypesFromCsvWithHeader) {

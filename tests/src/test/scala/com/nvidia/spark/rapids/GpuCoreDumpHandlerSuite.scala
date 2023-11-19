@@ -31,6 +31,7 @@ import org.apache.spark.api.plugin.PluginContext
 import org.apache.spark.sql.rapids.execution.TrampolineUtil
 import org.apache.spark.util.SerializableConfiguration
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuCoreDumpHandlerSuite extends AnyFunSuite {
   private val WAIT_MSECS = TimeUnit.SECONDS.toMillis(10)
   private val APP_ID = "app-1234-567"

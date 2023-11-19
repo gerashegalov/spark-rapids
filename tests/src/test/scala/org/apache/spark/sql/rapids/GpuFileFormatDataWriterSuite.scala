@@ -37,6 +37,7 @@ import org.apache.spark.sql.rapids.GpuFileFormatWriter.GpuConcurrentOutputWriter
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 import org.apache.spark.sql.vectorized.{ColumnarBatch, ColumnVector}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuFileFormatDataWriterSuite extends AnyFunSuite with BeforeAndAfterEach {
   private var mockJobDescription: GpuWriteJobDescription = _
   private var mockTaskContext: TaskContext = _

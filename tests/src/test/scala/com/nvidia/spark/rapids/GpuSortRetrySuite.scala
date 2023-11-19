@@ -25,6 +25,7 @@ import org.apache.spark.sql.catalyst.expressions.{Ascending, AttributeReference,
 import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuSortRetrySuite extends RmmSparkRetrySuiteBase with MockitoSugar {
 
   private val ref = GpuBoundReference(0, IntegerType, nullable = false)(ExprId(0), "a")

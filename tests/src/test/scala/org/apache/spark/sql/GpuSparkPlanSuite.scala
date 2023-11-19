@@ -23,6 +23,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.catalyst.plans.logical.Range
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuSparkPlanSuite extends AnyFunSuite {
 
   test("leafNodeDefaultParallelism for GpuRangeExec") {

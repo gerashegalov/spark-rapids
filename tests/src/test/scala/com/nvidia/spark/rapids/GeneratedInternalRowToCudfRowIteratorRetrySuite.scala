@@ -29,6 +29,7 @@ import org.apache.spark.sql.catalyst.expressions.AttributeReference
 import org.apache.spark.sql.types.{DataType, LongType}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GeneratedInternalRowToCudfRowIteratorRetrySuite
     extends RmmSparkRetrySuiteBase
         with MockitoSugar {

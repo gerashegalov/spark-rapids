@@ -23,6 +23,7 @@ import org.apache.spark.sql.rapids.{GpuGreaterThan, GpuLength, GpuStringTrim}
 import org.apache.spark.sql.types.StringType
 
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class AstUtilSuite extends GpuUnitTests {
 
   private[this] def testSingleNode(containsNonAstAble: Boolean, crossMultiChildPlan: Boolean)

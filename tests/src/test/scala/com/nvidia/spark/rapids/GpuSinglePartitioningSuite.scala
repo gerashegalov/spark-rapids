@@ -27,6 +27,7 @@ import org.apache.spark.sql.rapids.{GpuShuffleEnv, RapidsDiskBlockManager}
 import org.apache.spark.sql.types.{DecimalType, DoubleType, IntegerType, StringType}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuSinglePartitioningSuite extends AnyFunSuite {
   private def buildBatch(): ColumnarBatch = {
     withResource(new Table.TestBuilder()

@@ -30,6 +30,7 @@ import org.apache.spark.sql.rapids.execution.{GpuBroadcastExchangeExecBase, Seri
 import org.apache.spark.sql.types.{DoubleType, FloatType, IntegerType, StringType}
 import org.apache.spark.sql.vectorized.{ColumnarBatch, ColumnVector}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class SerializationSuite extends AnyFunSuite
   with BeforeAndAfterAll {
 

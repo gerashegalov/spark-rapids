@@ -35,6 +35,7 @@ import org.apache.spark.sql.types._
 // Currently Pyspark does not support YearMonthIntervalType,
 // TODO move this to the integration test module, see issue
 //  https://github.com/NVIDIA/spark-rapids/issues/5212
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class IntervalDivisionSuite extends SparkQueryCompareTestSuite {
 
   testSparkResultsAreEqual(

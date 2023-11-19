@@ -19,6 +19,7 @@ package com.nvidia.spark.rapids.shuffle
 import com.nvidia.spark.rapids.shuffle.ucx.UCXConnection._
 import org.scalatest.funsuite.AnyFunSuite
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class UCXConnectionSuite extends AnyFunSuite {
   test("generate active message id") {
     Seq(0, 1, 2, 100000, Int.MaxValue).foreach { eId =>

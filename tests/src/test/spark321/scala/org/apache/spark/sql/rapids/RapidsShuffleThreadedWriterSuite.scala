@@ -145,6 +145,7 @@ class TestIndexShuffleBlockResolver(
   override def createTempFile(file: File): File = { null }
 }
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class RapidsShuffleThreadedWriterSuite extends AnyFunSuite
     with BeforeAndAfterEach
     with BeforeAndAfterAll

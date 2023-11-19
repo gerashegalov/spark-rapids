@@ -25,6 +25,7 @@ import org.scalatest.matchers.should.Matchers
 import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ImplicitsTestSuite extends AnyFlatSpec with Matchers {
   private class RefCountTest (i: Int, throwOnClose: Boolean) extends AutoCloseable {
     var closeAttempted: Boolean = false

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021, NVIDIA CORPORATION.
+ * Copyright (c) 2020-2023, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.util.NoSuchElementException
 
 import org.mockito.Mockito._
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class WindowedBlockIteratorSuite extends RapidsShuffleTestHelper {
   test ("empty iterator throws on next") {
     val wbi = new WindowedBlockIterator[BlockWithSize](Seq.empty, 1024)

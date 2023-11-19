@@ -32,6 +32,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.rapids.GpuAdd
 import org.apache.spark.sql.types._
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ProjectExprSuite extends SparkQueryCompareTestSuite {
   def forceHostColumnarToGpu(): SparkConf = {
     // turns off BatchScanExec, so we get a CPU BatchScanExec together with a HostColumnarToGpu

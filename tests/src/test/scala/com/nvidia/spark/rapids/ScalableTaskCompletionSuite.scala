@@ -21,6 +21,7 @@ import org.scalatestplus.mockito.MockitoSugar.mock
 
 import org.apache.spark.TaskContext
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ScalableTaskCompletionSuite extends AnyFunSuite {
   test("ScalableTaskCompletion prevents registering callbacks from a running callback") {
     val tc = mock[TaskContext]

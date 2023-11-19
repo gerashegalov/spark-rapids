@@ -28,6 +28,7 @@ import org.mockito.Mockito._
 
 import org.apache.spark.storage.ShuffleBlockBatchId
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class RapidsShuffleClientSuite extends RapidsShuffleTestHelper {
   def prepareBufferReceiveState(
       tableMeta: TableMeta,

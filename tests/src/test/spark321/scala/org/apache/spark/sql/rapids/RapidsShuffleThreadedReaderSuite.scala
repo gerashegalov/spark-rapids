@@ -73,6 +73,7 @@ class RecordingManagedBuffer(underlyingBuffer: NioManagedBuffer) extends Managed
   }
 }
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class RapidsShuffleThreadedReaderSuite
     extends AnyFunSuite with BeforeAndAfterAll {
 

@@ -30,6 +30,7 @@ import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuMultiFileReaderSuite extends AnyFunSuite {
 
   test("avoid infinite loop when host buffers empty") {

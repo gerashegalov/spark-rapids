@@ -20,6 +20,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class DeviceMemoryEventHandlerSuite extends RmmSparkRetrySuiteBase with MockitoSugar {
 
   test("a failed allocation should be retried if we spilled enough") {

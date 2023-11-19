@@ -26,6 +26,7 @@ import org.apache.spark.sql.catalyst.expressions.{Ascending, CurrentRow, ExprId,
 import org.apache.spark.sql.rapids.aggregate.GpuCount
 import org.apache.spark.sql.types.{DataType, DataTypes, IntegerType, LongType}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class WindowRetrySuite
     extends RmmSparkRetrySuiteBase
         with MockitoSugar {

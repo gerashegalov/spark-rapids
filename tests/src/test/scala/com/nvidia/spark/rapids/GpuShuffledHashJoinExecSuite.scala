@@ -31,6 +31,7 @@ import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
 /** Tests for the "prepareBuildBatchesForJoin" function. */
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuShuffledHashJoinExecSuite extends AnyFunSuite with MockitoSugar {
   private val metricMap = mock[Map[String, GpuMetric]]
   when(metricMap(any())).thenReturn(NoopMetric)

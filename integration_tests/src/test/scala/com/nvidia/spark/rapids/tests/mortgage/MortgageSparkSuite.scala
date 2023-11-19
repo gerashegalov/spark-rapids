@@ -22,6 +22,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class MortgageSparkSuite extends AnyFunSuite {
 
   /**

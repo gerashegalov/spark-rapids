@@ -37,6 +37,7 @@ import org.apache.spark.sql.types.{ArrayType, BooleanType, ByteType, IntegerType
  * Should move the year-month scala test cases to the integration test module,
  * filed an issue to track: https://github.com/NVIDIA/spark-rapids/issues/5212
  */
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class IntervalCastSuite extends SparkQueryCompareTestSuite {
   testSparkResultsAreEqual(
     "test cast year-month to integral",

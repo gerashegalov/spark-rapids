@@ -24,6 +24,7 @@ import ai.rapids.cudf.ColumnVector
 import com.nvidia.spark.rapids.Arm.withResource
 import org.scalatest.funsuite.AnyFunSuite
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class RebaseHelperSuite extends AnyFunSuite {
   test("all null timestamp days column rebase check") {
     withResource(ColumnVector.timestampDaysFromBoxedInts(null, null, null)) { c =>

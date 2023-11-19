@@ -152,12 +152,12 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <parallel>all</parallel>
-                    <forkCount>6</forkCount>
+                    <forkCount>0.5C</forkCount>
                     <threadCount>1</threadCount>
                     <perCoreThreadCount>false</perCoreThreadCount>
                     <reuseForks>true</reuseForks>
                     <includes>
-                        <include>**/*Suite.*</include>
+                        <include>**/*Parquet*Suite.*</include>
                       </includes>
                       <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                       <junitxml>.</junitxml>

@@ -40,6 +40,7 @@ import org.apache.spark.sql.rapids.metrics.source.MockTaskContext
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.vectorized.{ArrowColumnVector, ColumnarBatch}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuCoalesceBatchesSuite extends SparkQueryCompareTestSuite {
   val rapidsConf = new RapidsConf(Map.empty[String, String])
 

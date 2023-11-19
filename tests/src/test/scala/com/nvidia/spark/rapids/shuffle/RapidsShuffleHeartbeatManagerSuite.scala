@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, NVIDIA CORPORATION.
+ * Copyright (c) 2021-2023, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import org.mockito.Mockito._
 
 import org.apache.spark.sql.rapids.execution.TrampolineUtil
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class RapidsShuffleHeartbeatManagerSuite extends RapidsShuffleTestHelper {
   test("adding an executor") {
     val hbMgr = new RapidsShuffleHeartbeatManager(1000, 2000)

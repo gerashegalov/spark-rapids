@@ -36,6 +36,7 @@ import org.apache.spark.sql.types.{DayTimeIntervalType => DT}
  * Unit test cases for testing `GpuIntervalUtils.toDayTimeIntervalString`
  *
  */
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuIntervalUtilsTest extends AnyFunSuite {
 
   def testDayTimeToString(fromField: Byte, endField: Byte,

@@ -25,6 +25,7 @@ import org.apache.arrow.vector.IntVector
 import org.apache.spark.sql.types.{IntegerType, StructField, StructType}
 import org.apache.spark.sql.vectorized.{ArrowColumnVector, ColumnarBatch, ColumnVector}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class HostColumnToGpuRetrySuite extends RmmSparkRetrySuiteBase {
 
   private val schema = StructType(Seq(StructField("a", IntegerType)))

@@ -24,6 +24,7 @@ import org.apache.spark.sql.catalyst.plans.logical.{BROADCAST, HintInfo, Join, J
 import org.apache.spark.sql.rapids.TestTrampolineUtil
 import org.apache.spark.sql.types.BooleanType
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class JoinsSuite extends SparkQueryCompareTestSuite {
 
   testSparkResultsAreEqual2("Test broadcast hash join with ops", longsDf, nonZeroLongsDf,

@@ -23,9 +23,10 @@ import com.nvidia.spark.rapids.{GpuFilterExec, SparkQueryCompareTestSuite}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.FilterExec
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class OrcFilterSuite extends SparkQueryCompareTestSuite {
 
-  private def checkPredicatePushDown(spark: SparkSession, filepath: String, numRows: Int, 
+  private def checkPredicatePushDown(spark: SparkSession, filepath: String, numRows: Int,
       predicate: String): Unit = {
     val df = spark.read.orc(filepath).where(predicate)
     val schema = df.schema

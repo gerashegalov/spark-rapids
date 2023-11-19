@@ -26,6 +26,7 @@ import org.apache.spark.sql.rapids.execution.{GpuBatchSubPartitioner, GpuBatchSu
 import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuSubPartitionSuite extends SparkQueryCompareTestSuite {
   val attrs: java.util.List[Attribute] =
     java.util.Arrays.asList(AttributeReference("test", IntegerType)())

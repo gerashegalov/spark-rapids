@@ -38,6 +38,7 @@ import org.apache.spark.sql.types.{StructField, StructType, YearMonthIntervalTyp
  *   https://github.com/apache/spark/blob/branch-3.3/python/pyspark/sql/types.py
  * Put this test suite into Python tests module after Pyspark supports year month interval type.
  */
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class IntervalArithmeticSuite extends SparkQueryCompareTestSuite {
 
   private def getDfForNoOverflow(spark: SparkSession): DataFrame = {

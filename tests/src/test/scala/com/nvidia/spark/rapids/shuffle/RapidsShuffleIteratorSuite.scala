@@ -25,6 +25,7 @@ import org.mockito.Mockito._
 import org.apache.spark.shuffle.rapids.{RapidsShuffleFetchFailedException, RapidsShuffleTimeoutException}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class RapidsShuffleIteratorSuite extends RapidsShuffleTestHelper {
   test("inability to get a client raises a fetch failure") {
     val taskId = 1

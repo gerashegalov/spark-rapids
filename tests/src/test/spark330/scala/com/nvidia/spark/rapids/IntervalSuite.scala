@@ -32,6 +32,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
  * Can not put this suite to cache_test.py because of currently Pyspark not have year-month type.
  * See: https://github.com/apache/spark/blob/branch-3.3/python/pyspark/sql/types.py
  */
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class IntervalSuite extends SparkQueryCompareTestSuite {
 
   /**

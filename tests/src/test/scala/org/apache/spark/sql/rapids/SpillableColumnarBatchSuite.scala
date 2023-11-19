@@ -28,6 +28,7 @@ import org.apache.spark.sql.types.{DataType, IntegerType}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.storage.TempLocalBlockId
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class SpillableColumnarBatchSuite extends AnyFunSuite {
 
   test("close updates catalog") {

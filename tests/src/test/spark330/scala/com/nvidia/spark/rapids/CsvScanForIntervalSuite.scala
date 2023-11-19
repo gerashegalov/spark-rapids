@@ -31,6 +31,7 @@ import com.nvidia.spark.rapids.shims.GpuIntervalUtils
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.types.{DayTimeIntervalType, StructField, StructType}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class CsvScanForIntervalSuite extends SparkQueryCompareTestSuite {
   test("test castStringToDTInterval format valid") {
     withResource(ColumnVector.fromLongs(

@@ -34,6 +34,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
  * Should move the year-month scala test cases to the integration test module,
  * filed an issue to track: https://github.com/NVIDIA/spark-rapids/issues/5212
  */
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class SampleSuite extends SparkQueryCompareTestSuite {
   private def getDfForNoOverflow(spark: SparkSession): DataFrame = {
     import spark.implicits._

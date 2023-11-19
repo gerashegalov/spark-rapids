@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021, NVIDIA CORPORATION.
+ * Copyright (c) 2020-2023, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import org.apache.spark.sql.functions.{avg, sum}
 import org.apache.spark.sql.rapids.{GpuEqualTo, GpuGreaterThan, GpuGreaterThanOrEqual, GpuLessThan, GpuLessThanOrEqual}
 import org.apache.spark.sql.types.{DataTypes, Decimal, DecimalType}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class DecimalBinaryOpSuite extends GpuExpressionTestSuite {
   private val schema = FuzzerUtils.createSchema(Seq(
     DecimalType(DType.DECIMAL32_MAX_PRECISION, 3),

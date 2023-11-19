@@ -24,6 +24,7 @@ import org.apache.spark.sql.catalyst.expressions.{Expression, Nondeterministic}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuUnitTests extends SparkQueryCompareTestSuite {
 
   def EmptyBatch = new ColumnarBatch(null)

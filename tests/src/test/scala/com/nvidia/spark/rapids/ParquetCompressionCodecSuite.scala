@@ -24,6 +24,7 @@ import org.apache.parquet.hadoop.ParquetFileReader
 
 import org.apache.spark.SparkConf
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ParquetCompressionCodecSuite extends SparkQueryCompareTestSuite {
 
   test("Parquet compression codec, large data size") {

@@ -28,6 +28,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.apache.spark.sql.types.{ArrayType, DataType, DecimalType, DoubleType, IntegerType, StringType, StructField, StructType}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class MetaUtilsSuite extends AnyFunSuite {
   private val contiguousTableSparkTypes: Array[DataType] = Array(
     IntegerType,

@@ -42,6 +42,7 @@ import org.apache.spark.sql.rapids.execution.GpuSubqueryBroadcastExec
 import org.apache.spark.sql.types._
 
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class DynamicPruningSuite
     extends SparkQueryCompareTestSuite
     with AdaptiveSparkPlanHelper

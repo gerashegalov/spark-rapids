@@ -36,6 +36,7 @@ import org.apache.spark.sql.types._
  * This corresponds to the Spark class:
  * org.apache.spark.sql.execution.datasources.orc.OrcQueryTest
  */
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class OrcQuerySuite extends SparkQueryCompareTestSuite {
 
   private def getSchema: StructType = new StructType(Array(

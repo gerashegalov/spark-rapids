@@ -21,6 +21,7 @@ import org.scalatestplus.mockito.MockitoSugar
 
 import org.apache.spark.sql.rapids.RapidsDiskBlockManager
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ShuffleBufferCatalogSuite extends AnyFunSuite with MockitoSugar {
   test("registered shuffles should be active") {
     val catalog = mock[RapidsBufferCatalog]

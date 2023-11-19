@@ -25,6 +25,7 @@ import org.apache.spark.sql.rapids.ExecutionPlanCaptureCallback
 import org.apache.spark.sql.rapids.execution.GpuBroadcastHashJoinExec
 
 /** Test plan modifications to add optimizing sorts after hash joins in the plan */
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class HashSortOptimizeSuite extends SparkQueryCompareTestSuite with FunSuiteWithTempDir {
   private def buildDataFrame1(spark: SparkSession): DataFrame = {
     import spark.sqlContext.implicits._

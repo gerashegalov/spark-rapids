@@ -23,6 +23,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.rapids.GpuFileSourceScanExec
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class NoFileCacheIntegrationSuite extends SparkQueryCompareTestSuite {
   private val FILE_SPLITS_PARQUET = "file-splits.parquet"
   private val SCHEMA_CAN_PRUNE_ORC = "schema-can-prune.orc"

@@ -20,6 +20,7 @@ import java.nio.charset.Charset
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class RegularExpressionSuite extends SparkQueryCompareTestSuite {
 
   private val conf = new SparkConf()
@@ -116,13 +117,13 @@ class RegularExpressionSuite extends SparkQueryCompareTestSuite {
   }
 
   testSparkResultsAreEqual("String regexp_extract regex 1", extractStrings, conf = conf) {
-    frame => 
+    frame =>
       assume(isUnicodeEnabled())
       frame.selectExpr("regexp_extract(strings, '^([a-z]*)([0-9]*)([a-z]*)$', 1)")
   }
 
   testSparkResultsAreEqual("String regexp_extract regex 2", extractStrings, conf = conf) {
-    frame => 
+    frame =>
       assume(isUnicodeEnabled())
       frame.selectExpr("regexp_extract(strings, '^([a-z]*)([0-9]*)([a-z]*)$', 2)")
   }

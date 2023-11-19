@@ -35,6 +35,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.orc.{EncryptionAlgorithm, InMemoryKeystore}
 import org.apache.orc.impl.CryptoUtils
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class OrcEncryptionSuite extends SparkQueryCompareTestSuite {
 
   // Create an InMemoryKeystore provider and addKey `pii` to it.

@@ -30,6 +30,7 @@ import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.rapids.GpuToTimestamp.REMOVE_WHITESPACE_FROM_MONTH_DAY
 import org.apache.spark.sql.rapids.RegexReplace
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ParseDateTimeSuite extends SparkQueryCompareTestSuite with BeforeAndAfterEach {
 
   private val CORRECTED_TIME_PARSER_POLICY: SparkConf = new SparkConf()

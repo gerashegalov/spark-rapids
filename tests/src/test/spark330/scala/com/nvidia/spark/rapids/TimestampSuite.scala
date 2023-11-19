@@ -28,6 +28,7 @@ import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class TimestampSuite extends SparkQueryCompareTestSuite {
   val ansiConf = new SparkConf().set(SQLConf.ANSI_ENABLED.key, "true")
 

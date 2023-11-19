@@ -23,6 +23,7 @@ import org.apache.spark.{SparkConf, SparkEnv}
 import org.apache.spark.serializer.KryoSerializer
 import org.apache.spark.sql.rapids.execution.TrampolineUtil
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuKryoRegistratorSuite extends AnyFunSuite with BeforeAndAfter {
 
   before {

@@ -23,6 +23,7 @@ import com.nvidia.spark.rapids.GpuColumnVector.GpuColumnarBatchBuilder
 import org.apache.spark.sql.types.{BinaryType, StringType, StructField, StructType}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuColumnarToRowSuite extends SparkQueryCompareTestSuite {
   test("iterate past empty input batches") {
     val batchIter: Iterator[ColumnarBatch] = new Iterator[ColumnarBatch] {

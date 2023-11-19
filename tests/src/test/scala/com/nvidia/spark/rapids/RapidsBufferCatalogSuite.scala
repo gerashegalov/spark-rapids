@@ -31,6 +31,7 @@ import org.apache.spark.sql.rapids.RapidsDiskBlockManager
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class RapidsBufferCatalogSuite extends AnyFunSuite with MockitoSugar {
   test("lookup unknown buffer") {
     val catalog = new RapidsBufferCatalog

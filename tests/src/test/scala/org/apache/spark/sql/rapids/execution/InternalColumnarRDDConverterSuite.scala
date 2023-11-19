@@ -26,6 +26,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.catalyst.util.MapData
 import org.apache.spark.sql.types._
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class InternalColumnarRDDConverterSuite extends SparkQueryCompareTestSuite {
 
   def compareMapAndMapDate[K,V](map: collection.Map[K, V], mapData: MapData) = {

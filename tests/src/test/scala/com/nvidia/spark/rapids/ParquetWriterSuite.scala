@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2022, NVIDIA CORPORATION.
+ * Copyright (c) 2019-2023, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ import org.apache.spark.sql.rapids.shims.SparkUpgradeExceptionShims
 @scala.annotation.nowarn(
   "msg=method readFooters in class ParquetFileReader is deprecated"
 )
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ParquetWriterSuite extends SparkQueryCompareTestSuite {
   test("file metadata") {
     val tempFile = File.createTempFile("stats", ".parquet")
@@ -133,7 +134,7 @@ class ParquetWriterSuite extends SparkQueryCompareTestSuite {
           .map(f => f.getAbsolutePath())
           .filter(p => p.endsWith("parquet"))
           .map(p => {
-            assertRowCount50 (spark.read.parquet(p).count()) 
+            assertRowCount50 (spark.read.parquet(p).count())
           })
       })
     } finally {
@@ -159,7 +160,7 @@ class ParquetWriterSuite extends SparkQueryCompareTestSuite {
           .map(f => f.getAbsolutePath())
           .filter(p => p.endsWith("parquet"))
           .map(p => {
-            assertRowCount50 (spark.read.parquet(p).count()) 
+            assertRowCount50 (spark.read.parquet(p).count())
           })
       })
     } finally {

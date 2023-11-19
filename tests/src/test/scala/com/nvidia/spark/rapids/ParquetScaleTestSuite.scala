@@ -32,6 +32,7 @@ import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.sql.tests.datagen.{DBGen, TableGen}
 import org.apache.spark.sql.types._
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ParquetScaleTestSuite extends SparkQueryCompareTestSuite with Logging {
   private val sparkConf = new SparkConf()
       // for date time

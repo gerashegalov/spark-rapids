@@ -32,6 +32,7 @@ import org.apache.spark.SparkException
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class IntervalMultiplySuite extends SparkQueryCompareTestSuite {
   testSparkResultsAreEqual(
     "test year-month interval * integer num, normal case",

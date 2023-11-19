@@ -185,6 +185,7 @@ object TestCodepoints {
   }
 }
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class StringOperatorsSuite extends SparkQueryCompareTestSuite {
   INCOMPAT_testSparkResultsAreEqual("Test compatible values upper case modifier",
     TestCodepoints.uppercaseCompatibleCharsDF) {
@@ -197,6 +198,7 @@ class StringOperatorsSuite extends SparkQueryCompareTestSuite {
   }
 }
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class RegExpUtilsSuite extends AnyFunSuite {
   test("get list of choices from regexp for multi-replace") {
     val regexChoices = Map(
@@ -220,11 +222,12 @@ class RegExpUtilsSuite extends AnyFunSuite {
   }
 }
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class FormatNumberSuite extends SparkQueryCompareTestSuite {
   def testFormatNumberDf(session: SparkSession): DataFrame = {
     import session.sqlContext.implicits._
     Seq[java.lang.Float](
-      -0.0f, 
+      -0.0f,
       0.0f,
       Float.PositiveInfinity,
       Float.NegativeInfinity,
@@ -239,7 +242,7 @@ class FormatNumberSuite extends SparkQueryCompareTestSuite {
     ).toDF("doubles")
   }
 
-  testSparkResultsAreEqual("Test format_number float", 
+  testSparkResultsAreEqual("Test format_number float",
   testFormatNumberDf,
   conf = new SparkConf().set("spark.rapids.sql.formatNumberFloat.enabled", "true")) {
     frame => frame.selectExpr("format_number(doubles, -1)",
@@ -254,6 +257,7 @@ class FormatNumberSuite extends SparkQueryCompareTestSuite {
 * differences present.
 */
 @Ignore
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class StringOperatorsDiagnostics extends SparkQueryCompareTestSuite {
   def generateResults(gen : org.apache.spark.sql.Column => org.apache.spark.sql.Column):
       (Array[Row], Array[Row]) = {

@@ -22,6 +22,7 @@ import org.apache.spark.sql.expressions.{Window, WindowSpec}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.DecimalType
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class WindowFunctionSuite extends SparkQueryCompareTestSuite {
   // The logical plan optimizer in Spark 3.0.x is non-deterministic when planning windows
   // over the same range, so avoid trying to compare canonicalized plans on Spark 3.0.x

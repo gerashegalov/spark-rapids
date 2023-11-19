@@ -33,8 +33,9 @@ import org.apache.spark.sql.rapids.{TestArrayUDT, TestNestedStructUDT, TestPrimi
 import org.apache.spark.sql.rapids.TestingUDT._
 import org.apache.spark.sql.types._
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ParquetUDTSuite extends SparkQueryCompareTestSuite {
-  def writeUdtVec: (SparkSession, File) => Unit = 
+  def writeUdtVec: (SparkSession, File) => Unit =
     (spark, file) => {
       val df = spark.range(1).selectExpr(
         """NAMED_STRUCT(
@@ -52,7 +53,7 @@ class ParquetUDTSuite extends SparkQueryCompareTestSuite {
       df.write.parquet(file.getCanonicalPath)
     }
 
-  def readUdtVec: File => (SparkSession => DataFrame) = 
+  def readUdtVec: File => (SparkSession => DataFrame) =
     file => spark =>  {
       // specify schema
       val userDefinedSchema =
@@ -69,7 +70,7 @@ class ParquetUDTSuite extends SparkQueryCompareTestSuite {
     }
 
   def testUdtFallbackVec(nested: Boolean): Unit = {
-    testGpuReadFallback("reading UDT fallback in vectorized reader nested column " + 
+    testGpuReadFallback("reading UDT fallback in vectorized reader nested column " +
         (if (nested) "en" else "dis") + "abled",
       "FileSourceScanExec",
       readUdtVec,

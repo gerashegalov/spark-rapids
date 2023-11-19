@@ -17,6 +17,7 @@ package com.nvidia.spark.rapids
 
 import org.apache.spark.SparkConf
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class SortExecSuite extends SparkQueryCompareTestSuite {
   // force a sortMergeJoin
   private val sortJoinConf = new SparkConf().set("spark.sql.autoBroadcastJoinThreshold", "-1").

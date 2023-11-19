@@ -31,6 +31,7 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 
 /** Tests for field IDs in Parquet metadata */
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ParquetFieldIdSuite extends SparkQueryCompareTestSuite {
 
   private def withId(idx: Int): Metadata = {

@@ -29,6 +29,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.apache.spark.sql.rapids.GpuRegExpUtils
 import org.apache.spark.sql.types.DataTypes
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class RegularExpressionTranspilerSuite extends AnyFunSuite {
 
   test("transpiler detects invalid cuDF patterns that cuDF now supports") {

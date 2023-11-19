@@ -34,6 +34,7 @@ import org.apache.spark.sql.rapids.{ExecutionPlanCaptureCallback, GpuFileSourceS
 import org.apache.spark.sql.rapids.execution.GpuCustomShuffleReaderExec
 import org.apache.spark.sql.types.{ArrayType, DataTypes, DecimalType, IntegerType, StringType, StructField, StructType}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class AdaptiveQueryExecSuite
     extends SparkQueryCompareTestSuite
     with AdaptiveSparkPlanHelper

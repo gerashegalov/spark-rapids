@@ -30,6 +30,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.sql.types._
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class TimeZoneSuite extends SparkQueryCompareTestSuite {
   /**
    * create timestamp column vector

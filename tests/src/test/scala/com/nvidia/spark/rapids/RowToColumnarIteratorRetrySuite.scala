@@ -21,6 +21,7 @@ import com.nvidia.spark.rapids.jni.{RmmSpark, SplitAndRetryOOM}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types._
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class RowToColumnarIteratorRetrySuite extends RmmSparkRetrySuiteBase {
   private val schema = StructType(Seq(StructField("a", IntegerType)))
 

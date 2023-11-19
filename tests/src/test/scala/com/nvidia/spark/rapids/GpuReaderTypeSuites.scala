@@ -150,14 +150,17 @@ trait ReaderTypeSuite extends SparkQueryCompareTestSuite {
   }
 }
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuParquetReaderTypeSuites extends ReaderTypeSuite {
   override protected def format: String = "parquet"
 }
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuOrcReaderTypeSuites extends ReaderTypeSuite {
   override protected def format: String = "orc"
 }
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class GpuAvroReaderTypeSuites extends ReaderTypeSuite {
   override lazy val format: String = "avro"
   override lazy val otherConfs: Iterable[(String, String)] = Seq(

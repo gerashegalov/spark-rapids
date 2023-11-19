@@ -26,6 +26,7 @@ import org.apache.spark.sql.catalyst.plans.physical.{BroadcastDistribution, Broa
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.rapids.execution.JoinTypeChecks
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class DistributionSuite extends SparkQueryCompareTestSuite {
 
   test("test Custom BroadcastMode") {

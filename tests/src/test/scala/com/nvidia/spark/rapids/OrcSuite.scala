@@ -36,6 +36,7 @@ import org.apache.spark.sql.tests.datagen.BigDataGenConsts._
 import org.apache.spark.sql.tests.datagen.DBGen
 import org.apache.spark.sql.types.{DateType, TimestampType}
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class OrcSuite extends SparkQueryCompareTestSuite {
   test("Statistics tests for ORC files written by GPU") {
     assume(false, "blocked by cuDF issue: " +

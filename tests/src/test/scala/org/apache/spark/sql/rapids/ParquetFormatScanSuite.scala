@@ -44,6 +44,7 @@ import org.apache.spark.util.Utils
  * https://github.com/apache/parquet-format/blob/master/LogicalTypes.md
  * A lot of this testing code is based off of similar Spark tests.
  */
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ParquetFormatScanSuite extends SparkQueryCompareTestSuite with Eventually {
   implicit class RecordConsumerDSL(consumer: RecordConsumer) {
     def message(f: => Unit): Unit = {

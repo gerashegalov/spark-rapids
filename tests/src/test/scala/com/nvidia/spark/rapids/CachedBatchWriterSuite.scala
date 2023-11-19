@@ -44,6 +44,7 @@ import org.apache.spark.storage.StorageLevel.MEMORY_ONLY
 /**
  * Unit tests for cached batch writing
  */
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class CachedBatchWriterSuite extends SparkQueryCompareTestSuite {
 
   class TestResources extends AutoCloseable {

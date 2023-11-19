@@ -25,6 +25,7 @@ import org.apache.spark.sql.catalyst.expressions.{Ascending, AttributeReference,
 import org.apache.spark.sql.types.{DataType, IntegerType, StringType}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+@org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ShufflePartitionerRetrySuite extends RmmSparkRetrySuiteBase {
   private def buildBatch(): ColumnarBatch = {
     withResource(new Table.TestBuilder()
