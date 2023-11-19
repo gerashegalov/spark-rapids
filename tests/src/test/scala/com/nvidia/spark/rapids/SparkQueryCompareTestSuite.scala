@@ -82,7 +82,7 @@ object SparkSessionHolder extends Logging {
         .master("local[1]")
         .config("spark.sql.adaptive.enabled", "false")
         .config("spark.rapids.sql.enabled", "false")
-        .config("spark.rapids.memory.gpu.allocSize", "1536m")
+        .config("spark.rapids.memory.gpu.allocSize", "8192m")
         .config("spark.rapids.sql.test.enabled", "false")
         .config("spark.plugins", "com.nvidia.spark.SQLPlugin")
         .config("spark.sql.queryExecutionListeners",
