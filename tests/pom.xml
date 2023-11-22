@@ -152,10 +152,11 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <parallel>all</parallel>
-                    <forkCount>2</forkCount>
+                    <forkCount>${rapids.scalatest.forkCount}</forkCount>
+                    <enableProcessChecker>all</enableProcessChecker>
                     <threadCount>1</threadCount>
                     <perCoreThreadCount>false</perCoreThreadCount>
-                    <reuseForks>true</reuseForks>
+                    <reuseForks>${rapids.scalatest.forkReuse}</reuseForks>
                     <includes>
                         <include>**/*Suite.*</include>
                       </includes>

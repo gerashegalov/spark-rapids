@@ -22,17 +22,15 @@ import ai.rapids.cudf.{ColumnVector, HostMemoryBuffer, JCudfSerialization, Table
 import com.nvidia.spark.rapids.Arm._
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
-import org.scalatest.funsuite.AnyFunSuite
 import org.scalatestplus.mockito.MockitoSugar
 
-import org.apache.spark.SparkConf
 import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeReference}
 import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
 /** Tests for the "prepareBuildBatchesForJoin" function. */
 @org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
-class GpuShuffledHashJoinExecSuite extends AnyFunSuite with MockitoSugar {
+class GpuShuffledHashJoinExecSuite extends SparkQueryCompareTestSuite with MockitoSugar {
   private val metricMap = mock[Map[String, GpuMetric]]
   when(metricMap(any())).thenReturn(NoopMetric)
 
@@ -86,7 +84,7 @@ class GpuShuffledHashJoinExecSuite extends AnyFunSuite with MockitoSugar {
 
   test("test empty build iterator") {
     buildGoals.foreach { goal =>
-      TestUtils.withGpuSparkSession(new SparkConf()) { _ =>
+      withGpuSparkSession { _ =>
         testJoinPreparation(Iterator.empty, goal) { builtData =>
           assert(builtData.isLeft)
           // we get an empty batch
@@ -98,7 +96,7 @@ class GpuShuffledHashJoinExecSuite extends AnyFunSuite with MockitoSugar {
 
   test("test a batch of 0 cols and 0 rows") {
     buildGoals.foreach { goal =>
-      TestUtils.withGpuSparkSession(new SparkConf()) { _ =>
+      withGpuSparkSession { _ =>
         val buildIter = Iterator(GpuColumnVector.emptyBatchFromTypes(Array.empty))
         testJoinPreparation(buildIter, goal, Seq.empty) { builtData =>
           assert(builtData.isLeft)
@@ -110,7 +108,7 @@ class GpuShuffledHashJoinExecSuite extends AnyFunSuite with MockitoSugar {
 
   test("test a batch of 1 col and 0 rows") {
     buildGoals.foreach { goal =>
-      TestUtils.withGpuSparkSession(new SparkConf()) { _ =>
+      withGpuSparkSession { _ =>
         val buildIter = Iterator(GpuColumnVector.emptyBatchFromTypes(attrs.map(_.dataType)))
         testJoinPreparation(buildIter, goal) { builtData =>
           assert(builtData.isLeft)
@@ -123,7 +121,7 @@ class GpuShuffledHashJoinExecSuite extends AnyFunSuite with MockitoSugar {
 
   test("test a nonempty batch going over the limit") {
     buildGoals.foreach { goal =>
-      TestUtils.withGpuSparkSession(new SparkConf()) { _ =>
+      withGpuSparkSession { _ =>
         val buildIter = withResource(newOneIntColumnTable()) { testTable =>
           Iterator(GpuColumnVector.from(testTable, attrs.map(_.dataType)))
         }
@@ -143,7 +141,7 @@ class GpuShuffledHashJoinExecSuite extends AnyFunSuite with MockitoSugar {
 
   test("test two batches going over the limit") {
     buildGoals.foreach { goal =>
-      TestUtils.withGpuSparkSession(new SparkConf()) { _ =>
+      withGpuSparkSession { _ =>
         val buildIter = withResource(newOneIntColumnTable()) { testTable =>
           closeOnExcept(GpuColumnVector.from(testTable, attrs.map(_.dataType))) { batch1 =>
             Iterator(batch1, GpuColumnVector.from(testTable, attrs.map(_.dataType)))
@@ -187,7 +185,7 @@ class GpuShuffledHashJoinExecSuite extends AnyFunSuite with MockitoSugar {
 
   test("test a 0-column serialized batch, optimal case") {
     buildGoals.foreach { goal =>
-      TestUtils.withGpuSparkSession(new SparkConf()) { _ =>
+      withGpuSparkSession { _ =>
         val buildIter = Iterator(getSerializedBatch(5))
         testJoinPreparation(buildIter, goal, Seq.empty, optimalCase = true) { builtData =>
           assert(builtData.isLeft)
@@ -199,7 +197,7 @@ class GpuShuffledHashJoinExecSuite extends AnyFunSuite with MockitoSugar {
 
   test("test a serialized batch, optimal case") {
     buildGoals.foreach { goal =>
-      TestUtils.withGpuSparkSession(new SparkConf()) { _ =>
+      withGpuSparkSession { _ =>
         val buildIter = withResource(newOneIntColumnTable()) { tbl =>
           Iterator(getSerializedBatch(tbl))
         }
@@ -213,7 +211,7 @@ class GpuShuffledHashJoinExecSuite extends AnyFunSuite with MockitoSugar {
 
   test("test two serialized batches, going over the limit") {
     buildGoals.foreach { goal =>
-      TestUtils.withGpuSparkSession(new SparkConf()) { _ =>
+      withGpuSparkSession { _ =>
         val buildIter = withResource(newOneIntColumnTable()) { tbl =>
           closeOnExcept(getSerializedBatch(tbl)) { serializedBatch1 =>
             Iterator(serializedBatch1, getSerializedBatch(tbl))
@@ -235,7 +233,7 @@ class GpuShuffledHashJoinExecSuite extends AnyFunSuite with MockitoSugar {
 
   test("test two serialized batches, stating within the limit, optimal case") {
     buildGoals.foreach { goal =>
-      TestUtils.withGpuSparkSession(new SparkConf()) { _ =>
+      withGpuSparkSession { _ =>
         val buildIter = withResource(newOneIntColumnTable()) { tbl =>
           closeOnExcept(getSerializedBatch(tbl)) { serializedBatch1 =>
             Iterator(serializedBatch1, getSerializedBatch(tbl))

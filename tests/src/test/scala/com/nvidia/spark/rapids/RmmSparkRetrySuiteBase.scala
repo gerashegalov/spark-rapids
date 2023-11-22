@@ -20,12 +20,11 @@ import ai.rapids.cudf.{Rmm, RmmAllocationMode, RmmEventHandler}
 import com.nvidia.spark.rapids.jni.RmmSpark
 import org.mockito.Mockito.spy
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.funsuite.AnyFunSuite
 
 import org.apache.spark.sql.SparkSession
 
 @org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
-class RmmSparkRetrySuiteBase extends AnyFunSuite with BeforeAndAfterEach {
+class RmmSparkRetrySuiteBase extends SparkQueryCompareTestSuite with BeforeAndAfterEach {
   private var rmmWasInitialized = false
   protected var deviceStorage: RapidsDeviceMemoryStore = null
 

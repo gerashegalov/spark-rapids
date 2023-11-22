@@ -82,7 +82,6 @@ object SparkSessionHolder extends Logging {
         .master("local[1]")
         .config("spark.sql.adaptive.enabled", "false")
         .config("spark.rapids.sql.enabled", "false")
-        .config("spark.rapids.memory.gpu.allocSize", "8192m")
         .config("spark.rapids.sql.test.enabled", "false")
         .config("spark.plugins", "com.nvidia.spark.SQLPlugin")
         .config("spark.sql.queryExecutionListeners",
@@ -92,9 +91,11 @@ object SparkSessionHolder extends Logging {
 
     // comma separated config from command line
     val commandLineVariables = System.getenv("SPARK_CONF")
+    logError(s"GERA_DEBUG: commandLineVariables=${commandLineVariables}")
     if (commandLineVariables != null) {
       commandLineVariables.split(",").foreach { s =>
         val a = s.split("=")
+        logError(s"GERA_DEBUG: setting ${a(0)}=${a(1)}")
         builder.config(a(0), a(1))
       }
     }

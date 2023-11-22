@@ -20,7 +20,6 @@ import java.math.RoundingMode
 
 import ai.rapids.cudf.Table
 import com.nvidia.spark.rapids.Arm.withResource
-import org.scalatest.funsuite.AnyFunSuite
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.rapids.{GpuShuffleEnv, RapidsDiskBlockManager}
@@ -28,7 +27,7 @@ import org.apache.spark.sql.types.{DecimalType, DoubleType, IntegerType, StringT
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
 @org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
-class GpuSinglePartitioningSuite extends AnyFunSuite {
+class GpuSinglePartitioningSuite extends SparkQueryCompareTestSuite {
   private def buildBatch(): ColumnarBatch = {
     withResource(new Table.TestBuilder()
         .column(5, null.asInstanceOf[java.lang.Integer], 3, 1, 1, 1, 1, 1, 1, 1)
@@ -48,7 +47,7 @@ class GpuSinglePartitioningSuite extends AnyFunSuite {
       // set up as UCX because that's what triggers nvcomp
       .set("spark.rapids.shuffle.mode", RapidsConf.RapidsShuffleManagerMode.UCX.toString)
       .set(RapidsConf.SHUFFLE_COMPRESSION_CODEC.key, "none")
-    TestUtils.withGpuSparkSession(conf) { _ =>
+    withGpuSparkSession { _ =>
       GpuShuffleEnv.init(new RapidsConf(conf), new RapidsDiskBlockManager(conf))
       val partitioner = GpuSinglePartitioning
       withResource(buildBatch()) { batch =>

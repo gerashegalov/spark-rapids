@@ -17,14 +17,13 @@
 package com.nvidia.spark.rapids
 
 import org.scalatest.BeforeAndAfter
-import org.scalatest.funsuite.AnyFunSuite
 
 import org.apache.spark.{SparkConf, SparkEnv}
 import org.apache.spark.serializer.KryoSerializer
 import org.apache.spark.sql.rapids.execution.TrampolineUtil
 
 @org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
-class GpuKryoRegistratorSuite extends AnyFunSuite with BeforeAndAfter {
+class GpuKryoRegistratorSuite extends SparkQueryCompareTestSuite with BeforeAndAfter {
 
   before {
     TrampolineUtil.cleanupAnyExistingSession()
@@ -42,7 +41,7 @@ class GpuKryoRegistratorSuite extends AnyFunSuite with BeforeAndAfter {
       .set(RapidsConf.TEST_CONF.key, "true")
       .set(RapidsConf.EXPLAIN.key, "ALL")
 
-    TestUtils.withGpuSparkSession(conf) { spark =>
+    withGpuSparkSession ({ spark =>
       import spark.implicits._
       val matched = SparkEnv.get.serializer match {
         case _: KryoSerializer => true
@@ -63,7 +62,7 @@ class GpuKryoRegistratorSuite extends AnyFunSuite with BeforeAndAfter {
       val df = leftDf.join(rightDf.hint("broadcast"),
         leftDf("dept_name").equalTo(rightDf("dept_name")))
       df.collect()
-    }
+    }, conf)
   }
 
 }

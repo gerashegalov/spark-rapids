@@ -21,7 +21,6 @@ import java.math.RoundingMode
 
 import ai.rapids.cudf.{ColumnVector, Cuda, DType, Table}
 import com.nvidia.spark.rapids.Arm.withResource
-import org.scalatest.funsuite.AnyFunSuite
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.rapids.{GpuShuffleEnv, RapidsDiskBlockManager}
@@ -30,7 +29,7 @@ import org.apache.spark.sql.types.{DecimalType, DoubleType, IntegerType, StringT
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
 @org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
-class GpuPartitioningSuite extends AnyFunSuite {
+class GpuPartitioningSuite extends SparkQueryCompareTestSuite {
   var rapidsConf = new RapidsConf(Map[String, String]())
 
   private def buildBatch(): ColumnarBatch = {
@@ -113,7 +112,7 @@ class GpuPartitioningSuite extends AnyFunSuite {
   test("GPU partition") {
     TrampolineUtil.cleanupAnyExistingSession()
     val conf = new SparkConf().set(RapidsConf.SHUFFLE_COMPRESSION_CODEC.key, "none")
-    TestUtils.withGpuSparkSession(conf) { _ =>
+    withGpuSparkSession ({ _ =>
       GpuShuffleEnv.init(new RapidsConf(conf), new RapidsDiskBlockManager(conf))
       val partitionIndices = Array(0, 2, 2)
       val gp = new GpuPartitioning {
@@ -143,13 +142,13 @@ class GpuPartitioningSuite extends AnyFunSuite {
           }
         }
       }
-    }
+    }, conf)
   }
 
   test("GPU partition with compression") {
     val conf = new SparkConf()
         .set(RapidsConf.SHUFFLE_COMPRESSION_CODEC.key, "lz4")
-    TestUtils.withGpuSparkSession(conf) { _ =>
+    withGpuSparkSession ({ _ =>
       GpuShuffleEnv.init(new RapidsConf(conf), new RapidsDiskBlockManager(conf))
       val spillPriority = 7L
 
@@ -211,7 +210,7 @@ class GpuPartitioningSuite extends AnyFunSuite {
           }
         }
       }
-    }
+    }, conf)
   }
 }
 

@@ -23,23 +23,12 @@ import com.nvidia.spark.rapids.Arm.withResource
 import com.nvidia.spark.rapids.shims.SparkShimImpl
 import org.scalatest.Assertions
 
-import org.apache.spark.SparkConf
-import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec
-import org.apache.spark.sql.internal.SQLConf
-import org.apache.spark.sql.rapids.execution.TrampolineUtil
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
 /** A collection of utility methods useful in tests. */
 object TestUtils extends Assertions {
-  // Need to set a legacy config to allow clearing the active session
-  private val clearSessionConf = {
-    val conf = new SQLConf
-    conf.setConfString("spark.sql.legacy.allowModifyActiveSession", "true")
-    conf
-  }
-
   def getTempDir(basename: String): File = new File(
     System.getProperty("test.build.data", System.getProperty("java.io.tmpdir", "/tmp")),
     basename)
@@ -122,26 +111,6 @@ object TestUtils extends Assertions {
             }
           case _ => throw new UnsupportedOperationException("not implemented yet")
         }
-      }
-    }
-  }
-
-  def withGpuSparkSession(conf: SparkConf)(f: SparkSession => Unit): Unit = {
-    TrampolineUtil.cleanupAnyExistingSession()
-    val spark = SparkSession.builder()
-        .master("local[1]")
-        .config(conf)
-        .config(RapidsConf.SQL_ENABLED.key, "true")
-        .config("spark.plugins", "com.nvidia.spark.SQLPlugin")
-        .appName(classOf[GpuPartitioningSuite].getSimpleName)
-        .getOrCreate()
-    try {
-      f(spark)
-    } finally {
-      spark.stop()
-      SQLConf.withExistingConf(clearSessionConf) {
-        SparkSession.clearActiveSession()
-        SparkSession.clearDefaultSession()
       }
     }
   }

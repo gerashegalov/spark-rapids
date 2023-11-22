@@ -19,14 +19,13 @@ package com.nvidia.spark.rapids
 import ai.rapids.cudf.{Cuda, DeviceMemoryBuffer}
 import com.nvidia.spark.rapids.Arm.withResource
 import org.scalatest.BeforeAndAfter
-import org.scalatest.funsuite.AnyFunSuite
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.rapids.execution.TrampolineUtil
 
 @org.junit.runner.RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
-class GpuDeviceManagerSuite extends AnyFunSuite with BeforeAndAfter {
+class GpuDeviceManagerSuite extends SparkQueryCompareTestSuite with BeforeAndAfter {
 
   before {
     TrampolineUtil.cleanupAnyExistingSession()
@@ -50,7 +49,7 @@ class GpuDeviceManagerSuite extends AnyFunSuite with BeforeAndAfter {
         .set(RapidsConf.RMM_ALLOC_MIN_FRACTION.key, minPoolFraction.toString)
         .set(RapidsConf.RMM_ALLOC_MAX_FRACTION.key, maxPoolFraction.toString)
         .set(RapidsConf.RMM_ALLOC_RESERVE.key, "0")
-    TestUtils.withGpuSparkSession(conf) { _ =>
+    withGpuSparkSession ({ _ =>
       val poolSize = (freeGpuSize * poolFraction).toLong
       val allocSize = poolSize * 3 / 4
       assert(allocSize > 0)
@@ -61,7 +60,7 @@ class GpuDeviceManagerSuite extends AnyFunSuite with BeforeAndAfter {
           DeviceMemoryBuffer.allocate(allocSize).close()
         }
       }
-    }
+    }, conf)
   }
 
   test("RMM reserve larger than max") {
