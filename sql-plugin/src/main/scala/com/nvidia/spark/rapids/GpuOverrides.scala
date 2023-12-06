@@ -431,15 +431,12 @@ object WriteFileOp extends FileFormatOp {
 }
 
 object GpuOverrides extends Logging {
-  val FLOAT_DIFFERS_GROUP_INCOMPAT =
-    "when enabling these, there may be extra groups produced for floating point grouping " +
-    "keys (e.g. -0.0, and 0.0)"
   val CASE_MODIFICATION_INCOMPAT =
     "the Unicode version used by cuDF and the JVM may differ, resulting in some " +
     "corner-case characters not changing case correctly."
   val UTC_TIMEZONE_ID = ZoneId.of("UTC").normalized()
   // Based on https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
-  private[this] lazy val regexList: Seq[String] = Seq("\\", "\u0000", "\\x", "\t", "\n", "\r",
+  private[this] val regexList: Seq[String] = Seq("\\", "\u0000", "\\x", "\t", "\n", "\r",
     "\f", "\\a", "\\e", "\\cx", "[", "]", "^", "&", ".", "*", "\\d", "\\D", "\\h", "\\H", "\\s",
     "\\S", "\\v", "\\V", "\\w", "\\w", "\\p", "$", "\\b", "\\B", "\\A", "\\G", "\\Z", "\\z", "\\R",
     "?", "|", "(", ")", "{", "}", "\\k", "\\Q", "\\E", ":", "!", "<=", ">")
@@ -477,7 +474,7 @@ object GpuOverrides extends Logging {
   }
 
   // this listener mechanism is global and is intended for use by unit tests only
-  private lazy val listeners: ListBuffer[GpuOverridesListener] =
+  private val listeners: ListBuffer[GpuOverridesListener] =
     new ListBuffer[GpuOverridesListener]()
 
   def addListener(listener: GpuOverridesListener): Unit = {
@@ -845,12 +842,14 @@ object GpuOverrides extends Logging {
   def wrapExpr[INPUT <: Expression](
       expr: INPUT,
       conf: RapidsConf,
-      parent: Option[RapidsMeta[_, _, _]]): BaseExprMeta[INPUT] =
+      parent: Option[RapidsMeta[_, _, _]]): BaseExprMeta[INPUT] = {
+    val ruleNotFoundExprMeta = new RuleNotFoundExprMeta(expr, conf, parent)
     expressions.get(expr.getClass)
       .map(r => r.wrap(expr, conf, parent, r).asInstanceOf[BaseExprMeta[INPUT]])
-      .getOrElse(new RuleNotFoundExprMeta(expr, conf, parent))
+      .getOrElse(ruleNotFoundExprMeta)
+  }
 
-  lazy val fileFormats: Map[FileFormatType, Map[FileFormatOp, FileFormatChecks]] = Map(
+  val fileFormats: Map[FileFormatType, Map[FileFormatOp, FileFormatChecks]] = Map(
     (CsvFormatType, FileFormatChecks(
       cudfRead = TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 +
         GpuTypeShims.additionalCsvSupportedTypes,
@@ -3744,10 +3743,12 @@ object GpuOverrides extends Logging {
   def wrapScan[INPUT <: Scan](
       scan: INPUT,
       conf: RapidsConf,
-      parent: Option[RapidsMeta[_, _, _]]): ScanMeta[INPUT] =
+      parent: Option[RapidsMeta[_, _, _]]): ScanMeta[INPUT] = {
+    val ruleNotFoundScanMeta = new RuleNotFoundScanMeta(scan, conf, parent)
     scans.get(scan.getClass)
       .map(r => r.wrap(scan, conf, parent, r).asInstanceOf[ScanMeta[INPUT]])
-      .getOrElse(new RuleNotFoundScanMeta(scan, conf, parent))
+      .getOrElse(ruleNotFoundScanMeta)
+  }
 
   val commonScans: Map[Class[_ <: Scan], ScanRule[_ <: Scan]] = Seq(
     GpuOverrides.scan[CSVScan](
@@ -3793,10 +3794,12 @@ object GpuOverrides extends Logging {
   def wrapPart[INPUT <: Partitioning](
       part: INPUT,
       conf: RapidsConf,
-      parent: Option[RapidsMeta[_, _, _]]): PartMeta[INPUT] =
+      parent: Option[RapidsMeta[_, _, _]]): PartMeta[INPUT] = {
+    val ruleNotFoundPartMeta = new RuleNotFoundPartMeta(part, conf, parent)
     parts.get(part.getClass)
       .map(r => r.wrap(part, conf, parent, r).asInstanceOf[PartMeta[INPUT]])
-      .getOrElse(new RuleNotFoundPartMeta(part, conf, parent))
+      .getOrElse(ruleNotFoundPartMeta)
+  }
 
   val parts : Map[Class[_ <: Partitioning], PartRule[_ <: Partitioning]] = Seq(
     part[HashPartitioning](
@@ -3866,10 +3869,13 @@ object GpuOverrides extends Logging {
   def wrapDataWriteCmds[INPUT <: DataWritingCommand](
       writeCmd: INPUT,
       conf: RapidsConf,
-      parent: Option[RapidsMeta[_, _, _]]): DataWritingCommandMeta[INPUT] =
+      parent: Option[RapidsMeta[_, _, _]]): DataWritingCommandMeta[INPUT] = {
+    val ruleNotFoundDataWritingCommandMeta =
+      new RuleNotFoundDataWritingCommandMeta(writeCmd, conf, parent)
     dataWriteCmds.get(writeCmd.getClass)
       .map(r => r.wrap(writeCmd, conf, parent, r).asInstanceOf[DataWritingCommandMeta[INPUT]])
-      .getOrElse(new RuleNotFoundDataWritingCommandMeta(writeCmd, conf, parent))
+      .getOrElse(ruleNotFoundDataWritingCommandMeta)
+  }
 
   val commonDataWriteCmds: Map[Class[_ <: DataWritingCommand],
       DataWritingCommandRule[_ <: DataWritingCommand]] = Seq(
@@ -3895,10 +3901,26 @@ object GpuOverrides extends Logging {
   def wrapRunnableCmd[INPUT <: RunnableCommand](
       cmd: INPUT,
       conf: RapidsConf,
-      parent: Option[RapidsMeta[_, _, _]]): RunnableCommandMeta[INPUT] =
+      parent: Option[RapidsMeta[_, _, _]]): RunnableCommandMeta[INPUT] = {
+    val ruleNotFoundRunnableCommandMeta = try {
+      println(s"####### GERA_DEBUG: ShimLoader=" + ShimLoader.getShimClassLoader())
+      println("####### GERA_DEBUG: " + getClass + " " + getClass.getClassLoader)
+      println(s"####### GERA_DEBUG: " +
+        s"isThisClassLoaderAsShim=${getClass.getClassLoader == ShimLoader.getShimClassLoader()}")
+      val cls = ShimLoader.getShimClassLoader()
+        .loadClass("com.nvidia.spark.rapids.RuleNotFoundRunnableCommandMeta")
+      println(s"###### GERA_DEBUG: reflection load ${cls}")
+      new RuleNotFoundRunnableCommandMeta(cmd, conf, parent)
+    } catch {
+      case ncdfe: NoClassDefFoundError =>
+        println("####### GERA_DEBUG: " + getClass.getClassLoader
+          .getResource("com/nvidia/spark/rapids/RuleNotFoundRunnableCommandMeta.class"))
+        sys.error(s"GERA_DEBUG: debugging ${ncdfe}")
+    }
     runnableCmds.get(cmd.getClass)
         .map(r => r.wrap(cmd, conf, parent, r).asInstanceOf[RunnableCommandMeta[INPUT]])
-        .getOrElse(new RuleNotFoundRunnableCommandMeta(cmd, conf, parent))
+        .getOrElse(ruleNotFoundRunnableCommandMeta)
+  }
 
   val commonRunnableCmds: Map[Class[_ <: RunnableCommand],
     RunnableCommandRule[_ <: RunnableCommand]] =
@@ -3916,10 +3938,12 @@ object GpuOverrides extends Logging {
   def wrapPlan[INPUT <: SparkPlan](
       plan: INPUT,
       conf: RapidsConf,
-      parent: Option[RapidsMeta[_, _, _]]): SparkPlanMeta[INPUT]  =
+      parent: Option[RapidsMeta[_, _, _]]): SparkPlanMeta[INPUT]  = {
+    val ruleNotFoundSparkPlanMeta = new RuleNotFoundSparkPlanMeta(plan, conf, parent)
     execs.get(plan.getClass)
       .map(r => r.wrap(plan, conf, parent, r).asInstanceOf[SparkPlanMeta[INPUT]])
-      .getOrElse(new RuleNotFoundSparkPlanMeta(plan, conf, parent))
+      .getOrElse(ruleNotFoundSparkPlanMeta)
+  }
 
   val commonExecs: Map[Class[_ <: SparkPlan], ExecRule[_ <: SparkPlan]] = Seq(
     exec[GenerateExec] (
@@ -4300,9 +4324,12 @@ object GpuOverrides extends Logging {
     neverReplaceExec[ShuffleQueryStageExec]("Shuffle query stage")
   ).collect { case r if r != null => (r.getClassFor.asSubclass(classOf[SparkPlan]), r) }.toMap
 
-  lazy val execs: Map[Class[_ <: SparkPlan], ExecRule[_ <: SparkPlan]] =
+  val execs: Map[Class[_ <: SparkPlan], ExecRule[_ <: SparkPlan]] = {
+    println(s"##### GERA_DEBUG: initing execs in instance=${this} class=${getClass} " +
+      s" classloader=${getClass.getClassLoader} ")
     commonExecs ++ GpuHiveOverrides.execs ++ ExternalSource.execRules ++
       SparkShimImpl.getExecs // Shim execs at the end; shims get the last word in substitutions.
+  }
 
   def getTimeParserPolicy: TimeParserPolicy = {
     val policy = SQLConf.get.getConfString(SQLConf.LEGACY_TIME_PARSER_POLICY.key, "EXCEPTION")
@@ -4475,6 +4502,10 @@ object GpuOverrides extends Logging {
       case sub: SubqueryExec => prepareExplainOnly(sub.child)
     }
     planAfter
+  }
+
+  def init(): Unit = {
+    logDebug("Eagerly initialize GpuOverrides singleton")
   }
 }
 

@@ -179,7 +179,7 @@ object ShimLoader extends Logging {
     }
   }
 
-  def getShimClassLoader(): ClassLoader = {
+  def getShimClassLoader(): ClassLoader = this.synchronized {
     initShimProviderIfNeeded()
     if (pluginClassLoader == null) {
       updateSparkClassLoader()

@@ -47,8 +47,8 @@ class PluginException(msg: String) extends RuntimeException(msg)
 case class CudfVersionMismatchException(errorMsg: String) extends PluginException(errorMsg)
 
 case class ColumnarOverrideRules() extends ColumnarRule with Logging {
-  lazy val overrides: Rule[SparkPlan] = GpuOverrides()
-  lazy val overrideTransitions: Rule[SparkPlan] = new GpuTransitionOverrides()
+  val overrides: Rule[SparkPlan] = GpuOverrides()
+  val overrideTransitions: Rule[SparkPlan] = new GpuTransitionOverrides()
 
   override def preColumnarTransitions : Rule[SparkPlan] = overrides
 
@@ -348,7 +348,7 @@ object RapidsPluginUtils extends Logging {
  */
 class RapidsDriverPlugin extends DriverPlugin with Logging {
   var rapidsShuffleHeartbeatManager: RapidsShuffleHeartbeatManager = null
-  private lazy val extraDriverPlugins =
+  private val extraDriverPlugins =
     RapidsPluginUtils.extraPlugins.map(_.driverPlugin()).filterNot(_ == null)
 
   override def receive(msg: Any): AnyRef = {
@@ -397,6 +397,9 @@ class RapidsDriverPlugin extends DriverPlugin with Logging {
     logDebug("Loading extra driver plugins: " +
       s"${extraDriverPlugins.map(_.getClass.getName).mkString(",")}")
     extraDriverPlugins.foreach(_.init(sc, pluginContext))
+    // This is solely to eagerly initialize the rule map before SparkSessions
+    // to avoid concurrency while classloading
+    GpuOverrides.init()
     conf.rapidsConfMap
   }
 
@@ -415,7 +418,7 @@ class RapidsDriverPlugin extends DriverPlugin with Logging {
  */
 class RapidsExecutorPlugin extends ExecutorPlugin with Logging {
   var rapidsShuffleHeartbeatEndpoint: RapidsShuffleHeartbeatEndpoint = null
-  private lazy val extraExecutorPlugins =
+  private val extraExecutorPlugins =
     RapidsPluginUtils.extraPlugins.map(_.executorPlugin()).filterNot(_ == null)
 
   override def init(
