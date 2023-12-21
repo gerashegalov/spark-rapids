@@ -16,7 +16,7 @@ from asserts import assert_gpu_and_cpu_are_equal_collect
 from conftest import is_not_utc
 from data_gen import *
 from datetime import date, datetime, timezone
-from marks import ignore_order, allow_non_gpu
+from marks import ignore_order, datagen_overrides, allow_non_gpu
 import pytest
 from spark_session import is_databricks_runtime, is_databricks113_or_later
 
@@ -63,7 +63,8 @@ def get_ddl(col_gen_pairs):
 non_utc_allow_for_test_column_add_after_partition = ['ColumnarToRowExec', 'DataWritingCommandExec', 'ExecutedCommandExec', 'FileSourceScanExec', 'WriteFilesExec'] if is_not_utc() else []
 @ignore_order(local=True)
 @pytest.mark.parametrize("format", _formats)
-@allow_non_gpu(*non_utc_allow_for_test_column_add_after_partition)
+@pytest.mark.xfail(condition = is_not_utc(), reason = 'xfail non-UTC time zone tests because of https://github.com/NVIDIA/spark-rapids/issues/9653')
+@datagen_overrides(seed=0, reason='https://github.com/NVIDIA/spark-rapids/issues/9807')
 def test_column_add_after_partition(spark_tmp_table_factory, format):
     # Databricks 10.4 appears to be missing https://issues.apache.org/jira/browse/SPARK-39417
     # so avoid generating nulls for numeric partitions
