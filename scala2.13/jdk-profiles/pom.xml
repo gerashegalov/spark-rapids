@@ -35,7 +35,6 @@
             <properties>
                 <scala.plugin.version>4.7.1</scala.plugin.version>
                 <maven.compiler.source>1.8</maven.compiler.source>
-                <maven.compiler.target>1.8</maven.compiler.target>
             </properties>
             <activation>
                 <!-- activate for all java versions after 9 -->

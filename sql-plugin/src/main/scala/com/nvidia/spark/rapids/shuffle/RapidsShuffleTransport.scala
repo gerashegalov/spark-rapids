@@ -511,8 +511,13 @@ class RefCountedDirectByteBuffer(
  * A set of util functions used throughout
  */
 object TransportUtils {
-  val addressMethod = Class.forName("java.nio.DirectByteBuffer")
-    .getDeclaredMethod("address")
+  val addressMethod = {
+    val ret = Class.forName("java.nio.DirectByteBuffer")
+      .getDeclaredMethod("address")
+    ret.setAccessible(true)
+    ret
+  }
+
 
   def toHex(value: Long): String = {
     f"0x$value%016X"
