@@ -1366,7 +1366,7 @@ This will force full Scala code rebuild in downstream modules.
                         <checkMultipleScalaVersions>true</checkMultipleScalaVersions>
                         <failOnMultipleScalaVersions>true</failOnMultipleScalaVersions>
                         <recompileMode>${scala.recompileMode}</recompileMode>
-                        <release>8</release>
+                        <release>${java.major.version}</release>
                         <args>
                             <arg>-unchecked</arg>
                             <arg>-deprecation</arg>
