@@ -173,13 +173,22 @@ function verify_same_sha_for_unshimmed() {
   # TODO currently RapidsShuffleManager is "removed" from /spark* by construction in
   # dist pom.xml via ant. We could delegate this logic to this script
   # and make both simmpler
-  if [[ ! "$class_file_quoted" =~ (com/nvidia/spark/rapids/spark[34].*/.*ShuffleManager.class|org/apache/spark/sql/rapids/shims/spark[34].*/ProxyRapidsShuffleInternalManager.class) ]]; then
+  # TODO constant pool changes cause diffs with JDK17 cross-compiled to 8
+  case "$class_file_quoted" in
+    com/nvidia/spark/rapids/spark[34].*/.*ShuffleManager.class)
+      ;&
+    com/nvidia/spark/Retryable.class)
+      ;&
+    com/nvidia/spark/RapidsUDF.class)
+      ;;
 
-    if ! grep -q "/spark.\+/$class_file_quoted" "$SPARK_SHARED_TXT"; then
-      echo >&2 "$class_file is not bitwise-identical across shims"
-      exit 255
-    fi
-  fi
+    *)
+      if ! grep -q "/spark.\+/$class_file_quoted" "$SPARK_SHARED_TXT"; then
+        echo >&2 "$class_file is not bitwise-identical across shims"
+        exit 255
+      fi
+      ;;
+    esac
 }
 
 echo "$((++STEP))/ verifying unshimmed classes have unique sha1 across shims"

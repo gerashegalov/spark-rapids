@@ -755,7 +755,6 @@
         <allowConventionalDistJar>false</allowConventionalDistJar>
         <buildver>311</buildver>
         <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
         <java.major.version>8</java.major.version>
         <spark.version>${spark311.version}</spark.version>
         <spark.test.version>${spark.version}</spark.test.version>
@@ -775,7 +774,7 @@
         from various dependencies. Example @UDFType
         https://github.com/openjdk/jdk17/blob/4afbcaf55383ec2f5da53282a1547bac3d099e9d/src/jdk.compiler/share/classes/com/sun/tools/javac/resources/compiler.properties#L1993-L1994
         -->
-        <scala.javac.args>-Xlint:all,-serial,-path,-try,-processing|-Werror</scala.javac.args>
+        <scala.javac.args>-Xlint:all,-serial,-path,-try,-processing|-Werror|-bootclasspath|/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/rt.jar</scala.javac.args>
         <ucx.baseVersion>1.16.0</ucx.baseVersion>
         <roaringbitmap.version>1.0.6</roaringbitmap.version>
         <!-- ucx x86 is just the base version (implied), arm is specified under arm64 profile. -->
@@ -1367,6 +1366,7 @@ This will force full Scala code rebuild in downstream modules.
                         <checkMultipleScalaVersions>true</checkMultipleScalaVersions>
                         <failOnMultipleScalaVersions>true</failOnMultipleScalaVersions>
                         <recompileMode>${scala.recompileMode}</recompileMode>
+                        <target>8</target>
                         <args>
                             <arg>-unchecked</arg>
                             <arg>-deprecation</arg>
