@@ -22,7 +22,6 @@ import java.net.URL
 import scala.collection.JavaConverters.enumerationAsScalaIteratorConverter
 import scala.util.Try
 
-import com.nvidia.spark.rapids.internal.RapidsLogging
 import org.apache.commons.lang3.reflect.MethodUtils
 
 import org.apache.spark.{SPARK_BRANCH, SPARK_BUILD_DATE, SPARK_BUILD_USER, SPARK_REPO_URL, SPARK_REVISION, SPARK_VERSION, SparkConf, SparkEnv}
@@ -58,8 +57,8 @@ import org.apache.spark.util.MutableURLClassLoader
     by incompatible Scala / Spark dependencies.
  */
 object ShimLoader {
-  val log = RapidsLogging(this)
-  log.logDebug(s"ShimLoader object instance: $this loaded by ${getClass.getClassLoader}")
+  val log = org.slf4j.LoggerFactory.getLogger(getClass().getName().stripSuffix("$"))
+  log.debug(s"ShimLoader object instance: $this loaded by ${getClass.getClassLoader}")
   private val shimRootURL = {
     val thisClassFile = getClass.getName.replace(".", "/") + ".class"
     val url = getClass.getClassLoader.getResource(thisClassFile)
@@ -125,11 +124,11 @@ object ShimLoader {
     // brute-force call addURL using reflection
     classLoader match {
       case nullClassLoader if nullClassLoader == null =>
-        log.logInfo("findURLClassLoader failed to locate a mutable classloader")
+        log.info("findURLClassLoader failed to locate a mutable classloader")
         None
       case urlCl: java.net.URLClassLoader =>
         // fast path
-        log.logInfo(s"findURLClassLoader found a URLClassLoader $urlCl")
+        log.info(s"findURLClassLoader found a URLClassLoader $urlCl")
         Option(urlCl)
       case replCl if replCl.getClass.getName == "org.apache.spark.repl.ExecutorClassLoader" ||
           replCl.getClass.getName == "org.apache.spark.executor.ExecutorClassLoader" =>
@@ -138,20 +137,21 @@ object ShimLoader {
         // https://issues.apache.org/jira/browse/SPARK-18646
         val parentLoader = MethodUtils.invokeMethod(replCl, true, "parentLoader")
           .asInstanceOf[ClassLoader]
-        log.logInfo(s"findURLClassLoader found $replCl, trying parentLoader=$parentLoader")
+        log.info(s"findURLClassLoader found $replCl, trying parentLoader=$parentLoader")
         findURLClassLoader(parentLoader)
       case urlAddable: ClassLoader if null != MethodUtils.getMatchingMethod(
         urlAddable.getClass, "addURL", classOf[java.net.URL]) =>
         // slow defensive path
-        log.logInfo(s"findURLClassLoader found a urLAddable classloader $urlAddable")
+        log.info(s"findURLClassLoader found a urLAddable classloader $urlAddable")
         Option(urlAddable)
       case root if root.getParent == null || root.getParent == root =>
-        log.logInfo(s"findURLClassLoader hit the Boostrap classloader $root, " +
+        log.info(s"findURLClassLoader hit the Boostrap classloader $root, " +
           s"failed to find a mutable classloader!")
         None
       case cl =>
         val parentClassLoader = cl.getParent
-        log.logInfo(s"findURLClassLoader found an immutable $cl, trying parent=$parentClassLoader")
+        log.info(s"findURLClassLoader found an immutable $cl" +
+          s", trying parent=$parentClassLoader")
         findURLClassLoader(parentClassLoader)
     }
   }
@@ -160,15 +160,15 @@ object ShimLoader {
     findURLClassLoader(UnshimmedTrampolineUtil.sparkClassLoader).foreach { urlAddable =>
       urlsForSparkClassLoader.foreach { url =>
         if (!conventionalSingleShimJarDetected) {
-          log.logInfo(s"Updating spark classloader $urlAddable with the URLs: " +
+          log.info(s"Updating spark classloader $urlAddable with the URLs: " +
             urlsForSparkClassLoader.mkString(", "))
           MethodUtils.invokeMethod(urlAddable, true, "addURL", url)
-          log.logInfo(s"Spark classLoader $urlAddable updated successfully")
+          log.info(s"Spark classLoader $urlAddable updated successfully")
           urlAddable match {
             case urlCl: java.net.URLClassLoader =>
               if (!urlCl.getURLs.contains(shimCommonURL)) {
                 // infeasible, defensive diagnostics
-                log.logWarning(s"Didn't find expected URL $shimCommonURL in the spark " +
+                log.warn(s"Didn't find expected URL $shimCommonURL in the spark " +
                   s"classloader $urlCl although addURL succeeded, maybe pushed up to the " +
                   s"parent classloader ${urlCl.getParent}")
               }
@@ -189,7 +189,7 @@ object ShimLoader {
       if (tmpClassLoader == null) {
         tmpClassLoader = new MutableURLClassLoader(Array(shimURL, shimCommonURL),
           getClass.getClassLoader)
-        log.logWarning("Found an unexpected context classloader " +
+        log.warn("Found an unexpected context classloader " +
           s"${Thread.currentThread().getContextClassLoader}. We will try to recover from this, " +
           "but it may cause class loading problems.")
       }
@@ -203,9 +203,9 @@ object ShimLoader {
 
   private def detectShimProvider(): String = {
     val sparkVersion = getSparkVersion
-    log.logInfo(s"Loading shim for Spark version: $sparkVersion")
-    log.logInfo("Complete Spark build info: " + sparkBuildInfo.mkString(", "))
-    log.logInfo("Scala version: " + util.Properties.versionString)
+    log.info(s"Loading shim for Spark version: $sparkVersion")
+    log.info("Complete Spark build info: " + sparkBuildInfo.mkString(", "))
+    log.info("Scala version: " + util.Properties.versionString)
 
     val thisClassLoader = getClass.getClassLoader
 
@@ -226,7 +226,7 @@ object ShimLoader {
     val shimServiceProviderOverrideClassName = Option(SparkEnv.get) // Spark-less RapidsConf.help
       .flatMap(_.conf.getOption("spark.rapids.shims-provider-override"))
     shimServiceProviderOverrideClassName.foreach { shimProviderClass =>
-      log.logWarning(s"Overriding Spark shims provider to $shimProviderClass. " +
+      log.warn(s"Overriding Spark shims provider to $shimProviderClass. " +
         "This may be an untested configuration!")
     }
 
@@ -253,7 +253,7 @@ object ShimLoader {
           val ret = thisClassLoader.loadClass(shimServiceProviderStr)
           if (numShimServiceProviders == 1) {
             conventionalSingleShimJarDetected = true
-            log.logInfo("Conventional shim jar layout for a single Spark verision detected")
+            log.info("Conventional shim jar layout for a single Spark verision detected")
           }
           ret
         }.getOrElse(shimClassLoader.loadClass(shimServiceProviderStr))
@@ -263,7 +263,7 @@ object ShimLoader {
         )
       } catch {
         case cnf: ClassNotFoundException =>
-          log.logDebug(cnf + ": Could not load the provider, likely a dev build", cnf)
+          log.debug(cnf + ": Could not load the provider, likely a dev build", cnf)
           None
       }
     }.partition { case (inst, _) =>

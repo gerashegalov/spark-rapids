@@ -15,9 +15,6 @@
  */
 
 package com.nvidia.spark.rapids
-
-import com.nvidia.spark.rapids.internal.RapidsLogging
-
 /*
  * This is specifically for functions dealing with loading classes via reflection. This
  * class itself should not contain or import any shimmed/parallel world classes so that
@@ -25,11 +22,11 @@ import com.nvidia.spark.rapids.internal.RapidsLogging
  */
 object ShimReflectionUtils {
 
-  val log = RapidsLogging(this)
+  val log = org.slf4j.LoggerFactory.getLogger(getClass().getName().stripSuffix("$"))
 
   def loadClass(className: String): Class[_] = {
     val loader = ShimLoader.getShimClassLoader()
-    log.logDebug(s"Loading $className using $loader with the parent loader ${loader.getParent}")
+    log.debug(s"Loading $className using $loader with the parent loader ${loader.getParent}")
     loader.loadClass(className)
   }
 
@@ -39,10 +36,10 @@ object ShimReflectionUtils {
 
   // avoid cached constructors
   def instantiateClass[T](cls: Class[T]): T = {
-    log.logDebug(s"Instantiate ${cls.getName} using classloader " + cls.getClassLoader)
+    log.debug(s"Instantiate ${cls.getName} using classloader " + cls.getClassLoader)
     cls.getClassLoader match {
       case urcCl: java.net.URLClassLoader =>
-        log.logDebug("urls " + urcCl.getURLs.mkString("\n"))
+        log.debug("urls " + urcCl.getURLs.mkString("\n"))
       case _ =>
     }
     val constructor = cls.getConstructor()

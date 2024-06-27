@@ -176,10 +176,6 @@ function verify_same_sha_for_unshimmed() {
   # TODO constant pool changes cause diffs with JDK17 cross-compiled to 8
   case "$class_file_quoted" in
     com/nvidia/spark/rapids/spark[34].*/.*ShuffleManager.class)
-      ;&
-    com/nvidia/spark/Retryable.class)
-      ;&
-    com/nvidia/spark/RapidsUDF.class)
       ;;
 
     *)
