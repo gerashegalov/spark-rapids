@@ -512,7 +512,7 @@ class RefCountedDirectByteBuffer(
  */
 object TransportUtils {
   val addressMethod = {
-    val ret = Class.forName("java.nio.DirectByteBuffer")
+    val ret = Class.forName("sun.nio.ch.DirectBuffer")
       .getDeclaredMethod("address")
     ret.setAccessible(true)
     ret
