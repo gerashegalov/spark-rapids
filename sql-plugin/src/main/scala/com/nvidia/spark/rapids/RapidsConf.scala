@@ -92,13 +92,6 @@ object ConfHelper {
     multiplier * JavaUtils.byteStringAs(input, unit)
   }
 
-  def makeConfAnchor(key: String, text: String = null): String = {
-    val t = if (text != null) text else key
-    // The anchor cannot be too long, so for now
-    val a = key.replaceFirst("spark.rapids.", "")
-    "<a name=\"" + s"$a" + "\"></a>" + t
-  }
-
   def getSqlFunctionsForClass[T](exprClass: Class[T]): Option[Seq[String]] = {
     sqlFunctionsByClass.get(exprClass.getCanonicalName)
   }
@@ -122,10 +115,29 @@ object ConfHelper {
 abstract class ConfEntry[T](val key: String, val converter: String => T, val doc: String,
     val isInternal: Boolean, val isStartUpOnly: Boolean, val isCommonlyUsed: Boolean) {
 
+  def defaultValueString: String
+
   def get(conf: Map[String, String]): T
   def get(conf: SQLConf): T
-  def help(asTable: Boolean = false): Unit
-
+  def help(asTable: Boolean = false): Unit = {
+    if (!isInternal) {
+      val startupOnlyStr = if (isStartUpOnly) "Startup" else "Runtime"
+      if (asTable) {
+        s"""
+           |###### $key
+           |$doc
+           |$defaultValueString
+           |$startupOnlyStr
+           |""".stripMargin
+      } else {
+        println(s"$key:")
+        println(s"\t$doc")
+        println(s"\tdefault $defaultValueString")
+        println(s"\ttype $startupOnlyStr")
+        println()
+      }
+    }
+  }
   override def toString: String = key
 }
 
@@ -133,6 +145,8 @@ class ConfEntryWithDefault[T](key: String, converter: String => T, doc: String,
     isInternal: Boolean, isStartupOnly: Boolean, isCommonlyUsed: Boolean = false,
     val defaultValue: T)
   extends ConfEntry[T](key, converter, doc, isInternal, isStartupOnly, isCommonlyUsed) {
+
+  override def defaultValueString: String = String.valueOf(defaultValue)
 
   override def get(conf: Map[String, String]): T = {
     conf.get(key).map(converter).getOrElse(defaultValue)
@@ -146,28 +160,14 @@ class ConfEntryWithDefault[T](key: String, converter: String => T, doc: String,
       converter(tmp)
     }
   }
-
-  override def help(asTable: Boolean = false): Unit = {
-    if (!isInternal) {
-      val startupOnlyStr = if (isStartupOnly) "Startup" else "Runtime"
-      if (asTable) {
-        import ConfHelper.makeConfAnchor
-        println(s"${makeConfAnchor(key)}|$doc|$defaultValue|$startupOnlyStr")
-      } else {
-        println(s"$key:")
-        println(s"\t$doc")
-        println(s"\tdefault $defaultValue")
-        println(s"\ttype $startupOnlyStr")
-        println()
-      }
-    }
-  }
 }
 
 class OptionalConfEntry[T](key: String, val rawConverter: String => T, doc: String,
     isInternal: Boolean, isStartupOnly: Boolean, isCommonlyUsed: Boolean = false)
   extends ConfEntry[Option[T]](key, s => Some(rawConverter(s)), doc, isInternal,
   isStartupOnly, isCommonlyUsed) {
+
+  override def defaultValueString: String = "N/A"
 
   override def get(conf: Map[String, String]): Option[T] = {
     conf.get(key).map(rawConverter)
@@ -179,22 +179,6 @@ class OptionalConfEntry[T](key: String, val rawConverter: String => T, doc: Stri
       None
     } else {
       Some(rawConverter(tmp))
-    }
-  }
-
-  override def help(asTable: Boolean = false): Unit = {
-    if (!isInternal) {
-      val startupOnlyStr = if (isStartupOnly) "Startup" else "Runtime"
-      if (asTable) {
-        import ConfHelper.makeConfAnchor
-        println(s"${makeConfAnchor(key)}|$doc|None|$startupOnlyStr")
-      } else {
-        println(s"$key:")
-        println(s"\t$doc")
-        println("\tNone")
-        println(s"\ttype $startupOnlyStr")
-        println()
-      }
     }
   }
 }

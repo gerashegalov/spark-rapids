@@ -175,8 +175,7 @@ abstract class ReplacementRule[INPUT <: BASE, BASE, WRAP_TYPE <: RapidsMeta[INPU
     if (_visible) {
       val notesMsg = notes()
       if (asTable) {
-        import ConfHelper.makeConfAnchor
-        print(s"${makeConfAnchor(confKey)}")
+        print(s"$confKey")
         if (sparkSQLFunctions.isDefined) {
           print(s"|${sparkSQLFunctions.get}")
         }
@@ -1152,7 +1151,7 @@ object GpuOverrides extends Logging {
         override val isFoldableNonLitAllowed: Boolean = true
         override def convertToGpu(): GpuExpression =
           GpuUnaryPositive(childExprs.head.convertToGpu())
-        
+
       }),
     expr[Year](
       "Returns the year from a date or timestamp",
@@ -1794,7 +1793,7 @@ object GpuOverrides extends Logging {
       ExprChecks.binaryProject(TypeSig.TIMESTAMP, TypeSig.TIMESTAMP,
         ("timestamp", TypeSig.TIMESTAMP, TypeSig.TIMESTAMP),
         ("timezone", TypeSig.lit(TypeEnum.STRING)
-          .withPsNote(TypeEnum.STRING, 
+          .withPsNote(TypeEnum.STRING,
             "Only non-DST(Daylight Savings Time) timezones are supported"),
           TypeSig.lit(TypeEnum.STRING))),
       (a, conf, p, r) => new FromUTCTimestampExprMeta(a, conf, p, r)
@@ -1804,7 +1803,7 @@ object GpuOverrides extends Logging {
       ExprChecks.binaryProject(TypeSig.TIMESTAMP, TypeSig.TIMESTAMP,
         ("timestamp", TypeSig.TIMESTAMP, TypeSig.TIMESTAMP),
         ("timezone", TypeSig.lit(TypeEnum.STRING)
-          .withPsNote(TypeEnum.STRING, 
+          .withPsNote(TypeEnum.STRING,
             "Only non-DST(Daylight Savings Time) timezones are supported"),
           TypeSig.lit(TypeEnum.STRING))),
       (a, conf, p, r) => new ToUTCTimestampExprMeta(a, conf, p, r)
@@ -3285,7 +3284,7 @@ object GpuOverrides extends Logging {
       ExprChecks.projectOnly(TypeSig.STRING, TypeSig.STRING,
         Seq(ParamCheck("url", TypeSig.STRING, TypeSig.STRING),
           ParamCheck("partToExtract", TypeSig.lit(TypeEnum.STRING).withPsNote(
-            TypeEnum.STRING, "only support partToExtract = PROTOCOL | HOST | QUERY | PATH"), 
+            TypeEnum.STRING, "only support partToExtract = PROTOCOL | HOST | QUERY | PATH"),
             TypeSig.STRING)),
           // Should really be an OptionalParam
           Some(RepeatingParamCheck("key", TypeSig.STRING, TypeSig.STRING))),
@@ -3294,9 +3293,9 @@ object GpuOverrides extends Logging {
           if (a.failOnError) {
             willNotWorkOnGpu("Fail on error is not supported on GPU when parsing urls.")
           }
-          
+
           extractStringLit(a.children(1)).map(_.toUpperCase) match {
-            // In Spark, the key in parse_url could act like a regex, but GPU will match the key 
+            // In Spark, the key in parse_url could act like a regex, but GPU will match the key
             // exactly. When key is literal, GPU will check if the key contains regex special and
             // fallbcak to CPU if it does, but we are not able to fallback when key is column.
             // see Spark issue: https://issues.apache.org/jira/browse/SPARK-44500
@@ -3305,7 +3304,7 @@ object GpuOverrides extends Logging {
                 if (key.value != null) {
                   val keyStr = key.value.asInstanceOf[UTF8String].toString
                   if (regexMetaChars.exists(keyStr.contains(_))) {
-                    willNotWorkOnGpu(s"Key $keyStr could act like a regex which is not " + 
+                    willNotWorkOnGpu(s"Key $keyStr could act like a regex which is not " +
                         "supported on GPU")
                   }
                 }
