@@ -123,12 +123,10 @@ abstract class ConfEntry[T](val key: String, val converter: String => T, val doc
     if (!isInternal) {
       val startupOnlyStr = if (isStartUpOnly) "Startup" else "Runtime"
       if (asTable) {
-        s"""
-           |###### $key
-           |$doc
-           |$defaultValueString
-           |$startupOnlyStr
-           |""".stripMargin
+        println(s"""###### $key
+                   |$doc
+                   |$defaultValueString
+                   |$startupOnlyStr""".stripMargin)
       } else {
         println(s"$key:")
         println(s"\t$doc")

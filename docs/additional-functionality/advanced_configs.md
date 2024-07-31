@@ -19,6 +19,570 @@ For commonly used configurations and examples of setting options, please refer t
 
 Name | Description | Default Value | Applicable at
 -----|-------------|--------------|--------------
+###### spark.rapids.alluxio.automount.enabled
+Enable the feature of auto mounting the cloud storage to Alluxio. It requires the Alluxio master is the same node of Spark driver node. The Alluxio master's host and port will be read from alluxio.master.hostname and alluxio.master.rpc.port(default: 19998) from ALLUXIO_HOME/conf/alluxio-site.properties, then replace a cloud path which matches spark.rapids.alluxio.bucket.regex like "s3://bar/b.csv" to "alluxio://0.1.2.3:19998/bar/b.csv", and the bucket "s3://bar" will be mounted to "/bar" in Alluxio automatically.
+false
+Runtime
+###### spark.rapids.alluxio.bucket.regex
+A regex to decide which bucket should be auto-mounted to Alluxio. E.g. when setting as "^s3://bucket.*", the bucket which starts with "s3://bucket" will be mounted to Alluxio and the path "s3://bucket-foo/a.csv" will be replaced to "alluxio://0.1.2.3:19998/bucket-foo/a.csv". It's only valid when setting spark.rapids.alluxio.automount.enabled=true. The default value matches all the buckets in "s3://" or "s3a://" scheme.
+^s3a{0,1}://.*
+Runtime
+###### spark.rapids.alluxio.home
+The Alluxio installation home path or link to the installation home path. 
+/opt/alluxio
+Startup
+###### spark.rapids.alluxio.large.file.threshold
+The threshold is used to identify whether average size of files is large when reading from S3. If reading large files from S3 and the disks used by Alluxio are slow, directly reading from S3 is better than reading caches from Alluxio, because S3 network bandwidth is faster than local disk. This improvement takes effect when spark.rapids.alluxio.slow.disk is enabled.
+67108864
+Runtime
+###### spark.rapids.alluxio.master
+The Alluxio master hostname. If not set, read Alluxio master URL from spark.rapids.alluxio.home locally. This config is useful when Alluxio master and Spark driver are not co-located.
+
+Startup
+###### spark.rapids.alluxio.master.port
+The Alluxio master port. If not set, read Alluxio master port from spark.rapids.alluxio.home locally. This config is useful when Alluxio master and Spark driver are not co-located.
+19998
+Startup
+###### spark.rapids.alluxio.pathsToReplace
+List of paths to be replaced with corresponding Alluxio scheme. E.g. when configure is set to "s3://foo->alluxio://0.1.2.3:19998/foo,gs://bar->alluxio://0.1.2.3:19998/bar", it means: "s3://foo/a.csv" will be replaced to "alluxio://0.1.2.3:19998/foo/a.csv" and "gs://bar/b.csv" will be replaced to "alluxio://0.1.2.3:19998/bar/b.csv". To use this config, you have to mount the buckets to Alluxio by yourself. If you set this config, spark.rapids.alluxio.automount.enabled won't be valid.
+N/A
+Startup
+###### spark.rapids.alluxio.replacement.algo
+The algorithm used when replacing the UFS path with the Alluxio path. CONVERT_TIME and TASK_TIME are the valid options. CONVERT_TIME indicates that we do it when we convert it to a GPU file read, this has extra overhead of creating an entirely new file index, which requires listing the files and getting all new file info from Alluxio. TASK_TIME replaces the path as late as possible inside of the task. By waiting and replacing it at task time, it just replaces the path without fetching the file information again, this is faster but doesn't update locality information if that has a bit impact on performance.
+TASK_TIME
+Runtime
+###### spark.rapids.alluxio.slow.disk
+Indicates whether the disks used by Alluxio are slow. If it's true and reading S3 large files, Rapids Accelerator reads from S3 directly instead of reading from Alluxio caches. Refer to spark.rapids.alluxio.large.file.threshold which defines a threshold that identifying whether files are large. Typically, it's slow disks if speed is less than 300M/second. If using convert time spark.rapids.alluxio.replacement.algo, this may not apply to all file types like Delta files
+true
+Runtime
+###### spark.rapids.alluxio.user
+Alluxio user is set on the Alluxio client, which is used to mount or get information. By default it should be the user that running the Alluxio processes. The default value is ubuntu.
+ubuntu
+Runtime
+###### spark.rapids.filecache.allowPathRegexp
+A regular expression to decide which paths will be cached when the file cache is enabled. If this is not set, then all paths are allowed to cache. If a path is allowed by this regexp but blocked by spark.rapids.filecache.blockPathRegexp, then the path is blocked to cache.
+N/A
+Startup
+###### spark.rapids.filecache.blockPathRegexp
+A regular expression to decide which paths will not be cached when the file cache is enabled. If a path is blocked by this regexp but is allowed by spark.rapids.filecache.allowPathRegexp, then the path is blocked.
+N/A
+Startup
+###### spark.rapids.filecache.checkStale
+Controls whether the cached is checked for being out of date with respect to the input file. When enabled, the data that has been cached locally for a file will be invalidated if the file is updated after being cached. This feature is only necessary if an input file for a Spark application can be changed during the lifetime of the application. If an individual input file will not be overwritten during the Spark application then performance may be improved by setting this to false.
+true
+Startup
+###### spark.rapids.filecache.maxBytes
+Controls the maximum amount of data that will be cached locally. If left unspecified, it will use half of the available disk space detected on startup for the configured Spark local disks.
+N/A
+Startup
+###### spark.rapids.filecache.useChecksums
+Whether to write out and verify checksums for the cached local files.
+false
+Startup
+###### spark.rapids.gpu.resourceName
+The name of the Spark resource that represents a GPU that you want the plugin to use if using custom resources with Spark.
+gpu
+Startup
+###### spark.rapids.memory.gpu.allocFraction
+The fraction of available (free) GPU memory that should be allocated for pooled memory. This must be less than or equal to the maximum limit configured via spark.rapids.memory.gpu.maxAllocFraction, and greater than or equal to the minimum limit configured via spark.rapids.memory.gpu.minAllocFraction.
+1.0
+Startup
+###### spark.rapids.memory.gpu.debug
+Provides a log of GPU memory allocations and frees. If set to STDOUT or STDERR the logging will go there. Setting it to NONE disables logging. All other values are reserved for possible future expansion and in the mean time will disable logging.
+NONE
+Startup
+###### spark.rapids.memory.gpu.oomDumpDir
+The path to a local directory where a heap dump will be created if the GPU encounters an unrecoverable out-of-memory (OOM) error. The filename will be of the form: "gpu-oom-<pid>-<dumpId>.hprof" where <pid> is the process ID, and the dumpId is a sequence number to disambiguate multiple heap dumps per process lifecycle
+N/A
+Startup
+###### spark.rapids.memory.gpu.pool
+Select the RMM pooling allocator to use. Valid values are "DEFAULT", "ARENA", "ASYNC", and "NONE". With "DEFAULT", the RMM pool allocator is used; with "ARENA", the RMM arena allocator is used; with "ASYNC", the new CUDA stream-ordered memory allocator in CUDA 11.2+ is used. If set to "NONE", pooling is disabled and RMM just passes through to CUDA memory allocation directly.
+ASYNC
+Startup
+###### spark.rapids.memory.gpu.pooling.enabled
+Should RMM act as a pooling allocator for GPU memory, or should it just pass through to CUDA memory allocation directly. DEPRECATED: please use spark.rapids.memory.gpu.pool instead.
+true
+Startup
+###### spark.rapids.memory.gpu.reserve
+The amount of GPU memory that should remain unallocated by RMM and left for system use such as memory needed for kernels and kernel launches.
+671088640
+Startup
+###### spark.rapids.memory.gpu.state.debug
+To better recover from out of memory errors, RMM will track several states for the threads that interact with the GPU. This provides a log of those state transitions to aid in debugging it. STDOUT or STDERR will have the logging go there empty string will disable logging and anything else will be treated as a file to write the logs to.
+
+Startup
+###### spark.rapids.memory.gpu.unspill.enabled
+When a spilled GPU buffer is needed again, should it be unspilled, or only copied back into GPU memory temporarily. Unspilling may be useful for GPU buffers that are needed frequently, for example, broadcast variables; however, it may also increase GPU memory usage
+false
+Startup
+###### spark.rapids.perfio.s3.enabled
+When true, enables an AWS S3 reader for improved performance in certain queries. The presence of AWS SDK packages for Netty and/or CRT HTTP clients on the classpath is required. You can use Spark submit option `--packages software.amazon.awssdk:s3:2.22.12,software.amazon.awssdk:aws-crt-client:2.22.12` to achieve this. See https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html#crt-based-s3-client-depend
+false
+Startup
+###### spark.rapids.python.concurrentPythonWorkers
+Set the number of Python worker processes that can execute concurrently per GPU. Python worker processes may temporarily block when the number of concurrent Python worker processes started by the same executor exceeds this amount. Allowing too many concurrent tasks on the same GPU may lead to GPU out of memory errors. >0 means enabled, while <=0 means unlimited
+0
+Runtime
+###### spark.rapids.python.memory.gpu.allocFraction
+The fraction of total GPU memory that should be initially allocated for pooled memory for all the Python workers. It supposes to be less than (1 - $(spark.rapids.memory.gpu.allocFraction)), since the executor will share the GPU with its owning Python workers. Half of the rest will be used if not specified
+N/A
+Runtime
+###### spark.rapids.python.memory.gpu.maxAllocFraction
+The fraction of total GPU memory that limits the maximum size of the RMM pool for all the Python workers. It supposes to be less than (1 - $(spark.rapids.memory.gpu.maxAllocFraction)), since the executor will share the GPU with its owning Python workers. when setting to 0 it means no limit.
+0.0
+Runtime
+###### spark.rapids.python.memory.gpu.pooling.enabled
+Should RMM in Python workers act as a pooling allocator for GPU memory, or should it just pass through to CUDA memory allocation directly. When not specified, It will honor the value of config 'spark.rapids.memory.gpu.pooling.enabled'
+N/A
+Runtime
+###### spark.rapids.shuffle.enabled
+Enable or disable the RAPIDS Shuffle Manager at runtime. The [RAPIDS Shuffle Manager](https://docs.nvidia.com/spark-rapids/user-guide/latest/additional-functionality/rapids-shuffle.html) must already be configured. When set to `false`, the built-in Spark shuffle will be used. 
+true
+Runtime
+###### spark.rapids.shuffle.mode
+RAPIDS Shuffle Manager mode. "MULTITHREADED": shuffle file writes and reads are parallelized using a thread pool. "UCX": (requires UCX installation) uses accelerated transports for transferring shuffle blocks. "CACHE_ONLY": use when running a single executor, for short-circuit cached shuffle (for testing purposes).
+MULTITHREADED
+Startup
+###### spark.rapids.shuffle.multiThreaded.maxBytesInFlight
+The size limit, in bytes, that the RAPIDS shuffle manager configured in "MULTITHREADED" mode will allow to be serialized or deserialized concurrently per task. This is also the maximum amount of memory that will be used per task. This should be set larger than Spark's default maxBytesInFlight (48MB). The larger this setting is, the more compressed shuffle chunks are processed concurrently. In practice, care needs to be taken to not go over the amount of off-heap memory that Netty has available. See https://github.com/NVIDIA/spark-rapids/issues/9153.
+134217728
+Startup
+###### spark.rapids.shuffle.multiThreaded.reader.threads
+The number of threads to use for reading shuffle blocks per executor in the RAPIDS shuffle manager configured in "MULTITHREADED" mode. There are two special values: 0 = feature is disabled, falls back to Spark built-in shuffle reader; 1 = our implementation of Spark's built-in shuffle reader with extra metrics.
+20
+Startup
+###### spark.rapids.shuffle.multiThreaded.writer.threads
+The number of threads to use for writing shuffle blocks per executor in the RAPIDS shuffle manager configured in "MULTITHREADED" mode. There are two special values: 0 = feature is disabled, falls back to Spark built-in shuffle writer; 1 = our implementation of Spark's built-in shuffle writer with extra metrics.
+20
+Startup
+###### spark.rapids.shuffle.transport.earlyStart
+Enable early connection establishment for RAPIDS Shuffle
+true
+Startup
+###### spark.rapids.shuffle.transport.earlyStart.heartbeatInterval
+Shuffle early start heartbeat interval (milliseconds). Executors will send a heartbeat RPC message to the driver at this interval
+5000
+Startup
+###### spark.rapids.shuffle.transport.earlyStart.heartbeatTimeout
+Shuffle early start heartbeat timeout (milliseconds). Executors that don't heartbeat within this timeout will be considered stale. This timeout must be higher than the value for spark.rapids.shuffle.transport.earlyStart.heartbeatInterval
+10000
+Startup
+###### spark.rapids.shuffle.transport.maxReceiveInflightBytes
+Maximum aggregate amount of bytes that be fetched at any given time from peers during shuffle
+1073741824
+Startup
+###### spark.rapids.shuffle.ucx.activeMessages.forceRndv
+Set to true to force 'rndv' mode for all UCX Active Messages. This should only be required with UCX 1.10.x. UCX 1.11.x deployments should set to false.
+false
+Startup
+###### spark.rapids.shuffle.ucx.managementServerHost
+The host to be used to start the management server
+null
+Startup
+###### spark.rapids.shuffle.ucx.useWakeup
+When set to true, use UCX's event-based progress (epoll) in order to wake up the progress thread when needed, instead of a hot loop.
+true
+Startup
+###### spark.rapids.sql.agg.skipAggPassReductionRatio
+In non-final aggregation stages, if the previous pass has a row reduction ratio greater than this value, the next aggregation pass will be skipped.Setting this to 1 essentially disables this feature.
+1.0
+Runtime
+###### spark.rapids.sql.allowMultipleJars
+Allow multiple rapids-4-spark, spark-rapids-jni, and cudf jars on the classpath. Spark will take the first one it finds, so the version may not be expected. Possisble values are ALWAYS: allow all jars, SAME_REVISION: only allow jars with the same revision, NEVER: do not allow multiple jars at all.
+SAME_REVISION
+Startup
+###### spark.rapids.sql.castDecimalToFloat.enabled
+Casting from decimal to floating point types on the GPU returns results that have tiny difference compared to results returned from CPU.
+true
+Runtime
+###### spark.rapids.sql.castFloatToDecimal.enabled
+Casting from floating point types to decimal on the GPU returns results that have tiny difference compared to results returned from CPU.
+true
+Runtime
+###### spark.rapids.sql.castFloatToIntegralTypes.enabled
+Casting from floating point types to integral types on the GPU supports a slightly different range of values when using Spark 3.1.0 or later. Refer to the CAST documentation for more details.
+true
+Runtime
+###### spark.rapids.sql.castFloatToString.enabled
+Casting from floating point types to string on the GPU returns results that have a different precision than the default results of Spark.
+true
+Runtime
+###### spark.rapids.sql.castStringToFloat.enabled
+When set to true, enables casting from strings to float types (float, double) on the GPU. Currently hex values aren't supported on the GPU. Also note that casting from string to float types on the GPU returns incorrect results when the string represents any number "1.7976931348623158E308" <= x < "1.7976931348623159E308" and "-1.7976931348623158E308" >= x > "-1.7976931348623159E308" in both these cases the GPU returns Double.MaxValue while CPU returns "+Infinity" and "-Infinity" respectively
+true
+Runtime
+###### spark.rapids.sql.castStringToTimestamp.enabled
+When set to true, casting from string to timestamp is supported on the GPU. The GPU only supports a subset of formats when casting strings to timestamps. Refer to the CAST documentation for more details.
+false
+Runtime
+###### spark.rapids.sql.coalescing.reader.numFilterParallel
+This controls the number of files the coalescing reader will run in each thread when it filters blocks for reading. If this value is greater than zero the files will be filtered in a multithreaded manner where each thread filters the number of files set by this config. If this is set to zero the files are filtered serially. This uses the same thread pool as the multithreaded reader, see spark.rapids.sql.multiThreadedRead.numThreads. Note that filtering multithreaded is useful with Alluxio.
+0
+Runtime
+###### spark.rapids.sql.concurrentWriterPartitionFlushSize
+The flush size of the concurrent writer cache in bytes for each partition. If specified spark.sql.maxConcurrentOutputFileWriters, use concurrent writer to write data. Concurrent writer first caches data for each partition and begins to flush the data if it finds one partition with a size that is greater than or equal to this config. The default value is 0, which will try to select a size based off of file type specific configs. E.g.: It uses `write.parquet.row-group-size-bytes` config for Parquet type and `orc.stripe.size` config for Orc type. If the value is greater than 0, will use this positive value.Max value may get better performance but not always, because concurrent writer uses spillable cache and big value may cause more IO swaps.
+0
+Runtime
+###### spark.rapids.sql.csv.read.decimal.enabled
+CSV reading is not 100% compatible when reading decimals.
+false
+Runtime
+###### spark.rapids.sql.csv.read.double.enabled
+CSV reading is not 100% compatible when reading doubles.
+true
+Runtime
+###### spark.rapids.sql.csv.read.float.enabled
+CSV reading is not 100% compatible when reading floats.
+true
+Runtime
+###### spark.rapids.sql.decimalOverflowGuarantees
+FOR TESTING ONLY. DO NOT USE IN PRODUCTION. Please see the decimal section of the compatibility documents for more information on this config.
+true
+Runtime
+###### spark.rapids.sql.delta.lowShuffleMerge.deletionVector.broadcast.threshold
+Currently we need to broadcast deletion vector to all executors to perform low shuffle merge. When we detect the deletion vector broadcast size is larger than this value, we will fallback to normal shuffle merge.
+20971520
+Runtime
+###### spark.rapids.sql.delta.lowShuffleMerge.enabled
+Option to turn on the low shuffle merge for Delta Lake. Currently there are some limitations for this feature: 1. We only support Databricks Runtime 13.3 and Deltalake 2.4. 2. The file scan mode must be set to PERFILE 3. The deletion vector size must be smaller than spark.rapids.sql.delta.lowShuffleMerge.deletionVector.broadcast.threshold 
+false
+Runtime
+###### spark.rapids.sql.detectDeltaCheckpointQueries
+Queries against Delta Lake _delta_log checkpoint Parquet files are not efficient on the GPU. When this option is enabled, the plugin will attempt to detect these queries and fall back to the CPU.
+true
+Runtime
+###### spark.rapids.sql.detectDeltaLogQueries
+Queries against Delta Lake _delta_log JSON files are not efficient on the GPU. When this option is enabled, the plugin will attempt to detect these queries and fall back to the CPU.
+true
+Runtime
+###### spark.rapids.sql.fast.sample
+Option to turn on fast sample. If enable it is inconsistent with CPU sample because of GPU sample algorithm is inconsistent with CPU.
+false
+Runtime
+###### spark.rapids.sql.format.avro.enabled
+When set to true enables all avro input and output acceleration. (only input is currently supported anyways)
+false
+Runtime
+###### spark.rapids.sql.format.avro.multiThreadedRead.maxNumFilesParallel
+A limit on the maximum number of files per task processed in parallel on the CPU side before the file is sent to the GPU. This affects the amount of host memory used when reading the files in parallel. Used with MULTITHREADED reader, see spark.rapids.sql.format.avro.reader.type.
+2147483647
+Runtime
+###### spark.rapids.sql.format.avro.multiThreadedRead.numThreads
+The maximum number of threads, on one executor, to use for reading small Avro files in parallel. This can not be changed at runtime after the executor has started. Used with MULTITHREADED reader, see spark.rapids.sql.format.avro.reader.type. DEPRECATED: use spark.rapids.sql.multiThreadedRead.numThreads
+N/A
+Startup
+###### spark.rapids.sql.format.avro.read.enabled
+When set to true enables avro input acceleration
+false
+Runtime
+###### spark.rapids.sql.format.avro.reader.type
+Sets the Avro reader type. We support different types that are optimized for different environments. The original Spark style reader can be selected by setting this to PERFILE which individually reads and copies files to the GPU. Loading many small files individually has high overhead, and using either COALESCING or MULTITHREADED is recommended instead. The COALESCING reader is good when using a local file system where the executors are on the same nodes or close to the nodes the data is being read on. This reader coalesces all the files assigned to a task into a single host buffer before sending it down to the GPU. It copies blocks from a single file into a host buffer in separate threads in parallel, see spark.rapids.sql.multiThreadedRead.numThreads. MULTITHREADED is good for cloud environments where you are reading from a blobstore that is totally separate and likely has a higher I/O read cost. Many times the cloud environments also get better throughput when you have multiple readers in parallel. This reader uses multiple threads to read each file in parallel and each file is sent to the GPU separately. This allows the CPU to keep reading while GPU is also doing work. See spark.rapids.sql.multiThreadedRead.numThreads and spark.rapids.sql.format.avro.multiThreadedRead.maxNumFilesParallel to control the number of threads and amount of memory used. By default this is set to AUTO so we select the reader we think is best. This will either be the COALESCING or the MULTITHREADED based on whether we think the file is in the cloud. See spark.rapids.cloudSchemes.
+AUTO
+Runtime
+###### spark.rapids.sql.format.csv.enabled
+When set to false disables all csv input and output acceleration. (only input is currently supported anyways)
+true
+Runtime
+###### spark.rapids.sql.format.csv.read.enabled
+When set to false disables csv input acceleration
+true
+Runtime
+###### spark.rapids.sql.format.delta.write.enabled
+When set to false disables Delta Lake output acceleration.
+true
+Runtime
+###### spark.rapids.sql.format.hive.text.enabled
+When set to false disables Hive text table acceleration
+true
+Runtime
+###### spark.rapids.sql.format.hive.text.read.decimal.enabled
+Hive text file reading is not 100% compatible when reading decimals. Hive has more limitations on what is valid compared to the GPU implementation in some corner cases. See https://github.com/NVIDIA/spark-rapids/issues/7246
+true
+Runtime
+###### spark.rapids.sql.format.hive.text.read.double.enabled
+Hive text file reading is not 100% compatible when reading doubles.
+true
+Runtime
+###### spark.rapids.sql.format.hive.text.read.enabled
+When set to false disables Hive text table read acceleration
+true
+Runtime
+###### spark.rapids.sql.format.hive.text.read.float.enabled
+Hive text file reading is not 100% compatible when reading floats.
+true
+Runtime
+###### spark.rapids.sql.format.hive.text.write.enabled
+When set to false disables Hive text table write acceleration
+false
+Runtime
+###### spark.rapids.sql.format.iceberg.enabled
+When set to false disables all Iceberg acceleration
+true
+Runtime
+###### spark.rapids.sql.format.iceberg.read.enabled
+When set to false disables Iceberg input acceleration
+true
+Runtime
+###### spark.rapids.sql.format.json.enabled
+When set to true enables all json input and output acceleration. (only input is currently supported anyways)
+false
+Runtime
+###### spark.rapids.sql.format.json.read.enabled
+When set to true enables json input acceleration
+false
+Runtime
+###### spark.rapids.sql.format.orc.enabled
+When set to false disables all orc input and output acceleration
+true
+Runtime
+###### spark.rapids.sql.format.orc.floatTypesToString.enable
+When reading an ORC file, the source data schemas(schemas of ORC file) may differ from the target schemas (schemas of the reader), we need to handle the castings from source type to target type. Since float/double numbers in GPU have different precision with CPU, when casting float/double to string, the result of GPU is different from result of CPU spark. Its default value is `true` (this means the strings result will differ from result of CPU). If it's set `false` explicitly and there exists casting from float/double to string in the job, then such behavior will cause an exception, and the job will fail.
+true
+Runtime
+###### spark.rapids.sql.format.orc.multiThreadedRead.maxNumFilesParallel
+A limit on the maximum number of files per task processed in parallel on the CPU side before the file is sent to the GPU. This affects the amount of host memory used when reading the files in parallel. Used with MULTITHREADED reader, see spark.rapids.sql.format.orc.reader.type.
+2147483647
+Runtime
+###### spark.rapids.sql.format.orc.multiThreadedRead.numThreads
+The maximum number of threads, on the executor, to use for reading small ORC files in parallel. This can not be changed at runtime after the executor has started. Used with MULTITHREADED reader, see spark.rapids.sql.format.orc.reader.type. DEPRECATED: use spark.rapids.sql.multiThreadedRead.numThreads
+N/A
+Startup
+###### spark.rapids.sql.format.orc.read.enabled
+When set to false disables orc input acceleration
+true
+Runtime
+###### spark.rapids.sql.format.orc.reader.type
+Sets the ORC reader type. We support different types that are optimized for different environments. The original Spark style reader can be selected by setting this to PERFILE which individually reads and copies files to the GPU. Loading many small files individually has high overhead, and using either COALESCING or MULTITHREADED is recommended instead. The COALESCING reader is good when using a local file system where the executors are on the same nodes or close to the nodes the data is being read on. This reader coalesces all the files assigned to a task into a single host buffer before sending it down to the GPU. It copies blocks from a single file into a host buffer in separate threads in parallel, see spark.rapids.sql.multiThreadedRead.numThreads. MULTITHREADED is good for cloud environments where you are reading from a blobstore that is totally separate and likely has a higher I/O read cost. Many times the cloud environments also get better throughput when you have multiple readers in parallel. This reader uses multiple threads to read each file in parallel and each file is sent to the GPU separately. This allows the CPU to keep reading while GPU is also doing work. See spark.rapids.sql.multiThreadedRead.numThreads and spark.rapids.sql.format.orc.multiThreadedRead.maxNumFilesParallel to control the number of threads and amount of memory used. By default this is set to AUTO so we select the reader we think is best. This will either be the COALESCING or the MULTITHREADED based on whether we think the file is in the cloud. See spark.rapids.cloudSchemes.
+AUTO
+Runtime
+###### spark.rapids.sql.format.orc.write.enabled
+When set to false disables orc output acceleration
+true
+Runtime
+###### spark.rapids.sql.format.parquet.enabled
+When set to false disables all parquet input and output acceleration
+true
+Runtime
+###### spark.rapids.sql.format.parquet.multiThreadedRead.maxNumFilesParallel
+A limit on the maximum number of files per task processed in parallel on the CPU side before the file is sent to the GPU. This affects the amount of host memory used when reading the files in parallel. Used with MULTITHREADED reader, see spark.rapids.sql.format.parquet.reader.type.
+2147483647
+Runtime
+###### spark.rapids.sql.format.parquet.multiThreadedRead.numThreads
+The maximum number of threads, on the executor, to use for reading small Parquet files in parallel. This can not be changed at runtime after the executor has started. Used with COALESCING and MULTITHREADED reader, see spark.rapids.sql.format.parquet.reader.type. DEPRECATED: use spark.rapids.sql.multiThreadedRead.numThreads
+N/A
+Startup
+###### spark.rapids.sql.format.parquet.multithreaded.combine.sizeBytes
+The target size in bytes to combine multiple small files together when using the MULTITHREADED parquet reader. With combine disabled, the MULTITHREADED reader reads the files in parallel and sends individual files down to the GPU, but that can be inefficient for small files. When combine is enabled, files that are ready within spark.rapids.sql.format.parquet.multithreaded.combine.waitTime together, up to this threshold size, are combined before sending down to GPU. This can be disabled by setting it to 0. Note that combine also will not go over the spark.rapids.sql.reader.batchSizeRows or spark.rapids.sql.reader.batchSizeBytes limits. DEPRECATED: use spark.rapids.sql.reader.multithreaded.combine.sizeBytes instead.
+N/A
+Runtime
+###### spark.rapids.sql.format.parquet.multithreaded.combine.waitTime
+When using the multithreaded parquet reader with combine mode, how long to wait, in milliseconds, for more files to finish if haven't met the size threshold. Note that this will wait this amount of time from when the last file was available, so total wait time could be larger then this. DEPRECATED: use spark.rapids.sql.reader.multithreaded.combine.waitTime instead.
+N/A
+Runtime
+###### spark.rapids.sql.format.parquet.multithreaded.read.keepOrder
+When using the MULTITHREADED reader, if this is set to true we read the files in the same order Spark does, otherwise the order may not be the same. DEPRECATED: use spark.rapids.sql.reader.multithreaded.read.keepOrder instead.
+N/A
+Runtime
+###### spark.rapids.sql.format.parquet.read.enabled
+When set to false disables parquet input acceleration
+true
+Runtime
+###### spark.rapids.sql.format.parquet.reader.footer.type
+In some cases reading the footer of the file is very expensive. Typically this happens when there are a large number of columns and relatively few of them are being read on a large number of files. This provides the ability to use a different path to parse and filter the footer. AUTO is the default and decides which path to take using a heuristic. JAVA follows closely with what Apache Spark does. NATIVE will parse and filter the footer using C++.
+AUTO
+Runtime
+###### spark.rapids.sql.format.parquet.reader.type
+Sets the Parquet reader type. We support different types that are optimized for different environments. The original Spark style reader can be selected by setting this to PERFILE which individually reads and copies files to the GPU. Loading many small files individually has high overhead, and using either COALESCING or MULTITHREADED is recommended instead. The COALESCING reader is good when using a local file system where the executors are on the same nodes or close to the nodes the data is being read on. This reader coalesces all the files assigned to a task into a single host buffer before sending it down to the GPU. It copies blocks from a single file into a host buffer in separate threads in parallel, see spark.rapids.sql.multiThreadedRead.numThreads. MULTITHREADED is good for cloud environments where you are reading from a blobstore that is totally separate and likely has a higher I/O read cost. Many times the cloud environments also get better throughput when you have multiple readers in parallel. This reader uses multiple threads to read each file in parallel and each file is sent to the GPU separately. This allows the CPU to keep reading while GPU is also doing work. See spark.rapids.sql.multiThreadedRead.numThreads and spark.rapids.sql.format.parquet.multiThreadedRead.maxNumFilesParallel to control the number of threads and amount of memory used. By default this is set to AUTO so we select the reader we think is best. This will either be the COALESCING or the MULTITHREADED based on whether we think the file is in the cloud. See spark.rapids.cloudSchemes.
+AUTO
+Runtime
+###### spark.rapids.sql.format.parquet.write.enabled
+When set to false disables parquet output acceleration
+true
+Runtime
+###### spark.rapids.sql.format.parquet.writer.int96.enabled
+When set to false, disables accelerated parquet write if the spark.sql.parquet.outputTimestampType is set to INT96
+true
+Runtime
+###### spark.rapids.sql.formatNumberFloat.enabled
+format_number with floating point types on the GPU returns results that have a different precision than the default results of Spark.
+true
+Runtime
+###### spark.rapids.sql.hasExtendedYearValues
+Spark 3.2.0+ extended parsing of years in dates and timestamps to support the full range of possible values. Prior to this it was limited to a positive 4 digit year. The Accelerator does not support the extended range yet. This config indicates if your data includes this extended range or not, or if you don't care about getting the correct values on values with the extended range.
+true
+Runtime
+###### spark.rapids.sql.hashOptimizeSort.enabled
+Whether sorts should be inserted after some hashed operations to improve output ordering. This can improve output file sizes when saving to columnar formats.
+false
+Runtime
+###### spark.rapids.sql.improvedFloatOps.enabled
+For some floating point operations spark uses one way to compute the value and the underlying cudf implementation can use an improved algorithm. In some cases this can result in cudf producing an answer when spark overflows.
+true
+Runtime
+###### spark.rapids.sql.incompatibleDateFormats.enabled
+When parsing strings as dates and timestamps in functions like unix_timestamp, some formats are fully supported on the GPU and some are unsupported and will fall back to the CPU.  Some formats behave differently on the GPU than the CPU.  Spark on the CPU interprets date formats with unsupported trailing characters as nulls, while Spark on the GPU will parse the date with invalid trailing characters. More detail can be found at [parsing strings as dates or timestamps](../compatibility.md#parsing-strings-as-dates-or-timestamps).
+false
+Runtime
+###### spark.rapids.sql.incompatibleOps.enabled
+For operations that work, but are not 100% compatible with the Spark equivalent set if they should be enabled by default or disabled by default.
+true
+Runtime
+###### spark.rapids.sql.join.cross.enabled
+When set to true cross joins are enabled on the GPU
+true
+Runtime
+###### spark.rapids.sql.join.existence.enabled
+When set to true existence joins are enabled on the GPU
+true
+Runtime
+###### spark.rapids.sql.join.fullOuter.enabled
+When set to true full outer joins are enabled on the GPU
+true
+Runtime
+###### spark.rapids.sql.join.inner.enabled
+When set to true inner joins are enabled on the GPU
+true
+Runtime
+###### spark.rapids.sql.join.leftAnti.enabled
+When set to true left anti joins are enabled on the GPU
+true
+Runtime
+###### spark.rapids.sql.join.leftOuter.enabled
+When set to true left outer joins are enabled on the GPU
+true
+Runtime
+###### spark.rapids.sql.join.leftSemi.enabled
+When set to true left semi joins are enabled on the GPU
+true
+Runtime
+###### spark.rapids.sql.join.rightOuter.enabled
+When set to true right outer joins are enabled on the GPU
+true
+Runtime
+###### spark.rapids.sql.json.read.decimal.enabled
+When reading a quoted string as a decimal Spark supports reading non-ascii unicode digits, and the RAPIDS Accelerator does not.
+true
+Runtime
+###### spark.rapids.sql.json.read.double.enabled
+JSON reading is not 100% compatible when reading doubles.
+true
+Runtime
+###### spark.rapids.sql.json.read.float.enabled
+JSON reading is not 100% compatible when reading floats.
+true
+Runtime
+###### spark.rapids.sql.lore.dumpPath
+The path to dump the LORE nodes' input data. This must be set if spark.rapids.sql.lore.idsToDump has been set. The data of each LORE node will be dumped to a subfolder with name 'loreId-<LORE id>' under this path. For more details, please refer to [the LORE documentation](../dev/lore.md).
+N/A
+Runtime
+###### spark.rapids.sql.lore.idsToDump
+Specify the LORE ids of operators to dump. The format is a comma separated list of LORE ids. For example: "1[0]" will dump partition 0 of input of gpu operator with lore id 1. For more details, please refer to [the LORE documentation](../dev/lore.md). If this is not set, no data will be dumped.
+N/A
+Runtime
+###### spark.rapids.sql.mode
+Set the mode for the Rapids Accelerator. The supported modes are explainOnly and executeOnGPU. This config can not be changed at runtime, you must restart the application for it to take affect. The default mode is executeOnGPU, which means the RAPIDS Accelerator plugin convert the Spark operations and execute them on the GPU when possible. The explainOnly mode allows running queries on the CPU and the RAPIDS Accelerator will evaluate the queries as if it was going to run on the GPU. The explanations of what would have run on the GPU and why are output in log messages. When using explainOnly mode, the default explain output is ALL, this can be changed by setting spark.rapids.sql.explain. See that config for more details.
+executeongpu
+Startup
+###### spark.rapids.sql.optimizer.joinReorder.enabled
+When enabled, joins may be reordered for improved query performance
+true
+Runtime
+###### spark.rapids.sql.python.gpu.enabled
+This is an experimental feature and is likely to change in the future. Enable (true) or disable (false) support for scheduling Python Pandas UDFs with GPU resources. When enabled, pandas UDFs are assumed to share the same GPU that the RAPIDs accelerator uses and will honor the python GPU configs
+false
+Runtime
+###### spark.rapids.sql.reader.chunked
+Enable a chunked reader where possible. A chunked reader allows reading highly compressed data that could not be read otherwise, but at the expense of more GPU memory, and in some cases more GPU computation. Currently this only supports ORC and Parquet formats.
+true
+Runtime
+###### spark.rapids.sql.reader.chunked.limitMemoryUsage
+Enable a soft limit on the internal memory usage of the chunked reader (if being used). Such limit is calculated as the multiplication of 'spark.rapids.sql.batchSizeBytes' and 'spark.rapids.sql.reader.chunked.memoryUsageRatio'.For example, if batchSizeBytes is set to 1GB and memoryUsageRatio is 4, the chunked reader will try to keep its memory usage under 4GB.
+N/A
+Runtime
+###### spark.rapids.sql.reader.chunked.subPage
+Enable a chunked reader where possible for reading data that is smaller than the typical row group/page limit. Currently deprecated and replaced by 'spark.rapids.sql.reader.chunked.limitMemoryUsage'.
+N/A
+Runtime
+###### spark.rapids.sql.reader.multithreaded.combine.sizeBytes
+The target size in bytes to combine multiple small files together when using the MULTITHREADED parquet or orc reader. With combine disabled, the MULTITHREADED reader reads the files in parallel and sends individual files down to the GPU, but that can be inefficient for small files. When combine is enabled, files that are ready within spark.rapids.sql.reader.multithreaded.combine.waitTime together, up to this threshold size, are combined before sending down to GPU. This can be disabled by setting it to 0. Note that combine also will not go over the spark.rapids.sql.reader.batchSizeRows or spark.rapids.sql.reader.batchSizeBytes limits.
+67108864
+Runtime
+###### spark.rapids.sql.reader.multithreaded.combine.waitTime
+When using the multithreaded parquet or orc reader with combine mode, how long to wait, in milliseconds, for more files to finish if haven't met the size threshold. Note that this will wait this amount of time from when the last file was available, so total wait time could be larger then this.
+200
+Runtime
+###### spark.rapids.sql.reader.multithreaded.read.keepOrder
+When using the MULTITHREADED reader, if this is set to true we read the files in the same order Spark does, otherwise the order may not be the same. Now it is supported only for parquet and orc.
+true
+Runtime
+###### spark.rapids.sql.regexp.enabled
+Specifies whether supported regular expressions will be evaluated on the GPU. Unsupported expressions will fall back to CPU. However, there are some known edge cases that will still execute on GPU and produce incorrect results and these are documented in the compatibility guide. Setting this config to false will make all regular expressions run on the CPU instead.
+true
+Runtime
+###### spark.rapids.sql.regexp.maxStateMemoryBytes
+Specifies the maximum memory on GPU to be used for regular expressions.The memory usage is an estimate based on an upper-bound approximation on the complexity of the regular expression. Note that the actual memory usage may still be higher than this estimate depending on the number of rows in the datacolumn and the input strings themselves. It is recommended to not set this to more than 3 times spark.rapids.sql.batchSizeBytes
+2147483647
+Runtime
+###### spark.rapids.sql.replaceSortMergeJoin.enabled
+Allow replacing sortMergeJoin with HashJoin
+true
+Runtime
+###### spark.rapids.sql.rowBasedUDF.enabled
+When set to true, optimizes a row-based UDF in a GPU operation by transferring only the data it needs between GPU and CPU inside a query operation, instead of falling this operation back to CPU. This is an experimental feature, and this config might be removed in the future.
+false
+Runtime
+###### spark.rapids.sql.stableSort.enabled
+Enable or disable stable sorting. Apache Spark's sorting is typically a stable sort, but sort stability cannot be guaranteed in distributed work loads because the order in which upstream data arrives to a task is not guaranteed. Sort stability then only matters when reading and sorting data from a file using a single task/partition. Because of limitations in the plugin when you enable stable sorting all of the data for a single task will be combined into a single batch before sorting. This currently disables spilling from GPU memory if the data size is too large.
+false
+Runtime
+###### spark.rapids.sql.suppressPlanningFailure
+Option to fallback an individual query to CPU if an unexpected condition prevents the query plan from being converted to a GPU-enabled one. Note this is different from a normal CPU fallback for a yet-to-be-supported Spark SQL feature. If this happens the error should be reported and investigated as a GitHub issue.
+false
+Runtime
+###### spark.rapids.sql.variableFloatAgg.enabled
+Spark assumes that all operations produce the exact same result each time. This is not true for some floating point aggregations, which can produce slightly different results on the GPU as the aggregation is done in parallel.  This can enable those operations if you know the query is only computing it once.
+true
+Runtime
+###### spark.rapids.sql.window.batched.bounded.row.max
+Max value for bounded row window preceding/following extents permissible for the window to be evaluated in batched mode. This value affects both the preceding and following bounds, potentially doubling the window size permitted for batched execution
+100
+Runtime
+###### spark.rapids.sql.window.collectList.enabled
+The output size of collect list for a window operation is proportional to the window size squared. The current GPU implementation does not handle this well and is disabled by default. If you know that your window size is very small you can try to enable it.
+false
+Runtime
+###### spark.rapids.sql.window.collectSet.enabled
+The output size of collect set for a window operation can be proportional to the window size squared. The current GPU implementation does not handle this well and is disabled by default. If you know that your window size is very small you can try to enable it.
+false
+Runtime
+###### spark.rapids.sql.window.range.byte.enabled
+When the order-by column of a range based window is byte type and the range boundary calculated for a value has overflow, CPU and GPU will get the different results. When set to false disables the range window acceleration for the byte type order-by column
+false
+Runtime
+###### spark.rapids.sql.window.range.decimal.enabled
+When set to false, this disables the range window acceleration for the DECIMAL type order-by column
+true
+Runtime
+###### spark.rapids.sql.window.range.double.enabled
+When set to false, this disables the range window acceleration for the double type order-by column
+true
+Runtime
+###### spark.rapids.sql.window.range.float.enabled
+When set to false, this disables the range window acceleration for the FLOAT type order-by column
+true
+Runtime
+###### spark.rapids.sql.window.range.int.enabled
+When the order-by column of a range based window is int type and the range boundary calculated for a value has overflow, CPU and GPU will get the different results. When set to false disables the range window acceleration for the int type order-by column
+true
+Runtime
+###### spark.rapids.sql.window.range.long.enabled
+When the order-by column of a range based window is long type and the range boundary calculated for a value has overflow, CPU and GPU will get the different results. When set to false disables the range window acceleration for the long type order-by column
+true
+Runtime
+###### spark.rapids.sql.window.range.short.enabled
+When the order-by column of a range based window is short type and the range boundary calculated for a value has overflow, CPU and GPU will get the different results. When set to false disables the range window acceleration for the short type order-by column
+false
+Runtime
 
 ## Supported GPU Operators and Fine Tuning
 _The RAPIDS Accelerator for Apache Spark_ can be configured to enable or disable specific
