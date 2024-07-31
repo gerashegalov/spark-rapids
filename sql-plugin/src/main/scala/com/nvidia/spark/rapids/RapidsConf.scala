@@ -2330,11 +2330,11 @@ val SHUFFLE_COMPRESSION_LZ4_CHUNK_SIZE = conf("spark.rapids.shuffle.compression.
   val ENABLE_DELTA_LOW_SHUFFLE_MERGE =
     conf("spark.rapids.sql.delta.lowShuffleMerge.enabled")
     .doc("Option to turn on the low shuffle merge for Delta Lake. Currently there are some " +
-      "limitations for this feature: \n" +
-      "1. We only support Databricks Runtime 13.3 and Deltalake 2.4. \n" +
-      s"2. The file scan mode must be set to ${RapidsReaderType.PERFILE} \n" +
+      "limitations for this feature: " +
+      "1. We only support Databricks Runtime 13.3 and Deltalake 2.4. " +
+      s"2. The file scan mode must be set to ${RapidsReaderType.PERFILE} " +
       "3. The deletion vector size must be smaller than " +
-      s"${DELTA_LOW_SHUFFLE_MERGE_DEL_VECTOR_BROADCAST_THRESHOLD.key} \n")
+      s"${DELTA_LOW_SHUFFLE_MERGE_DEL_VECTOR_BROADCAST_THRESHOLD.key} ")
     .booleanConf
     .createWithDefault(false)
 
@@ -2403,7 +2403,7 @@ val SHUFFLE_COMPRESSION_LZ4_CHUNK_SIZE = conf("spark.rapids.shuffle.compression.
         |On startup use: `--conf [conf key]=[conf value]`. For example:
         |
         |```
-        |${SPARK_HOME}/bin/spark-shell --jars rapids-4-spark_2.12-24.08.0-SNAPSHOT-cuda11.jar \
+        |${SPARK_HOME}/bin/spark-shell --jars rapids-4-spark_2.12-24.10.0-SNAPSHOT-cuda11.jar \
         |--conf spark.plugins=com.nvidia.spark.SQLPlugin \
         |--conf spark.rapids.sql.concurrentGpuTasks=2
         |```
