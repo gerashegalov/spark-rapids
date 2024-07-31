@@ -96,7 +96,7 @@ object ConfHelper {
     val t = if (text != null) text else key
     // The anchor cannot be too long, so for now
     val a = key.replaceFirst("spark.rapids.", "")
-    "<a name=\"" + s"$a" + "\"></a>" + t
+    s"""<a name="$a">$t</a>"""
   }
 
   def getSqlFunctionsForClass[T](exprClass: Class[T]): Option[Seq[String]] = {
