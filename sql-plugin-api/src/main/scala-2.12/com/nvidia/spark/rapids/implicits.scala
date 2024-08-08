@@ -21,24 +21,11 @@ import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
-import org.apache.spark.sql.catalyst.expressions.Expression
-import org.apache.spark.sql.vectorized.ColumnarBatch
-
 /**
  * RapidsPluginImplicits, adds implicit functions for ColumnarBatch, Seq, Seq[AutoCloseable],
  * and Array[AutoCloseable] that help make resource management easier within the project.
  */
 object RapidsPluginImplicits {
-
-  implicit class ReallyAGpuExpression(exp: Expression) {
-    def columnarEval(batch: ColumnarBatch): ColumnVector = {
-      exp.asInstanceOf[GpuExpression].columnarEval(batch)
-    }
-
-    def columnarEvalAny(batch: ColumnarBatch): Any = {
-      exp.asInstanceOf[GpuExpression].columnarEvalAny(batch)
-    }
-  }
 
   implicit class AutoCloseableColumn(autoCloseable: AutoCloseable) {
 

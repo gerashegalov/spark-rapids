@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2023, NVIDIA CORPORATION.
+ * Copyright (c) 2024, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,14 +24,10 @@ import scala.reflect.ClassTag
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
-/**
- * RapidsPluginImplicits, adds implicit functions for ColumnarBatch, Seq, Seq[AutoCloseable],
- * and Array[AutoCloseable] that help make resource management easier within the project.
- */
-object RapidsPluginImplicits {
+object RapidsSparkImplicits {
 
   implicit class ReallyAGpuExpression(exp: Expression) {
-    def columnarEval(batch: ColumnarBatch): ColumnVector = {
+    def columnarEval(batch: ColumnarBatch): GpuColumnVector = {
       exp.asInstanceOf[GpuExpression].columnarEval(batch)
     }
 
