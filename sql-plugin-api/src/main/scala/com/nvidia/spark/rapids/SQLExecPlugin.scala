@@ -16,14 +16,13 @@
 
 package com.nvidia.spark.rapids
 
-import org.apache.spark.sql.{SparkSession, SparkSessionExtensions, Strategy}
+import org.apache.spark.sql.{SparkSession, SparkSessionExtensions}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.{ColumnarRule, SparkPlan}
-
 /**
  * Extension point to enable GPU SQL processing.
  */
-class SQLExecPlugin extends (SparkSessionExtensions => Unit) {
+class SQLExecPlugin extends (SparkSessionExtensions => Unit) with ConnectShims {
   private val strategyRules: Strategy = ShimLoader.newStrategyRules()
 
   override def apply(extensions: SparkSessionExtensions): Unit = {
