@@ -22,7 +22,8 @@ import com.nvidia.spark.rapids.{ColumnarFileFormat, GpuDataWritingCommand, Rapid
 import org.apache.hadoop.fs.{FileSystem, Path}
 
 import org.apache.spark.internal.io.FileCommitProtocol
-import org.apache.spark.sql.{SaveMode, SparkSession}
+import org.apache.spark.sql.{SaveMode}
+import com.nvidia.spark.rapids.ConnectShims._
 import org.apache.spark.sql.catalyst.catalog.{BucketSpec, CatalogTable, CatalogTablePartition}
 import org.apache.spark.sql.catalyst.catalog.CatalogTypes.TablePartitionSpec
 import org.apache.spark.sql.catalyst.catalog.ExternalCatalogUtils.getPartitionPathString
@@ -54,7 +55,7 @@ case class GpuInsertIntoHadoopFsRelationCommand(
     baseDebugOutputPath: Option[String])
   extends GpuDataWritingCommand {
 
-  override def runColumnar(sparkSession: SparkSession, child: SparkPlan): Seq[ColumnarBatch] = {
+  override def runColumnar(sparkSession: SparkClassicSession, child: SparkPlan): Seq[ColumnarBatch] = {
     // Most formats don't do well with duplicate columns, so lets not allow that
     SchemaUtilsShims.checkColumnNameDuplication(
       outputColumnNames,

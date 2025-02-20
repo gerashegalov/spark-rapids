@@ -229,6 +229,22 @@
                 </dependency>
             </dependencies>
         </profile>
+        <!-- <profile>
+            <id>release400</id>
+                        <activation>
+                <property>
+                    <name>buildver</name>
+                    <value>400</value>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                <artifactId>spark-sql-api_${scala.binary.version}</artifactId>
+                <groupId>org.apache.spark</groupId>
+                <version>${spark400.version}</version>
+                </dependency>
+            </dependencies>
+        </profile> -->
 
         <profile>
             <id>with-classifier</id>
