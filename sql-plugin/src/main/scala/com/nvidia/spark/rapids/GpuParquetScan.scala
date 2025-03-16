@@ -1820,6 +1820,18 @@ trait ParquetPartitionReaderBase extends Logging with ScanWithMetrics
     }
   }
 
+  private def debugRanges(ranges: Seq[CopyRange], file: String): Unit = {
+    ranges.foreach { r =>
+      if (r.offset < 1 || r.length < 1) {
+        logWarning(
+s"""
+DEBUG_PARQUET empty columnar chunk? offset=${r.offset} length=${r.length} in ${file}
+"""
+        )
+      }
+    }
+  }
+
   private def copyRemoteBlocksData(
       remoteCopies: Seq[CopyRange],
       filePath: Path,
@@ -1829,6 +1841,8 @@ trait ParquetPartitionReaderBase extends Logging with ScanWithMetrics
     if (remoteCopies.isEmpty) {
       return 0L
     }
+
+    debugRanges(remoteCopies, filePathString)
 
     val coalescedRanges = coalesceReads(remoteCopies)
 
