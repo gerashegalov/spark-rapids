@@ -18,19 +18,29 @@ package com.nvidia.spark.rapids.iceberg.parquet;
 
 import com.nvidia.spark.rapids.*;
 import com.nvidia.spark.rapids.iceberg.spark.source.GpuMultiFileReaderConf;
+import com.nvidia.spark.rapids.parquet.CpuCompressionConfig$;
+import com.nvidia.spark.rapids.parquet.MultiFileCloudParquetPartitionReader;
+import com.nvidia.spark.rapids.parquet.MultiFileParquetPartitionReader;
+import com.nvidia.spark.rapids.parquet.ParquetDataBlock;
+import com.nvidia.spark.rapids.parquet.ParquetExtraInfo;
+import com.nvidia.spark.rapids.parquet.ParquetFileInfoWithBlockMeta;
+import com.nvidia.spark.rapids.parquet.ParquetSchemaWrapper;
+import com.nvidia.spark.rapids.parquet.ParquetSingleDataBlockMeta;
 import com.nvidia.spark.rapids.shims.PartitionedFileUtilsShim;
+import com.nvidia.spark.rapids.parquet.iceberg.shaded.GpuParquetUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.iceberg.FileScanTask;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.io.CloseableIterator;
 import org.apache.iceberg.io.InputFile;
 import org.apache.iceberg.mapping.NameMapping;
-import com.nvidia.shaded.iceberg.org.apache.iceberg.parquet.ParquetSchemaUtil;
+import org.apache.iceberg.parquet.ParquetSchemaUtil;
+import org.apache.iceberg.parquet.TypeWithSchemaVisitor;
 import org.apache.iceberg.relocated.com.google.common.collect.Maps;
-import org.apache.parquet.ParquetReadOptions;
-import org.apache.parquet.hadoop.ParquetFileReader;
-import org.apache.parquet.hadoop.metadata.BlockMetaData;
-import org.apache.parquet.schema.MessageType;
+import org.apache.iceberg.shaded.org.apache.parquet.ParquetReadOptions;
+import org.apache.iceberg.shaded.org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.iceberg.shaded.org.apache.parquet.hadoop.metadata.BlockMetaData;
+import org.apache.iceberg.shaded.org.apache.parquet.schema.MessageType;
 import org.apache.spark.TaskContext;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.execution.datasources.PartitionedFile;
@@ -147,7 +157,7 @@ public abstract class GpuParquetMultiFileReaderBase implements CloseableIterator
           fileReadSchema, filteredRowGroups, conf.isCaseSensitive());
       StructType partReaderSparkSchema = (StructType) TypeWithSchemaVisitor.visit(
           conf.getExpectedSchema().asStruct(), fileReadSchema,
-          new GpuParquetReader.SparkSchemaConverter());
+          new SparkSchemaConverter());
 
 
       ParquetFileInfoWithBlockMeta parquetBlockMeta = ParquetFileInfoWithBlockMeta.apply(
