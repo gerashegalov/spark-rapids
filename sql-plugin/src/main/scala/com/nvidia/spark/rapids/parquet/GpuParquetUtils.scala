@@ -16,6 +16,7 @@
 
 package com.nvidia.spark.rapids.parquet
 
+
 import java.util.Locale
 
 import scala.collection.JavaConverters._

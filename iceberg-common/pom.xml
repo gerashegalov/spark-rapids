@@ -50,46 +50,40 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <configuration>
-<!--                    <artifactSet>-->
-<!--                        <excludes>-->
-<!--                            <exclude>org.slf4j:*</exclude>-->
-<!--                            &lt;!&ndash; excludes spark-rapids-jni and jucx, will package them in the dist submodule &ndash;&gt;-->
-<!--                            <exclude>com.nvidia:spark-rapids-jni:*</exclude>-->
-<!--                            <exclude>org.openucx:jucx:*</exclude>-->
-<!--                        </excludes>-->
-<!--                    </artifactSet>-->
-                    <filters>
-                        <filter>
-                            <artifact>com.nvidia:rapids-4-spark-sql_2.12</artifact>
-                            <includes>
-                                <include>com/nvidia/spark/rapids/parquet/**</include>
-                            </includes>
-                        </filter>
-                    </filters>
-                    <relocations>
-                        <relocation>
-                            <pattern>com.nvidia.spark.rapids.parquet</pattern>
-                            <shadedPattern>com.nvidia.spark.rapids.parquet.iceberg.shaded</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>org.apache.parquet</pattern>
-                            <shadedPattern>org.apache.iceberg.shaded.org.apache.parquet</shadedPattern>
-                            <includes>
-                                <include>com/nvidia/spark/rapids/parquet/iceberg/shaded/**</include>
-                            </includes>
-                        </relocation>
-                    </relocations>
-                    <createDependencyReducedPom>true</createDependencyReducedPom>
-                    <minimizeJar>true</minimizeJar>
-                </configuration>
                 <executions>
                     <execution>
-                        <id>iceberg-common-${spark.version.classifier}</id>
+                        <id>iceberg-common-shade-parquet-${spark.version.classifier}</id>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <artifactSet>
+                                <includes>
+                                    <include>com.nvidia:rapids-4-spark-sql_2.12:*</include>
+                                </includes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>com.nvidia:rapids-4-spark-sql_2.12</artifact>
+                                    <includes>
+                                        <include>com/nvidia/spark/rapids/parquet/**</include>
+                                    </includes>
+                                </filter>
+                            </filters>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.apache.parquet</pattern>
+                                    <shadedPattern>org.apache.iceberg.shaded.org.apache.parquet</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.nvidia.spark.rapids.parquet</pattern>
+                                    <shadedPattern>com.nvidia.spark.rapids.parquet.iceberg.shaded</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <createDependencyReducedPom>true</createDependencyReducedPom>
+                            <minimizeJar>true</minimizeJar>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

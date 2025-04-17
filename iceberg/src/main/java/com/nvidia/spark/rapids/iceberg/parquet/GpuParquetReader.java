@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.nvidia.spark.rapids.parquet.iceberg.shaded.ParquetPartitionReader;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.parquet.ParquetBloomRowGroupFilter;
 import org.apache.iceberg.parquet.ParquetDictionaryRowGroupFilter;
@@ -34,7 +35,7 @@ import org.apache.iceberg.shaded.org.apache.parquet.hadoop.metadata.BlockMetaDat
 import org.apache.iceberg.shaded.org.apache.parquet.schema.MessageType;
 import scala.collection.Seq;
 
-import com.nvidia.spark.rapids.parquet.CpuCompressionConfig$;
+import com.nvidia.spark.rapids.parquet.iceberg.shaded.CpuCompressionConfig$;
 import com.nvidia.spark.rapids.DateTimeRebaseCorrected$;
 import com.nvidia.spark.rapids.GpuMetric;
 import com.nvidia.spark.rapids.parquet.iceberg.shaded.GpuParquetUtils;
