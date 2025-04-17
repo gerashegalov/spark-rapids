@@ -68,6 +68,7 @@
                                     <artifact>com.nvidia:rapids-4-spark-sql_2.12</artifact>
                                     <includes>
                                         <include>com/nvidia/spark/rapids/parquet/**</include>
+                                        <include>com/nvidia/spark/rapids/shims/parquet/**</include>
                                     </includes>
                                 </filter>
                             </filters>
@@ -79,6 +80,10 @@
                                 <relocation>
                                     <pattern>com.nvidia.spark.rapids.parquet</pattern>
                                     <shadedPattern>com.nvidia.spark.rapids.parquet.iceberg.shaded</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.nvidia.spark.rapids.shims.parquet</pattern>
+                                    <shadedPattern>com.nvidia.spark.rapids.shims.parquet.iceberg.shaded</shadedPattern>
                                 </relocation>
                             </relocations>
                             <createDependencyReducedPom>true</createDependencyReducedPom>
