@@ -580,7 +580,7 @@
             <modules>
                 <module>delta-lake/delta-stub</module>
                 <module>iceberg</module>
-                <module>bundled-iceberg-parquet</module>
+                <module>iceberg-common</module>
             </modules>
         </profile>
         <profile>
@@ -626,7 +626,7 @@
             <modules>
                 <module>delta-lake/delta-stub</module>
                 <module>iceberg</module>
-                <module>bundled-iceberg-parquet</module>
+                <module>iceberg-common</module>
             </modules>
         </profile>
         <profile>
@@ -649,7 +649,7 @@
             <modules>
                 <module>delta-lake/delta-stub</module>
                 <module>iceberg</module>
-                <module>bundled-iceberg-parquet</module>
+                <module>iceberg-common</module>
             </modules>
         </profile>
         <profile>
@@ -672,7 +672,7 @@
             <modules>
                 <module>delta-lake/delta-stub</module>
                 <module>iceberg</module>
-                <module>bundled-iceberg-parquet</module>
+                <module>iceberg-common</module>
             </modules>
         </profile>
         <profile>
@@ -695,7 +695,7 @@
             <modules>
                 <module>delta-lake/delta-stub</module>
                 <module>iceberg</module>
-                <module>bundled-iceberg-parquet</module>
+                <module>iceberg-common</module>
             </modules>
         </profile>
         <profile>
@@ -718,7 +718,7 @@
             <modules>
                 <module>delta-lake/delta-stub</module>
                 <module>iceberg</module>
-                <module>bundled-iceberg-parquet</module>
+                <module>iceberg-common</module>
             </modules>
         </profile>
         <!-- #if scala-2.13 -->
@@ -1110,38 +1110,6 @@
                 <groupId>org.apache.iceberg</groupId>
                 <artifactId>iceberg-spark-runtime-${iceberg.artifact.suffix}_${scala.binary.version}</artifactId>
                 <version>${iceberg.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <!--We make this as compile rather provided since iceberg-spark-runtime shaded almost
-             all parquet dependency-->
-            <dependency>
-                <groupId>org.apache.iceberg</groupId>
-                <artifactId>iceberg-parquet</artifactId>
-                <version>${iceberg.version}</version>
-                <scope>compile</scope>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-api</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.parquet</groupId>
-                <artifactId>parquet-hadoop</artifactId>
-                <version>${parquet.hadoop.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.parquet</groupId>
-                <artifactId>parquet-column</artifactId>
-                <version>${parquet.hadoop.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.parquet</groupId>
-                <artifactId>parquet-common</artifactId>
-                <version>${parquet.hadoop.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
