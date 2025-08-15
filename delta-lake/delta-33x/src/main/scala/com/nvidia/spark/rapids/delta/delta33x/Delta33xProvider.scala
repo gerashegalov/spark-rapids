@@ -19,14 +19,16 @@ package com.nvidia.spark.rapids.delta.delta33x
 import com.nvidia.spark.rapids._
 import com.nvidia.spark.rapids.delta.{DeltaIOProvider, GpuDeltaDataSource, RapidsDeltaUtils}
 import org.apache.hadoop.fs.Path
-import scala.collection.JavaConverters._
 
+import scala.collection.JavaConverters._
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.connector.catalog.SupportsWrite
 import org.apache.spark.sql.delta.{DeltaLog, DeltaParquetFileFormat}
 import org.apache.spark.sql.delta.DeltaParquetFileFormat.{IS_ROW_DELETED_COLUMN_NAME, ROW_INDEX_COLUMN_NAME}
 import org.apache.spark.sql.delta.catalog.{DeltaCatalog, DeltaTableV2}
 import org.apache.spark.sql.delta.commands.{DeleteCommand, MergeIntoCommand, UpdateCommand}
+import org.apache.spark.sql.delta.metric.IncrementMetric
 import org.apache.spark.sql.delta.rapids.DeltaRuntimeShim
 import org.apache.spark.sql.delta.skipping.clustering.ClusteredTableUtils.PROP_CLUSTERING_COLUMNS
 import org.apache.spark.sql.delta.skipping.clustering.temp.ClusterByTransform
@@ -117,6 +119,27 @@ object Delta33xProvider extends DeltaIOProvider {
           (a, conf, p, r) => new MergeIntoCommandMeta(a, conf, p, r))
     ).map(r => (r.getClassFor.asSubclass(classOf[RunnableCommand]), r)).toMap
   }
+  case class GpuIncrementMeticMeta(
+                              inc: IncrementMetric,
+                              override val conf: RapidsConf,
+                              p: Option[RapidsMeta[_, _, _]],
+                              r: DataFromReplacementRule) extends ExprMeta[IncrementMetric](inc, conf, p, r) {
+    override def convertToGpu(): GpuExpression = GpuIncrementMetic(inc.child)
+  }
+
+  case class GpuInc
+
+  override def getExprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = Seq(
+    GpuOverrides.expr[IncrementMetric](
+      "IncrementMetric",
+      ExprChecks.projectOnly(
+        TypeSig.all,
+        TypeSig.all,
+        paramCheck = Seq(ParamCheck("expr", TypeSig.all, TypeSig.all))
+      ),
+      GpuIncrementMeticMeta
+    )
+  ).map(r => (r.getClassFor.asSubclass(classOf[Expression]), r)).toMap
 
   override def tagSupportForGpuFileSourceScan(meta: SparkPlanMeta[FileSourceScanExec]): Unit = {
     val format = meta.wrapped.relation.fileFormat
