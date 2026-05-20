@@ -10,6 +10,13 @@ com/nvidia/spark/rapids/ShimLoaderTemp*
 com/nvidia/spark/rapids/SparkShims*
 org/apache/spark/sql/rapids/AdaptiveSparkPlanHelperShim*
 org/apache/spark/sql/rapids/ExecutionPlanCaptureCallback*
+org/apache/spark/sql/rapids/AvgLongAccumulator.class
+org/apache/spark/sql/rapids/HighWatermarkAccumulator.class
+org/apache/spark/sql/rapids/MaxLongAccumulator.class
+org/apache/spark/sql/rapids/NanoSecondAccumulator.class
+org/apache/spark/sql/rapids/NanoTime.class
+org/apache/spark/sql/rapids/NanoTime$.class
 org/apache/spark/sql/rapids/SizeInBytes.class
 org/apache/spark/sql/rapids/SizeInBytes$.class
+org/apache/spark/sql/rapids/SizeInBytesAccumulator.class
 rapids/*.py
