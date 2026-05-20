@@ -75,6 +75,15 @@ com/nvidia/spark/rapids/OrcFormatType.class
 com/nvidia/spark/rapids/OrcFormatType$.class
 com/nvidia/spark/rapids/ParquetFormatType.class
 com/nvidia/spark/rapids/ParquetFormatType$.class
+com/nvidia/spark/rapids/PathInstruction.class
+com/nvidia/spark/rapids/PathInstruction$.class
+com/nvidia/spark/rapids/PathInstruction$Index.class
+com/nvidia/spark/rapids/PathInstruction$Index$.class
+com/nvidia/spark/rapids/PathInstruction$Key$.class
+com/nvidia/spark/rapids/PathInstruction$Named.class
+com/nvidia/spark/rapids/PathInstruction$Named$.class
+com/nvidia/spark/rapids/PathInstruction$Subscript$.class
+com/nvidia/spark/rapids/PathInstruction$Wildcard$.class
 com/nvidia/spark/rapids/PartiallySupported.class
 com/nvidia/spark/rapids/PartiallySupported$.class
 com/nvidia/spark/rapids/QuantifierFixedLength.class
