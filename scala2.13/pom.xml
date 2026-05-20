@@ -67,8 +67,9 @@
         <module>dist</module>
         <module>integration_tests</module>
         <module>shuffle-plugin</module>
-        <module>sql-plugin</module>
         <module>sql-plugin-api</module>
+        <module>sql-plugin-shims</module>
+        <module>sql-plugin</module>
         <module>tests</module>
         <module>tools</module>
         <module>udf-compiler</module>

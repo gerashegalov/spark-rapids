@@ -22,6 +22,33 @@ class as a tight entry point for interacting with the host Spark runtime.
 
 In the following we provide recipes for typical scenarios addressed by the Shim layer.
 
+## One-way Shim Module Boundary
+
+Shim source can be split between three layers when the implementation does not have to live
+in the same module as the Spark-version-specific API reference.
+
+1. `sql-plugin-api` contains the narrow shared types that both sides can see. These types must
+   not depend on `sql-plugin` implementation classes.
+2. `sql-plugin-shims` depends on `sql-plugin-api` and Spark. It may reference Spark classes whose
+   source or binary shape varies by build version, but it must not reference implementation types
+   such as `GpuOverrides`, `RapidsMeta`, `ExprRule`, `ExecRule`, or GPU meta classes.
+3. `sql-plugin` depends on `sql-plugin-shims`. It turns API-level shim descriptors into concrete
+   plugin rules and owns the RAPIDS metadata factories.
+
+For replacement rules, use descriptor objects when the shim only needs to identify a Spark class
+and provide stable rule metadata. For example, `ShimDataWritingCommandRule`,
+`ShimRunnableCommandRule`, and `ShimExecRule` live in `sql-plugin-api`; versioned objects in
+`sql-plugin-shims` instantiate those descriptors with Spark-specific class tags; `sql-plugin`
+then calls the corresponding `GpuOverrides.*FromShim` method and supplies the actual `RapidsMeta`
+factory. This keeps the call direction one-way: shared plugin code can consume shim descriptors,
+while shim code cannot call back into shared plugin implementation.
+
+Classes whose `spark-rapids-shim-json-lines` entries cover all build versions can be unshimmed
+into a common source root when there is no special-version sibling and the source is truly
+compatible across the supported Spark APIs. When a file has Databricks-specific, Spark 4.1-specific,
+or otherwise divergent siblings, keep the version-specific source and move only the API-safe part
+behind the one-way boundary.
+
 ## Method signature discrepancies
 
 It's among the easiest issues to resolve. We define a method in SparkShims

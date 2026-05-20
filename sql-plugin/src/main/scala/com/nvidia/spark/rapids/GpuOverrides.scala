@@ -849,6 +849,15 @@ object GpuOverrides extends Logging {
     new ExecRule[INPUT](doWrap, desc, Some(pluginChecks), tag)
   }
 
+  def execFromShim[INPUT <: SparkPlan](
+      rule: ShimExecRule[INPUT],
+      pluginChecks: ExecChecks,
+      doWrap: (INPUT, RapidsConf, Option[RapidsMeta[_, _, _]], DataFromReplacementRule)
+          => SparkPlanMeta[INPUT]): ExecRule[INPUT] = {
+    assert(rule != null)
+    exec(rule.desc, pluginChecks, doWrap)(rule.tag)
+  }
+
   def dataWriteCmd[INPUT <: DataWritingCommand](
       desc: String,
       doWrap: (INPUT, RapidsConf, Option[RapidsMeta[_, _, _]], DataFromReplacementRule)
@@ -857,6 +866,14 @@ object GpuOverrides extends Logging {
     assert(desc != null)
     assert(doWrap != null)
     new DataWritingCommandRule[INPUT](doWrap, desc, tag)
+  }
+
+  def dataWriteCmdFromShim[INPUT <: DataWritingCommand](
+      rule: ShimDataWritingCommandRule[INPUT],
+      doWrap: (INPUT, RapidsConf, Option[RapidsMeta[_, _, _]], DataFromReplacementRule)
+          => DataWritingCommandMeta[INPUT]): DataWritingCommandRule[INPUT] = {
+    assert(rule != null)
+    dataWriteCmd(rule.desc, doWrap)(rule.tag)
   }
 
   def wrapExpr[INPUT <: Expression](
@@ -4397,6 +4414,14 @@ object GpuOverrides extends Logging {
     require(desc != null)
     require(doWrap != null)
     new RunnableCommandRule[INPUT](doWrap, desc, tag)
+  }
+
+  def runnableCmdFromShim[INPUT <: RunnableCommand](
+      rule: ShimRunnableCommandRule[INPUT],
+      doWrap: (INPUT, RapidsConf, Option[RapidsMeta[_, _, _]], DataFromReplacementRule)
+          => RunnableCommandMeta[INPUT]): RunnableCommandRule[INPUT] = {
+    require(rule != null)
+    runnableCmd(rule.desc, doWrap)(rule.tag)
   }
 
   def wrapRunnableCmd[INPUT <: RunnableCommand](
