@@ -12,6 +12,12 @@ com/nvidia/spark/rapids/GpuUnsignedIntegerType.class
 com/nvidia/spark/rapids/GpuUnsignedIntegerType$.class
 com/nvidia/spark/rapids/GpuUnsignedLongType.class
 com/nvidia/spark/rapids/GpuUnsignedLongType$.class
+com/nvidia/spark/rapids/lore/LoreOutputInfo.class
+com/nvidia/spark/rapids/lore/LoreOutputInfo$.class
+com/nvidia/spark/rapids/lore/OutputLoreId.class
+com/nvidia/spark/rapids/lore/OutputLoreId$.class
+com/nvidia/spark/rapids/lore/package.class
+com/nvidia/spark/rapids/lore/package$.class
 org/apache/spark/sql/rapids/AdaptiveSparkPlanHelperShim*
 org/apache/spark/sql/rapids/ExecutionPlanCaptureCallback*
 org/apache/spark/sql/rapids/AvgLongAccumulator.class
