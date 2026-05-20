@@ -36,4 +36,8 @@ org/apache/spark/sql/rapids/NanoTime$.class
 org/apache/spark/sql/rapids/SizeInBytes.class
 org/apache/spark/sql/rapids/SizeInBytes$.class
 org/apache/spark/sql/rapids/SizeInBytesAccumulator.class
+org/apache/spark/sql/rapids/execution/JoinCardinalityStats.class
+org/apache/spark/sql/rapids/execution/JoinCardinalityStats$.class
+org/apache/spark/sql/rapids/execution/JoinOptions.class
+org/apache/spark/sql/rapids/execution/JoinOptions$.class
 rapids/*.py
