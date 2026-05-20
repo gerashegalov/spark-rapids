@@ -49,6 +49,63 @@ compatible across the supported Spark APIs. When a file has Databricks-specific,
 or otherwise divergent siblings, keep the version-specific source and move only the API-safe part
 behind the one-way boundary.
 
+## Reducing Parallel-World Classes
+
+The long-term goal is to maximize bytecode in the conventional jar layout and shrink the amount
+of code that must be loaded through the parallel-world mechanism. A class can move from
+`spark-shared` to the conventional layout only when it has no static dependency path to
+Spark-version-specific bytecode. The dependency path matters transitively: a `spark-shared` class
+that calls another `spark-shared` class that eventually calls a `sparkXYZ` class is not root-safe.
+
+Use a small bootstrap allowlist for classes that are allowed to refer to packages generated with
+`$_spark.version.classifier_`, such as `com.nvidia.spark.rapids.spark330.RapidsShuffleManager`.
+Ordinary shared implementation classes should not have direct static dependencies on those
+classifier packages. They should instead call through stable contracts in `sql-plugin-api` or
+through descriptor objects in `sql-plugin-shims`.
+
+For an inventory of a released artifact, download the complete dist jar from Maven Central and run
+the dependency analyzer directly against the jar:
+
+```bash
+VERSION=26.04.2
+curl -fL -o /tmp/rapids-4-spark_2.12-${VERSION}-cuda12.jar \
+  https://repo.maven.apache.org/maven2/com/nvidia/rapids-4-spark_2.12/${VERSION}/rapids-4-spark_2.12-${VERSION}-cuda12.jar
+
+python3 dist/scripts/analyze-parallel-world-deps.py \
+  /tmp/rapids-4-spark_2.12-${VERSION}-cuda12.jar \
+  --show-topo
+```
+
+Run the same command for the Scala 2.13 artifact when checking Spark 4.x coverage. Internal
+snapshot artifacts can be analyzed the same way after downloading a timestamped dist jar from the
+configured artifact repository; keep repository credentials in local Maven or environment
+configuration rather than embedding them in scripts or docs.
+
+For local branch validation, build representative two-shim dist jars that span the widest
+differences in each Scala line:
+
+```bash
+./build/buildall --profile=350,411 --scala213 --module=dist
+python3 dist/scripts/analyze-parallel-world-deps.py \
+  scala2.13/dist/target/parallel-world \
+  --show-topo
+
+./build/buildall --profile=330,358 --module=dist
+python3 dist/scripts/analyze-parallel-world-deps.py \
+  dist/target/parallel-world \
+  --show-topo
+```
+
+The analyzer reports:
+
+1. direct classifier-package dependencies, which should remain limited to bootstrap/facade code;
+2. root or `spark-shared` classes with transitive paths to version-specific classes;
+3. root-safe `spark-shared` strongly connected components in dependency-first order.
+
+Shortest paths explain why a class is blocked and usually identify the adapter boundary to cut.
+Strongly connected components, not shortest paths, provide the migration ordering because classes in
+the same component have to move or be refactored together.
+
 ## Method signature discrepancies
 
 It's among the easiest issues to resolve. We define a method in SparkShims
