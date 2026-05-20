@@ -24,6 +24,9 @@ com/nvidia/spark/rapids/ConfHelper$.class
 com/nvidia/spark/rapids/DataFromReplacementRule.class
 com/nvidia/spark/rapids/DataTypeMeta.class
 com/nvidia/spark/rapids/DataTypeMeta$.class
+com/nvidia/spark/rapids/GpuColumnVectorBase.class
+com/nvidia/spark/rapids/GpuCompressedColumnVector.class
+com/nvidia/spark/rapids/GpuPackedTableColumn.class
 com/nvidia/spark/rapids/GpuUnsignedIntegerType.class
 com/nvidia/spark/rapids/GpuUnsignedIntegerType$.class
 com/nvidia/spark/rapids/GpuUnsignedLongType.class
@@ -41,12 +44,17 @@ com/nvidia/spark/rapids/PartiallySupported.class
 com/nvidia/spark/rapids/PartiallySupported$.class
 com/nvidia/spark/rapids/RapidsReaderType.class
 com/nvidia/spark/rapids/RapidsReaderType$.class
+com/nvidia/spark/rapids/RapidsHostColumnBuilder.class
+com/nvidia/spark/rapids/RapidsHostColumnBuilder$1.class
+com/nvidia/spark/rapids/RapidsHostColumnBuilder$BuilderSnapshot.class
+com/nvidia/spark/rapids/RapidsHostColumnVectorCore.class
 com/nvidia/spark/rapids/SupportLevel.class
 com/nvidia/spark/rapids/Supported.class
 com/nvidia/spark/rapids/TypedConfBuilder.class
 com/nvidia/spark/rapids/TypedConfBuilder$$anonfun$$lessinit$greater$2.class
 com/nvidia/spark/rapids/TypeEnum.class
 com/nvidia/spark/rapids/TypeEnum$.class
+com/nvidia/spark/rapids/WithTableBuffer.class
 com/nvidia/spark/rapids/GpuBuildLeft.class
 com/nvidia/spark/rapids/GpuBuildLeft$.class
 com/nvidia/spark/rapids/GpuBuildRight.class
