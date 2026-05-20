@@ -8,6 +8,10 @@ com/nvidia/spark/rapids/Optimizer.class
 com/nvidia/spark/rapids/optimizer/SQLOptimizerPlugin*
 com/nvidia/spark/rapids/ShimLoaderTemp*
 com/nvidia/spark/rapids/SparkShims*
+com/nvidia/spark/rapids/GpuUnsignedIntegerType.class
+com/nvidia/spark/rapids/GpuUnsignedIntegerType$.class
+com/nvidia/spark/rapids/GpuUnsignedLongType.class
+com/nvidia/spark/rapids/GpuUnsignedLongType$.class
 org/apache/spark/sql/rapids/AdaptiveSparkPlanHelperShim*
 org/apache/spark/sql/rapids/ExecutionPlanCaptureCallback*
 org/apache/spark/sql/rapids/AvgLongAccumulator.class
