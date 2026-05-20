@@ -24,6 +24,7 @@ dependency path to version-specific bytecode.
 
 import argparse
 import collections
+import json
 import os
 import re
 import struct
@@ -345,6 +346,14 @@ def print_path(path):
     return " -> ".join(format_node(node) for node in path)
 
 
+def json_node(node):
+    class_name, location = node
+    return {
+        "className": class_name,
+        "location": location,
+    }
+
+
 def direct_classifier_edges(graph):
     edges = []
     for source, targets in graph.items():
@@ -367,6 +376,8 @@ def main():
         help="print examples of spark-shared classes with no path to version-specific code")
     parser.add_argument("--show-topo", action="store_true",
         help="print root-safe spark-shared SCCs in dependency-first order")
+    parser.add_argument("--format", choices=("text", "json"), default="text",
+        help="output format")
     args = parser.parse_args()
 
     exclude_prefixes = tuple(DEFAULT_EXCLUDES) + tuple(args.exclude_prefix)
@@ -387,6 +398,48 @@ def main():
         if classes[node].location == "spark-shared")
     classifier_edges = direct_classifier_edges(graph)
     version_components = [comp for comp in components if any(is_version_node(node) for node in comp)]
+    safe_sccs = []
+    for comp_id in component_order:
+        component = components[comp_id]
+        safe_members = sorted(node for node in component if node in safe_shared)
+        if safe_members:
+            safe_sccs.append((comp_id, safe_members))
+
+    if args.format == "json":
+        output = {
+            "path": args.path,
+            "classCount": len(classes),
+            "locationCounts": dict(sorted(by_location.items())),
+            "versionSpecificNodeCount": len(version_nodes),
+            "rootOrSharedBlockedCount": len(blocked),
+            "rootSafeSparkSharedCount": len(safe_shared),
+            "sccCount": len(components),
+            "versionSpecificSccCount": len(version_components),
+            "directClassifierDependencyCount": len(classifier_edges),
+            "directClassifierDependencyExamples": [
+                {
+                    "source": json_node(source),
+                    "target": json_node(target),
+                }
+                for source, target in classifier_edges[:args.limit]
+            ],
+            "rootSafeSparkSharedSccCount": len(safe_sccs),
+            "rootSafeSparkSharedSccExamples": [
+                {
+                    "componentId": comp_id,
+                    "classCount": len(members),
+                    "classExamples": [json_node(node) for node in members[:args.limit]],
+                }
+                for comp_id, members in safe_sccs[:args.limit]
+            ],
+            "blockedExamples": [
+                [json_node(node) for node in shortest_path_to_version(graph, blocked_node)]
+                for blocked_node in blocked[:args.limit]
+            ],
+        }
+        json.dump(output, sys.stdout, indent=2, sort_keys=True)
+        print()
+        return
 
     print("Loaded %d classes from %s" % (len(classes), args.path))
     if errors:
@@ -423,19 +476,13 @@ def main():
 
     if args.show_topo:
         print("\nRoot-safe spark-shared SCCs in dependency-first order:")
-        printed = 0
-        for comp_id in component_order:
-            component = components[comp_id]
-            safe_members = sorted(node for node in component if node in safe_shared)
-            if not safe_members:
-                continue
+        for printed, (comp_id, safe_members) in enumerate(safe_sccs):
             print("  component %d, %d class(es)" % (comp_id, len(safe_members)))
             for node in safe_members[:3]:
                 print("    %s" % format_node(node))
             if len(safe_members) > 3:
                 print("    ... %d more in component" % (len(safe_members) - 3))
-            printed += 1
-            if printed >= args.limit:
+            if printed + 1 >= args.limit:
                 break
 
 

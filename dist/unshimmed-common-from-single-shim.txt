@@ -10,4 +10,6 @@ com/nvidia/spark/rapids/ShimLoaderTemp*
 com/nvidia/spark/rapids/SparkShims*
 org/apache/spark/sql/rapids/AdaptiveSparkPlanHelperShim*
 org/apache/spark/sql/rapids/ExecutionPlanCaptureCallback*
+org/apache/spark/sql/rapids/SizeInBytes.class
+org/apache/spark/sql/rapids/SizeInBytes$.class
 rapids/*.py

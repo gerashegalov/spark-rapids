@@ -148,8 +148,10 @@ mv "$SPARK_SHARED_DIR" parallel-world/
 
 # Determine the list of unshimmed class files
 UNSHIMMED_LIST_TXT=unshimmed-result.txt
-echo "$((++STEP))/ creating sorted list of unshimmed classes > $UNSHIMMED_LIST_TXT"
-find ./parallel-world -name '*.class' -not -path './parallel-world/spark[34-]*' | \
+echo "$((++STEP))/ creating sorted list of root-layout unshimmed classes > $UNSHIMMED_LIST_TXT"
+find ./parallel-world -name '*.class' \
+  -not -path './parallel-world/spark[34-]*' \
+  -not -path './parallel-world/spark-shared/*' | \
   cut -d/ -f 3- | sort > "$UNSHIMMED_LIST_TXT"
 
 function verify_same_sha_for_unshimmed() {
@@ -195,11 +197,13 @@ done < "$UNSHIMMED_LIST_TXT"
 echo "$((++STEP))/ removing duplicates of unshimmed classes"
 
 while read -r unshimmed_class; do
+  unshimmed_shared_path="./parallel-world/spark-shared/$unshimmed_class"
+  [[ -f "$unshimmed_shared_path" ]] && echo "$unshimmed_shared_path" || true
   for pw in ./parallel-world/spark[34-]* ; do
     unshimmed_path="$pw/$unshimmed_class"
     [[ -f "$unshimmed_path" ]] && echo "$unshimmed_path" || true
-  done >> "$DELETE_DUPLICATES_TXT"
-done < "$UNSHIMMED_LIST_TXT"
+  done
+done < "$UNSHIMMED_LIST_TXT" >> "$DELETE_DUPLICATES_TXT"
 
 echo "$((++STEP))/ deleting all class files listed in $DELETE_DUPLICATES_TXT"
 < "$DELETE_DUPLICATES_TXT" sort -u | xargs rm
