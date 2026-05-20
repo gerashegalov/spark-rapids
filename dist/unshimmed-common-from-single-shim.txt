@@ -25,6 +25,14 @@ com/nvidia/spark/rapids/ConfHelper$.class
 com/nvidia/spark/rapids/DataFromReplacementRule.class
 com/nvidia/spark/rapids/DataTypeMeta.class
 com/nvidia/spark/rapids/DataTypeMeta$.class
+com/nvidia/spark/rapids/AvroFormatType.class
+com/nvidia/spark/rapids/AvroFormatType$.class
+com/nvidia/spark/rapids/CsvFormatType.class
+com/nvidia/spark/rapids/CsvFormatType$.class
+com/nvidia/spark/rapids/DeltaFormatType.class
+com/nvidia/spark/rapids/DeltaFormatType$.class
+com/nvidia/spark/rapids/FileFormatOp.class
+com/nvidia/spark/rapids/FileFormatType.class
 com/nvidia/spark/rapids/GpuColumnVectorBase.class
 com/nvidia/spark/rapids/GpuCompressedColumnVector.class
 com/nvidia/spark/rapids/GpuPackedTableColumn.class
@@ -34,6 +42,12 @@ com/nvidia/spark/rapids/GpuUnsignedLongType.class
 com/nvidia/spark/rapids/GpuUnsignedLongType$.class
 com/nvidia/spark/rapids/HashedPriorityQueue.class
 com/nvidia/spark/rapids/HashedPriorityQueue$1.class
+com/nvidia/spark/rapids/HiveDelimitedTextFormatType.class
+com/nvidia/spark/rapids/HiveDelimitedTextFormatType$.class
+com/nvidia/spark/rapids/IcebergFormatType.class
+com/nvidia/spark/rapids/IcebergFormatType$.class
+com/nvidia/spark/rapids/JsonFormatType.class
+com/nvidia/spark/rapids/JsonFormatType$.class
 com/nvidia/spark/rapids/MutableBlockInfo.class
 com/nvidia/spark/rapids/MutableBlockInfo$.class
 com/nvidia/spark/rapids/NotApplicable.class
@@ -43,6 +57,10 @@ com/nvidia/spark/rapids/NotSupported$.class
 com/nvidia/spark/rapids/OptionalConfEntry.class
 com/nvidia/spark/rapids/OptionalConfEntry$.class
 com/nvidia/spark/rapids/OptionalConfEntry$$anonfun$$lessinit$greater$1.class
+com/nvidia/spark/rapids/OrcFormatType.class
+com/nvidia/spark/rapids/OrcFormatType$.class
+com/nvidia/spark/rapids/ParquetFormatType.class
+com/nvidia/spark/rapids/ParquetFormatType$.class
 com/nvidia/spark/rapids/PartiallySupported.class
 com/nvidia/spark/rapids/PartiallySupported$.class
 com/nvidia/spark/rapids/RapidsReaderType.class
@@ -54,6 +72,8 @@ com/nvidia/spark/rapids/RapidsHostColumnVectorCore.class
 com/nvidia/spark/rapids/RapidsHostColumnVector.class
 com/nvidia/spark/rapids/RapidsNullSafeHostColumnVectorCore.class
 com/nvidia/spark/rapids/RapidsNullSafeHostColumnVector.class
+com/nvidia/spark/rapids/ReadFileOp.class
+com/nvidia/spark/rapids/ReadFileOp$.class
 com/nvidia/spark/rapids/SlicedGpuColumnVector.class
 com/nvidia/spark/rapids/SlicedSerializedColumnVector.class
 com/nvidia/spark/rapids/SupportLevel.class
@@ -64,6 +84,8 @@ com/nvidia/spark/rapids/TypeConverter.class
 com/nvidia/spark/rapids/TypeEnum.class
 com/nvidia/spark/rapids/TypeEnum$.class
 com/nvidia/spark/rapids/WithTableBuffer.class
+com/nvidia/spark/rapids/WriteFileOp.class
+com/nvidia/spark/rapids/WriteFileOp$.class
 com/nvidia/spark/rapids/fileio/hadoop/HadoopInputFile.class
 com/nvidia/spark/rapids/fileio/hadoop/HadoopInputStream.class
 com/nvidia/spark/rapids/fileio/hadoop/HadoopOutputFile.class
