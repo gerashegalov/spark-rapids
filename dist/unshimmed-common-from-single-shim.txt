@@ -12,6 +12,13 @@ com/nvidia/spark/rapids/GpuUnsignedIntegerType.class
 com/nvidia/spark/rapids/GpuUnsignedIntegerType$.class
 com/nvidia/spark/rapids/GpuUnsignedLongType.class
 com/nvidia/spark/rapids/GpuUnsignedLongType$.class
+com/nvidia/spark/rapids/GpuBuildLeft.class
+com/nvidia/spark/rapids/GpuBuildLeft$.class
+com/nvidia/spark/rapids/GpuBuildRight.class
+com/nvidia/spark/rapids/GpuBuildRight$.class
+com/nvidia/spark/rapids/GpuBuildSide.class
+com/nvidia/spark/rapids/GpuJoinUtils.class
+com/nvidia/spark/rapids/GpuJoinUtils$.class
 com/nvidia/spark/rapids/lore/LoreOutputInfo.class
 com/nvidia/spark/rapids/lore/LoreOutputInfo$.class
 com/nvidia/spark/rapids/lore/OutputLoreId.class
