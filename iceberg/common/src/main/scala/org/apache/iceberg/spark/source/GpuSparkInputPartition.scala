@@ -24,7 +24,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.{HasPartitionKey, InputPartition}
 import org.apache.spark.util.SerializableConfiguration
 
-class GpuSparkInputPartition(val cpuPartition: SparkInputPartition,
+class GpuSparkInputPartition(val cpuPartition: InputPartition,
     rapidsConf: RapidsConf,
     val hadoopConf: Broadcast[SerializableConfiguration],
     val expectedSchemaStr: String) extends
@@ -52,7 +52,8 @@ class GpuSparkInputPartition(val cpuPartition: SparkInputPartition,
 
 
   override def preferredLocations(): Array[String] = cpuPartition.preferredLocations()
-  override def partitionKey(): InternalRow = cpuPartition.partitionKey()
+  override def partitionKey(): InternalRow =
+    cpuPartition.asInstanceOf[HasPartitionKey].partitionKey()
 
   @transient lazy val expectedSchema: Schema = {
     SchemaParser.fromJson(expectedSchemaStr)

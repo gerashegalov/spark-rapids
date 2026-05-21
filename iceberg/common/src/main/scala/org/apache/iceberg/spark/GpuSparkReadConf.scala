@@ -16,13 +16,7 @@
 
 package org.apache.iceberg.spark
 
-import com.nvidia.spark.rapids.iceberg.spark.{GpuSparkReadOptions, GpuSparkSQLProperties}
-import org.apache.hadoop.shaded.org.apache.commons.lang3.reflect.FieldUtils
-
 class GpuSparkReadConf(val delegate: SparkReadConf) {
-  private val confParser = FieldUtils.readField(delegate, "confParser", true)
-    .asInstanceOf[SparkConfParser]
-
   /**
    * Enables reading a timestamp without time zone as a timestamp with time zone.
    * <p>
@@ -36,9 +30,6 @@ class GpuSparkReadConf(val delegate: SparkReadConf) {
    *
    * @return boolean indicating if reading timestamps without timezone is allowed
    */
-  def handleTimestampWithoutZone(): Boolean = confParser.booleanConf()
-    .option(GpuSparkReadOptions.HANDLE_TIMESTAMP_WITHOUT_TIMEZONE)
-    .sessionConf(GpuSparkSQLProperties.HANDLE_TIMESTAMP_WITHOUT_TIMEZONE)
-    .defaultValue(GpuSparkSQLProperties.HANDLE_TIMESTAMP_WITHOUT_TIMEZONE_DEFAULT)
-    .parse()
+  def handleTimestampWithoutZone(): Boolean =
+    GpuSparkReadConfAccess.handleTimestampWithoutZone(delegate)
 }

@@ -377,10 +377,12 @@ com/nvidia/spark/rapids/iceberg/spark/source/RapidsSparkTable.class
 org/apache/iceberg/data/GpuFileHelpers.class
 org/apache/iceberg/io/GpuPositionDeleteFileWriter$.class
 org/apache/iceberg/spark/GpuSparkReadConf.class
+org/apache/iceberg/spark/GpuSparkReadConfAccess.class
 org/apache/iceberg/spark/package.class
 org/apache/iceberg/spark/package$.class
 org/apache/iceberg/spark/source/GpuBaseReader.class
 org/apache/iceberg/spark/source/GpuSparkPlanningUtil.class
+org/apache/iceberg/spark/source/GpuSparkScanAccess.class
 org/apache/iceberg/spark/source/GpuSparkWriteAccess.class
 org/apache/iceberg/spark/source/GpuStructInternalRow.class
 org/apache/spark/sql/rapids/AdaptiveSparkPlanHelperShim*
