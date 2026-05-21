@@ -163,7 +163,7 @@ class GpuSparkWrite(cpu: Write) extends GpuWrite with RequiresDistributionAndOrd
 
   private[source] def files(messages: Array[WriterCommitMessage]): Seq[DataFile] = {
     messages.filter(_ != null)
-      .flatMap(GpuSparkWriteAccess.taskCommitFiles(_).asInstanceOf[Array[DataFile]])
+      .flatMap(GpuSparkWriteAccess.taskCommitFiles)
       .toSeq
   }
 
