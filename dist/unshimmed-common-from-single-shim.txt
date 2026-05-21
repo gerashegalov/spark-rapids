@@ -88,6 +88,11 @@ com/nvidia/spark/rapids/HostMemoryInputStreamMixIn.class
 com/nvidia/spark/rapids/HostMemoryOutputStream.class
 com/nvidia/spark/rapids/IcebergFormatType.class
 com/nvidia/spark/rapids/IcebergFormatType$.class
+com/nvidia/spark/rapids/IcebergS3RangeCopier.class
+com/nvidia/spark/rapids/IcebergS3RangeCopier$1.class
+com/nvidia/spark/rapids/IcebergS3RangeCopier$CachedClient.class
+com/nvidia/spark/rapids/IcebergS3RangeCopier$IcebergS3AsyncClientProp.class
+com/nvidia/spark/rapids/IcebergS3RangeCopier$IcebergS3Client.class
 com/nvidia/spark/rapids/Initialized.class
 com/nvidia/spark/rapids/Initialized$.class
 com/nvidia/spark/rapids/JsonFormatType.class
