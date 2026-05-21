@@ -344,6 +344,7 @@ com/nvidia/spark/rapids/lore/OutputLoreId.class
 com/nvidia/spark/rapids/lore/OutputLoreId$.class
 com/nvidia/spark/rapids/lore/package.class
 com/nvidia/spark/rapids/lore/package$.class
+org/apache/iceberg/spark/source/GpuSparkWriteAccess.class
 org/apache/spark/sql/rapids/AdaptiveSparkPlanHelperShim*
 org/apache/spark/sql/rapids/BasicColumnarWriteTaskStats.class
 org/apache/spark/sql/rapids/BasicColumnarWriteTaskStats$.class
