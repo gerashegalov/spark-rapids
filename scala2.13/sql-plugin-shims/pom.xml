@@ -33,7 +33,8 @@
     <properties>
         <rapids.module>sql-plugin-shims</rapids.module>
         <rapids.compressed.artifact>false</rapids.compressed.artifact>
-        <rapids.shim.jar.phase>none</rapids.shim.jar.phase>
+        <rapids.default.jar.excludePattern>**/*</rapids.default.jar.excludePattern>
+        <rapids.shim.jar.phase>package</rapids.shim.jar.phase>
     </properties>
 
     <dependencies>
