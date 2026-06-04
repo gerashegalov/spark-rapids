@@ -25,6 +25,21 @@ SCALA213=0
 UNSHIM_FAST=0
 UNSHIM_PARALLEL_WORLD_ONLY=0
 
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)
+SOURCE_DIR=$(cd "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)
+
+function first_pom_value() {
+  local key="$1"
+  local pom="$2"
+  sed -n "0,/<$key>/{s|.*<$key>\([^<]*\)</$key>.*|\1|p}" "$pom" | head -n 1
+}
+
+function last_pom_value() {
+  local key="$1"
+  local pom="$2"
+  sed -n "s|.*<$key>\([^<]*\)</$key>.*|\1|p" "$pom" | tail -n 1
+}
+
 function join_by { local IFS="$1"; shift; echo "$*"; }
 
 
@@ -208,7 +223,11 @@ export UNSHIM_FAST
 if [[ "$SCALA213" == "1" ]]; then
   POM_FILE="scala2.13/pom.xml"
   export MVN="$MVN -f scala2.13/"
-  $(dirname $0)/make-scala-version-build-files.sh 2.13
+  if [[ "$UNSHIM_FAST" == "1" && -f "$POM_FILE" ]]; then
+    echo "Unshim fast: reusing existing Scala 2.13 POMs"
+  else
+    "$SCRIPT_DIR"/make-scala-version-build-files.sh 2.13
+  fi
 else 
   POM_FILE="pom.xml"
 fi
@@ -243,15 +262,21 @@ case $DIST_PROFILE in
 esac
 
 echo "Spark versions involved: ${SPARK_SHIM_VERSIONS[@]} ..."
-export MVN_BASE_DIR=$($MVN help:evaluate -Dexpression=project.basedir -q -DforceStdout)
 if [[ "$UNSHIM_FAST" == "1" ]]; then
-  export RAPIDS_PROJECT_VERSION=$($MVN help:evaluate -Dexpression=project.version -q -DforceStdout)
-  export RAPIDS_SCALA_BINARY_VERSION=$($MVN help:evaluate -Dexpression=scala.binary.version -q -DforceStdout)
+  if [[ "$SCALA213" == "1" ]]; then
+    export MVN_BASE_DIR="$SOURCE_DIR/scala2.13"
+  else
+    export MVN_BASE_DIR="$SOURCE_DIR"
+  fi
+  export RAPIDS_PROJECT_VERSION=$(first_pom_value version "$POM_FILE")
+  export RAPIDS_SCALA_BINARY_VERSION=$(last_pom_value scala.binary.version "$POM_FILE")
+else
+  export MVN_BASE_DIR=$($MVN help:evaluate -Dexpression=project.basedir -q -DforceStdout)
 fi
 
 if [[ "$UNSHIM_PARALLEL_WORLD_ONLY" == "1" ]]; then
-  echo "Unshim parallel-world-only: stopping at generate-resources and skipping JNI unpack and jar packaging"
-  MVN_FAST_SKIP_OPTS="$MVN_FAST_SKIP_OPTS -Drapids.jni.unpack.skip=true"
+  echo "Unshim parallel-world-only: stopping at generate-resources and skipping JNI unpack, shimplify, build-info, coverage, enforcer, and jar packaging"
+  MVN_FAST_SKIP_OPTS="$MVN_FAST_SKIP_OPTS -Drapids.jni.unpack.skip=true -Drapids.shimplify.skip=true -Drapids.build.info.skip=true -Djacoco.skip=true -Denforcer.skip=true"
 elif [[ "$UNSHIM_FAST" == "1" && -d "$MVN_BASE_DIR/dist/target/jni-deps" ]]; then
   echo "Unshim fast: reusing existing JNI deps from $MVN_BASE_DIR/dist/target/jni-deps"
   MVN_FAST_SKIP_OPTS="$MVN_FAST_SKIP_OPTS -Drapids.jni.unpack.skip=true"

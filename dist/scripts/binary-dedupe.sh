@@ -35,10 +35,13 @@ esac
 
 STEP=0
 export SPARK_SHARED_TXT="$PWD/spark-shared.txt"
+export SPARK_SHARED_CLASSES_TXT="$PWD/spark-shared-classes.txt"
 export SPARK_SHARED_COPY_LIST="$PWD/spark-shared-copy-list.txt"
 export DELETE_DUPLICATES_TXT="$PWD/delete-duplicates.txt"
 export SPARK_SHARED_DIR="$PWD/spark-shared"
 export UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST="$PWD/unshimmed-from-spark-shared-copy-list.txt"
+export UNSHIMMED_NEED_SHARED_TXT="$PWD/unshimmed-need-shared.txt"
+export UNSHIMMED_MISSING_SHARED_TXT="$PWD/unshimmed-missing-shared.txt"
 
 # This script de-duplicates .class files at the binary level.
 # We could also diff classes using scalap / javap outputs.
@@ -196,7 +199,10 @@ find ./parallel-world -name '*.class' \
   -not -path './parallel-world/spark-shared/*' | \
   cut -d/ -f 3- | sort > "$UNSHIMMED_LIST_TXT"
 
-function verify_same_sha_for_unshimmed() {
+echo "$((++STEP))/ creating sorted list of spark-shared classes > $SPARK_SHARED_CLASSES_TXT"
+sed -E "s|^/spark[^/]*/||" "$SPARK_SHARED_TXT" | sort -u > "$SPARK_SHARED_CLASSES_TXT"
+
+function unshimmed_class_needs_shared_identity() {
   set -e
   class_file="$1"
 
@@ -204,7 +210,7 @@ function verify_same_sha_for_unshimmed() {
   # including the ones that are unshimmed. Instead of expensively recomputing
   # sha1 look up if there is an entry with the unshimmed class as a suffix
 
-  class_file_quoted=$(printf '%q' "$class_file")
+  class_file_quoted=$(printf "%q" "$class_file")
   # TODO currently RapidsShuffleManager is "removed" from /spark* by construction in
   # dist pom.xml via ant. We could delegate this logic to this script
   # and make both simmpler
@@ -219,20 +225,28 @@ function verify_same_sha_for_unshimmed() {
   # the class provides concrete implementations for ALL getReader variants,
   # so the JVM resolves the correct one at runtime regardless of which
   # ShuffleManager version the class was compiled against.
-  if [[ ! "$class_file_quoted" =~ com/nvidia/spark/rapids/spark[34].*/.*ShuffleManager.class && \
-          "$class_file_quoted" != "com/nvidia/spark/ParquetCachedBatchSerializer.class" && \
-          ! "$class_file_quoted" =~ org/apache/spark/sql/rapids/ProxyRapidsShuffleInternalManagerBase ]]; then
-      if ! grep -q "/spark.\+/$class_file_quoted" "$SPARK_SHARED_TXT"; then
-        echo >&2 "$class_file is not bitwise-identical across shims"
-        exit 255
-      fi
+  if [[ "$class_file_quoted" =~ com/nvidia/spark/rapids/spark[34].*/.*ShuffleManager.class || \
+          "$class_file_quoted" == "com/nvidia/spark/ParquetCachedBatchSerializer.class" || \
+          "$class_file_quoted" =~ org/apache/spark/sql/rapids/ProxyRapidsShuffleInternalManagerBase ]]; then
+      return 1
   fi
+  return 0
 }
 
-echo "$((++STEP))/ verifying unshimmed classes have unique sha1 across shims"
+echo "$((++STEP))/ filtering unshimmed classes that require shared identity > $UNSHIMMED_NEED_SHARED_TXT"
 while read -r unshimmed_class; do
-  verify_same_sha_for_unshimmed "$unshimmed_class"
-done < "$UNSHIMMED_LIST_TXT"
+  if unshimmed_class_needs_shared_identity "$unshimmed_class"; then
+    echo "$unshimmed_class"
+  fi
+done < "$UNSHIMMED_LIST_TXT" | sort -u > "$UNSHIMMED_NEED_SHARED_TXT"
+
+echo "$((++STEP))/ verifying unshimmed classes have unique sha1 across shims"
+comm -23 "$UNSHIMMED_NEED_SHARED_TXT" "$SPARK_SHARED_CLASSES_TXT" > "$UNSHIMMED_MISSING_SHARED_TXT"
+if [[ -s "$UNSHIMMED_MISSING_SHARED_TXT" ]]; then
+  read -r missing_unshimmed_class < "$UNSHIMMED_MISSING_SHARED_TXT"
+  echo >&2 "$missing_unshimmed_class is not bitwise-identical across shims"
+  exit 255
+fi
 
 # Remove unshimmed classes from parallel worlds
 # TODO rework with low priority, only a few classes.
