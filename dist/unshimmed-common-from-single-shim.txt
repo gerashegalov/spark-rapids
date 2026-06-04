@@ -730,6 +730,9 @@ com/nvidia/spark/rapids/shims/KeyGroupedPartitioningShim$.class
 com/nvidia/spark/rapids/shims/KeyGroupedPartitioningShim.class
 com/nvidia/spark/rapids/shims/LegacyBehaviorPolicyShim$.class
 com/nvidia/spark/rapids/shims/LegacyBehaviorPolicyShim.class
+com/nvidia/spark/rapids/shims/NullOutputStreamShim$$anon$1.class
+com/nvidia/spark/rapids/shims/NullOutputStreamShim$.class
+com/nvidia/spark/rapids/shims/NullOutputStreamShim.class
 com/nvidia/spark/rapids/shims/OrcReadingShims$.class
 com/nvidia/spark/rapids/shims/OrcReadingShims.class
 com/nvidia/spark/rapids/shims/PartitionedFileUtilsShimBase.class
