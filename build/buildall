@@ -355,6 +355,11 @@ function build_single_shim() {
     SKIP_CHECKS="false"
   fi
 
+  local BUILD_PROJECTS="tools"
+  if [[ "$UNSHIM_FAST" == "1" ]]; then
+    BUILD_PROJECTS="aggregator"
+  fi
+
   echo "#### REDIRECTING mvn output to ${LOG_FILE:-stdout} ####"
   (
     if [[ "$LOG_FILE" == "" ]]; then
@@ -370,7 +375,7 @@ function build_single_shim() {
         -Dmaven.javadoc.skip=true \
         -Dmaven.scalastyle.skip="$SKIP_CHECKS" \
         $MVN_FAST_SKIP_OPTS \
-        -pl tools -am
+        -pl "$BUILD_PROJECTS" -am
   ) || {
         # Only tail when output went to a real log file; for a live stream
         # (/dev/tty or existing stdout) the failure output is already on screen.
