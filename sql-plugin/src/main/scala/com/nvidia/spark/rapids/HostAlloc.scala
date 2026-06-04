@@ -28,12 +28,23 @@ import com.nvidia.spark.rapids.jni.{CpuRetryOOM, RmmSpark}
 import com.nvidia.spark.rapids.spill.SpillFramework
 
 import org.apache.spark.TaskContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.rapids.GpuTaskMetrics
 
 case class HostAllocResult(buffer: HostMemoryBuffer, isPinned: Boolean)
 
-private class HostAlloc(nonPinnedLimit: Long) extends HostMemoryAllocator with Logging {
+private class HostAlloc(nonPinnedLimit: Long) extends HostMemoryAllocator {
+  private def logTrace(msg: => String): Unit = {
+    HostAlloc.logTrace(msg)
+  }
+
+  private def logInfo(msg: => String): Unit = {
+    HostAlloc.logInfo(msg)
+  }
+
+  private def logWarning(msg: => String): Unit = {
+    HostAlloc.logWarning(msg)
+  }
+
   private var currentNonPinnedAllocated: Long = 0L
   private val pinnedLimit: Long = PinnedMemoryPool.getTotalPoolSizeBytes
   // For now we are going to assume that we are the only ones calling into the pinned pool
@@ -287,7 +298,25 @@ private class HostAlloc(nonPinnedLimit: Long) extends HostMemoryAllocator with L
 /**
  * A new API for host memory allocation. This can be used to limit the amount of host memory.
  */
-object HostAlloc extends Logging {
+object HostAlloc {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logTrace(msg: => String): Unit = {
+    if (log.isTraceEnabled) {
+      log.trace(msg)
+    }
+  }
+
+  private def logInfo(msg: => String): Unit = {
+    if (log.isInfoEnabled) {
+      log.info(msg)
+    }
+  }
+
+  private def logWarning(msg: => String): Unit = {
+    log.warn(msg)
+  }
+
   private var singleton: HostAlloc = new HostAlloc(-1)
 
   private def getSingleton: HostAlloc = synchronized {

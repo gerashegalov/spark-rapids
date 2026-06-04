@@ -457,7 +457,19 @@ object WriteFileOp extends FileFormatOp {
   override def toString = "write"
 }
 
-object GpuOverrides extends Logging {
+object GpuOverrides {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logInfo(msg: => String): Unit = {
+    if (log.isInfoEnabled) {
+      log.info(msg)
+    }
+  }
+
+  private def logWarning(msg: => String): Unit = {
+    log.warn(msg)
+  }
+
   val FLOAT_DIFFERS_GROUP_INCOMPAT =
     "when enabling these, there may be extra groups produced for floating point grouping " +
     "keys (e.g. -0.0, and 0.0)"
@@ -4972,7 +4984,17 @@ protected class ExplainPlanImpl extends ExplainPlanBase {
 }
 
 // work around any GpuOverride failures
-object GpuOverrideUtil extends Logging {
+object GpuOverrideUtil {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logWarning(msg: => String, throwable: Throwable): Unit = {
+    log.warn(msg, throwable)
+  }
+
+  private def logError(msg: => String, throwable: Throwable): Unit = {
+    log.error(msg, throwable)
+  }
+
   def tryOverride(fn: SparkPlan => SparkPlan): SparkPlan => SparkPlan = { plan =>
     val planOriginal = plan.clone()
     val failOnError = TEST_CONF.get(plan.conf) || !SUPPRESS_PLANNING_FAILURE.get(plan.conf)

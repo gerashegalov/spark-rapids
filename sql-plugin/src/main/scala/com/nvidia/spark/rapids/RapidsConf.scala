@@ -27,7 +27,6 @@ import com.nvidia.spark.rapids.jni.kudo.DumpOption
 import com.nvidia.spark.rapids.lore.{LoreId, OutputLoreId}
 
 import org.apache.spark.SparkConf
-import org.apache.spark.internal.Logging
 import org.apache.spark.network.util.{ByteUnit, JavaUtils}
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry
 import org.apache.spark.sql.internal.SQLConf
@@ -319,7 +318,19 @@ object RapidsReaderType extends Enumeration {
   val AUTO, COALESCING, MULTITHREADED, PERFILE = Value
 }
 
-object RapidsConf extends Logging {
+object RapidsConf {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
+  private def logWarning(msg: => String): Unit = {
+    log.warn(msg)
+  }
+
   val MULTITHREAD_READ_NUM_THREADS_DEFAULT = 20
 
   private val registeredConfs = new ListBuffer[ConfEntry[_]]()
@@ -3273,10 +3284,14 @@ val SHUFFLE_COMPRESSION_LZ4_CHUNK_SIZE = conf("spark.rapids.shuffle.compression.
   }
 }
 
-class RapidsConf(conf: Map[String, String]) extends Logging {
+class RapidsConf(conf: Map[String, String]) {
 
   import ConfHelper._
   import RapidsConf._
+
+  private def logWarning(msg: => String): Unit = {
+    RapidsConf.logWarning(msg)
+  }
 
   def this(sqlConf: SQLConf) = {
     this(sqlConf.getAllConfs)
