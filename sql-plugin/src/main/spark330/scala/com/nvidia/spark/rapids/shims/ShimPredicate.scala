@@ -46,3 +46,28 @@ import org.apache.spark.sql.catalyst.expressions.Predicate
 trait ShimPredicate extends Predicate {
   def contextIndependentFoldable: Boolean = children.forall(_.foldable)
 }
+
+trait ShimDataWritingCommand
+    extends org.apache.spark.sql.execution.command.DataWritingCommand
+    with ShimUnaryCommand {
+  def runColumnar(
+      sparkSession: org.apache.spark.sql.SparkSession,
+      child: org.apache.spark.sql.execution.SparkPlan):
+      Seq[org.apache.spark.sql.vectorized.ColumnarBatch]
+
+  def runColumnarFromAny(
+      sparkSession: AnyRef,
+      child: org.apache.spark.sql.execution.SparkPlan):
+      Seq[org.apache.spark.sql.vectorized.ColumnarBatch] = {
+    runColumnar(sparkSession.asInstanceOf[org.apache.spark.sql.SparkSession], child)
+  }
+
+  override def run(
+      sparkSession: org.apache.spark.sql.SparkSession,
+      child: org.apache.spark.sql.execution.SparkPlan): Seq[org.apache.spark.sql.Row] = {
+    com.nvidia.spark.rapids.Arm.withResource(runColumnar(sparkSession, child)) { batches =>
+      assert(batches.isEmpty)
+    }
+    Seq.empty[org.apache.spark.sql.Row]
+  }
+}
