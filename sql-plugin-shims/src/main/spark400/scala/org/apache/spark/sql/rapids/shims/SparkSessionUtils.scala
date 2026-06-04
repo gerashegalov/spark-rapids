@@ -27,7 +27,7 @@ import org.apache.spark.sql.classic.SparkSession
 import org.apache.spark.sql.execution.SparkPlan
 
 object SparkSessionUtils {
-  def sessionFromPlan(plan: SparkPlan): SparkSession = {
+  def sessionFromPlan(plan: SparkPlan): org.apache.spark.sql.SparkSession = {
     plan.session
   }
 

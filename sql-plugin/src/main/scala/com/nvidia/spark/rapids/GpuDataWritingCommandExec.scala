@@ -122,7 +122,7 @@ case class GpuDataWritingCommandExec(cmd: GpuDataWritingCommand, child: SparkPla
     dumpLoreMetaInfo()
     // Execute the command with LoRE dumping if needed
     val childWithDumping = dumpLoreRDD(child)
-    cmd.runColumnar(sparkSession, childWithDumping)
+    cmd.runColumnar(sparkSession.asInstanceOf[SparkSession], childWithDumping)
   }
 
   override def output: Seq[Attribute] = cmd.output

@@ -90,6 +90,8 @@ case class GpuHiveTableScanExec(requestedAttributes: Seq[Attribute],
 
   val partitionAttributes: Seq[AttributeReference] = hiveTableRelation.partitionCols
 
+  private def shimSparkSession: SparkSession = sparkSession.asInstanceOf[SparkSession]
+
   // CPU expression to prune Hive partitions, based on [[partitionPruningPredicate]].
   // Bind all partition key attribute references in the partition pruning predicate for later
   // evaluation.
@@ -140,7 +142,7 @@ case class GpuHiveTableScanExec(requestedAttributes: Seq[Attribute],
         prunePartitions(hivePartitions)
       }
     } else {
-      if (sparkSession.sessionState.conf.metastorePartitionPruning &&
+      if (shimSparkSession.sessionState.conf.metastorePartitionPruning &&
         partitionPruningPredicate.nonEmpty) {
         rawPartitions
       } else {
@@ -152,16 +154,16 @@ case class GpuHiveTableScanExec(requestedAttributes: Seq[Attribute],
   // exposed for tests
   @transient lazy val rawPartitions: Seq[HivePartition] = {
     val prunedPartitions =
-      if (sparkSession.sessionState.conf.metastorePartitionPruning &&
+      if (shimSparkSession.sessionState.conf.metastorePartitionPruning &&
         partitionPruningPredicate.nonEmpty) {
         // Retrieve the original attributes based on expression ID so that capitalization matches.
         val normalizedFilters = partitionPruningPredicate.map(_.transform {
           case a: AttributeReference => originalAttributes(a)
         })
-        sparkSession.sessionState.catalog
+        shimSparkSession.sessionState.catalog
           .listPartitionsByFilter(hiveTableRelation.tableMeta.identifier, normalizedFilters)
       } else {
-        sparkSession.sessionState.catalog.listPartitions(hiveTableRelation.tableMeta.identifier)
+        shimSparkSession.sessionState.catalog.listPartitions(hiveTableRelation.tableMeta.identifier)
       }
     prunedPartitions.map(HiveClientImpl.toHivePartition(_, hiveQlTable))
   }
@@ -329,13 +331,13 @@ case class GpuHiveTableScanExec(requestedAttributes: Seq[Attribute],
     // Assume Delimited text.
     val options                   = hiveTableRelation.tableMeta.properties ++
                                     hiveTableRelation.tableMeta.storage.properties
-    val hadoopConf                = sparkSession.sessionState.newHadoopConf()
+    val hadoopConf                = shimSparkSession.sessionState.newHadoopConf()
     // In the CPU HiveTableScanExec the config will have a bunch of confs set for S3 keys
     // and predicate push down/etc. We don't need this because we are getting that information
     // directly.
-    val broadcastHadoopConf       = sparkSession.sparkContext.broadcast(
+    val broadcastHadoopConf       = shimSparkSession.sparkContext.broadcast(
                                       new SerializableConfiguration(hadoopConf))
-    val sqlConf                   = sparkSession.sessionState.conf
+    val sqlConf                   = shimSparkSession.sessionState.conf
     val rapidsConf                = new RapidsConf(sqlConf)
     val requestedOutputDataSchema = getRequestedOutputDataSchema(hiveTableRelation.tableMeta.schema,
                                                                  partitionAttributes,
@@ -349,10 +351,10 @@ case class GpuHiveTableScanExec(requestedAttributes: Seq[Attribute],
                                                 options)
     val rdd = if (hiveTableRelation.isPartitioned) {
       createReadRDDForPartitions(reader, hiveTableRelation, requestedOutputDataSchema,
-                                 sparkSession, hadoopConf)
+                                 shimSparkSession, hadoopConf)
     } else {
       createReadRDDForTable(reader, hiveTableRelation, requestedOutputDataSchema,
-                            sparkSession, hadoopConf)
+                            shimSparkSession, hadoopConf)
     }
     sendDriverMetrics()
     rdd

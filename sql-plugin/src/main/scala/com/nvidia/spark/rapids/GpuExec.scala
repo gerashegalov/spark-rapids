@@ -36,7 +36,7 @@ import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.rapids.GpuTaskMetrics
 import org.apache.spark.sql.rapids.execution.{GpuCustomShuffleReaderExec}
 import org.apache.spark.sql.rapids.shims.SparkSessionUtils
-import org.apache.spark.sql.rapids.shims.TrampolineConnectShims.SparkSession
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
 /**
