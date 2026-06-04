@@ -1,6 +1,7 @@
 META-INF/DEPENDENCIES
 META-INF/LICENSE
 META-INF/NOTICE
+com/nvidia/spark/DFUDFPluginImpl.class
 com/nvidia/spark/rapids/ExplainPlan.class
 com/nvidia/spark/rapids/ExplainPlan$.class
 com/nvidia/spark/rapids/ExplainPlanBase.class
@@ -941,6 +942,9 @@ org/apache/spark/sql/nvidia/DFUDF8$.class
 org/apache/spark/sql/nvidia/DFUDF8.class
 org/apache/spark/sql/nvidia/DFUDF9$.class
 org/apache/spark/sql/nvidia/DFUDF9.class
+org/apache/spark/sql/nvidia/LogicalPlanRules$$anonfun$1.class
+org/apache/spark/sql/nvidia/LogicalPlanRules$.class
+org/apache/spark/sql/nvidia/LogicalPlanRules.class
 org/apache/spark/sql/nvidia/JDFUDF0$.class
 org/apache/spark/sql/nvidia/JDFUDF0.class
 org/apache/spark/sql/nvidia/JDFUDF1$.class
