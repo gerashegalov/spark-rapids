@@ -15,7 +15,6 @@
  */
 package com.nvidia.spark.rapids
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.expressions.aggregate._
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.SparkPlan
@@ -84,7 +83,16 @@ object FoldLocalAggregate extends Rule[SparkPlan] {
  * The LocalAggregate can be emerged regardless HashAggregateExec, SortAggregateExec or
  * ObjectHashAggregateExec.
  */
-object LocalAggregatePattern extends Logging {
+object LocalAggregatePattern {
+  private val log = org.slf4j.LoggerFactory.getLogger(LocalAggregatePattern.getClass)
+
+  private def logError(msg: => String): Unit = {
+    if (log.isErrorEnabled) {
+      log.error(msg)
+    }
+  }
+
+
   def unapply(plan: SparkPlan): Option[(BaseAggregateExec, BaseAggregateExec)] = {
     plan match {
       case hashAgg: HashAggregateExec

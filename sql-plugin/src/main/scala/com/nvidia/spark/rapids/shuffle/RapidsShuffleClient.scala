@@ -25,7 +25,6 @@ import com.nvidia.spark.rapids._
 import com.nvidia.spark.rapids.Arm.withResource
 import com.nvidia.spark.rapids.format.{MetadataResponse, TableMeta, TransferState}
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.rapids.GpuShuffleEnv
 import org.apache.spark.storage.ShuffleBlockBatchId
 
@@ -98,7 +97,28 @@ class RapidsShuffleClient(
     exec: Executor,
     clientCopyExecutor: Executor,
     catalog: ShuffleReceivedBufferCatalog = GpuShuffleEnv.getReceivedCatalog)
-      extends Logging with AutoCloseable {
+      extends AutoCloseable {
+
+  private val log = org.slf4j.LoggerFactory.getLogger(classOf[RapidsShuffleClient])
+
+  private def logInfo(msg: => String): Unit = {
+    if (log.isInfoEnabled) {
+      log.info(msg)
+    }
+  }
+
+  private def logWarning(msg: => String): Unit = {
+    if (log.isWarnEnabled) {
+      log.warn(msg)
+    }
+  }
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
 
   // these are handlers that are interested (live spark tasks) in peer failure handling
   private val liveHandlers =

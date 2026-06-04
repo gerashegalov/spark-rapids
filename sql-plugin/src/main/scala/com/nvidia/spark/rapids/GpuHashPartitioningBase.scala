@@ -20,7 +20,6 @@ import ai.rapids.cudf.{DType, PartitionedTable}
 import com.nvidia.spark.rapids.Arm.withResource
 import com.nvidia.spark.rapids.shims.ShimExpression
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.expressions.{Expression, HiveHash, Murmur3Hash}
 import org.apache.spark.sql.catalyst.plans.physical.HashPartitioning
 import org.apache.spark.sql.rapids.{GpuHashExpression, GpuHiveHash, GpuMurmur3Hash, GpuPmod}
@@ -95,7 +94,16 @@ abstract class GpuHashPartitioningBase(expressions: Seq[Expression], numPartitio
   def partitionIdExpression: GpuExpression = GpuPmod(hashFunc, GpuLiteral(numPartitions))
 }
 
-object GpuHashPartitioningBase extends Logging {
+object GpuHashPartitioningBase {
+
+  private val log = org.slf4j.LoggerFactory.getLogger(GpuHashPartitioningBase.getClass)
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
 
   val DEFAULT_HASH_SEED: Int = 42
 

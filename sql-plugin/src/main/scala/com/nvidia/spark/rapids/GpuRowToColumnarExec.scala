@@ -23,7 +23,6 @@ import com.nvidia.spark.rapids.shims.{CudfUnsafeRow, GpuTypeShims, ShimUnaryExec
 
 import org.apache.spark.TaskContext
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{Attribute, BoundReference, SortOrder, SpecializedGetters, UnsafeProjection, UnsafeRow}
@@ -756,7 +755,17 @@ class RowToColumnarIterator(
 
 }
 
-object GeneratedInternalRowToCudfRowIterator extends Logging {
+object GeneratedInternalRowToCudfRowIterator {
+  private val log = org.slf4j.LoggerFactory.getLogger(
+    GeneratedInternalRowToCudfRowIterator.getClass)
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
+
   def apply(input: Iterator[InternalRow],
       schema: Array[Attribute],
       goal: CoalesceSizeGoal,
