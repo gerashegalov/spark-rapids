@@ -154,7 +154,7 @@ private[udf] object Repr {
               if (elemType == t) {
                 Seq(args.head)
               } else {
-                Seq(Cast(args.head, t))
+                Seq(new Cast(args.head, t, None))
               }
             }
           }
@@ -441,7 +441,7 @@ case class Instruction(opcode: Int, operand: Int, instructionStr: String) extend
       state: State,
       dataType: DataType): State = {
     val State(locals, top :: rest, cond, expr) = state
-    State(locals, Cast(top, dataType) :: rest, cond, expr)
+    State(locals, new Cast(top, dataType, None) :: rest, cond, expr)
   }
 
   private def checkcast(lambdaReflection: LambdaReflection, state: State): State = {
@@ -774,13 +774,13 @@ case class Instruction(opcode: Int, operand: Int, instructionStr: String) extend
         EndsWith(args.head, args.last)
       case "equals" =>
         checkArgs(methodName, List(StringType, StringType), args)
-        Cast(EqualNullSafe(args.head, args.last), IntegerType)
+        new Cast(EqualNullSafe(args.head, args.last), IntegerType, None)
       case "equalsIgnoreCase" =>
         checkArgs(methodName, List(StringType, StringType), args)
-        Cast(EqualNullSafe(Upper(args.head), Upper(args.last)), IntegerType)
+        new Cast(EqualNullSafe(Upper(args.head), Upper(args.last)), IntegerType, None)
       case "isEmpty" =>
         checkArgs(methodName, List(StringType), args)
-        Cast(EqualTo(Length(args.head), Literal(0)), IntegerType)
+        new Cast(EqualTo(Length(args.head), Literal(0)), IntegerType, None)
       case "length" =>
         checkArgs(methodName, List(StringType), args)
         Length(args.head)
@@ -836,7 +836,7 @@ case class Instruction(opcode: Int, operand: Int, instructionStr: String) extend
               s"String.${methodName}: " +
               s"${args.head.dataType}")
         }
-        Cast(args.head, StringType)
+        new Cast(args.head, StringType, None)
       case "indexOf" =>
         if (args.length == 2) {
           if (args(1).dataType == StringType) {

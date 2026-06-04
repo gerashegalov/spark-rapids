@@ -89,8 +89,8 @@ case class State(locals: IndexedSeq[Expression],
           val commonType = TypeCoercion.findTightestCommonType(l1.dataType, l2.dataType)
           commonType.fold(throw new SparkException(s"Conditional type check failure")){
             t => simplify(If(cond,
-                             if (t == l1.dataType) l1 else Cast(l1, t),
-                             if (t == l2.dataType) l2 else Cast(l2, t)))
+                             if (t == l1.dataType) l1 else new Cast(l1, t, None),
+                             if (t == l2.dataType) l2 else new Cast(l2, t, None)))
           }
       }
       // At the end of the compliation, the expression at the top of stack is

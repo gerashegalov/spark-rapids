@@ -81,7 +81,7 @@ case class CatalystExpressionBuilder(private val function: AnyRef) extends Loggi
       if (lambdaReflection.ret == CtClass.booleanType) {
         // JVM bytecode returns an integer value when the return type is
         // boolean, hence the cast.
-        CatalystExpressionBuilder.simplify(Cast(e, BooleanType))
+        CatalystExpressionBuilder.simplify(new Cast(e, BooleanType, None))
       } else {
         e
       }
@@ -473,8 +473,8 @@ object CatalystExpressionBuilder extends Logging {
           ce.child match {
             case If(c, t, f) =>
           simplifyExpr(If(simplifyExpr(c),
-            simplifyExpr(Cast(t, BooleanType, ce.timeZoneId)),
-            simplifyExpr(Cast(f, BooleanType, ce.timeZoneId))))
+            simplifyExpr(new Cast(t, BooleanType, ce.timeZoneId)),
+            simplifyExpr(new Cast(f, BooleanType, ce.timeZoneId))))
           }
         case If(c, Repr.ArrayBuffer(t), Repr.ArrayBuffer(f)) => Repr.ArrayBuffer(If(c, t, f))
         case If(c, Repr.StringBuilder(t), Repr.StringBuilder(f)) => Repr.StringBuilder(If(c, t, f))
