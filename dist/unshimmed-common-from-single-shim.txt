@@ -582,6 +582,9 @@ com/nvidia/spark/rapids/BaseSerializedTableIterator.class
 com/nvidia/spark/rapids/BatchContext.class
 com/nvidia/spark/rapids/CastExprMeta$.class
 com/nvidia/spark/rapids/CastExprMetaBase$.class
+com/nvidia/spark/rapids/CastOptions.class
+com/nvidia/spark/rapids/CastOptions$.class
+com/nvidia/spark/rapids/CastOptions$ToPrettyStringOptions$.class
 com/nvidia/spark/rapids/CloseableBufferedIterator.class
 com/nvidia/spark/rapids/CoalesceIteratorBase$.class
 com/nvidia/spark/rapids/CoalescedHostResult.class

@@ -16,7 +16,7 @@
 
 package com.nvidia.spark.rapids
 
-import java.nio.{ByteBuffer, ByteOrder}
+import java.nio.{Buffer, ByteBuffer, ByteOrder}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -116,9 +116,9 @@ object MetaUtils {
       packedMeta: ByteBuffer,
       numRows: Long): TableMeta = {
     val vectorBuffer = fbb.createUnintializedVector(1, packedMeta.remaining(), 1)
-    packedMeta.mark()
+    packedMeta.asInstanceOf[Buffer].mark()
     vectorBuffer.put(packedMeta)
-    packedMeta.reset()
+    packedMeta.asInstanceOf[Buffer].reset()
     val packedMetaOffset = fbb.endVector()
 
     TableMeta.startTableMeta(fbb)
