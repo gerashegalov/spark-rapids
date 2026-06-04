@@ -24,3 +24,4 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 object StatsExprShim {
   def unwrapRuntimeReplaceable(expr: Expression): Expression = expr
 }
+// Keep executable line numbers aligned with older Delta shims for binary-dedupe.

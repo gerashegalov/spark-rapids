@@ -32,3 +32,4 @@ object ShimDeltaInvariantCheckerExec {
     DeltaInvariantCheckerExec(plan, constraints)
   }
 }
+// Keep executable line numbers aligned with older Delta shims for binary-dedupe.

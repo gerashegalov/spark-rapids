@@ -644,6 +644,10 @@ com/nvidia/spark/rapids/delta/DeltaWriteUtils$.class
 com/nvidia/spark/rapids/delta/DeltaWriteUtils.class
 com/nvidia/spark/rapids/delta/GpuDeltaFileStatistics$.class
 com/nvidia/spark/rapids/delta/GpuDeltaFileStatistics.class
+com/nvidia/spark/rapids/delta/GpuDeltaJobStatisticsTracker.class
+com/nvidia/spark/rapids/delta/GpuDeltaTaskStatisticsTracker$$anonfun$1.class
+com/nvidia/spark/rapids/delta/GpuDeltaTaskStatisticsTracker$$anonfun$2.class
+com/nvidia/spark/rapids/delta/GpuDeltaTaskStatisticsTracker.class
 com/nvidia/spark/rapids/delta/GpuDeltaMergeConstants$.class
 com/nvidia/spark/rapids/delta/GpuDeltaMergeConstants.class
 com/nvidia/spark/rapids/delta/GpuDeltaNoopUDF.class
@@ -674,6 +678,8 @@ com/nvidia/spark/rapids/delta/shims/ShimJoinedProjection$.class
 com/nvidia/spark/rapids/delta/shims/ShimJoinedProjection.class
 com/nvidia/spark/rapids/delta/shims/ShimJsonUtils$.class
 com/nvidia/spark/rapids/delta/shims/ShimJsonUtils.class
+com/nvidia/spark/rapids/delta/shims/StatsExprShim$.class
+com/nvidia/spark/rapids/delta/shims/StatsExprShim.class
 com/nvidia/spark/rapids/extra/AEShims$.class
 com/nvidia/spark/rapids/extra/AEShims.class
 com/nvidia/spark/rapids/extra/SparkShims$.class
@@ -716,6 +722,7 @@ com/nvidia/spark/rapids/shims/GpuBatchScanExecBase$.class
 com/nvidia/spark/rapids/shims/GpuDeterministicFirstLastCollectShim.class
 com/nvidia/spark/rapids/shims/GpuFileFormatDataWriterShim$.class
 com/nvidia/spark/rapids/shims/GpuFileFormatDataWriterShim.class
+com/nvidia/spark/rapids/shims/GpuOrcDataReader$.class
 com/nvidia/spark/rapids/shims/GpuParquetCrypto$.class
 com/nvidia/spark/rapids/shims/GpuParquetCrypto.class
 com/nvidia/spark/rapids/shims/GpuScalarSubqueryShims.class
@@ -728,6 +735,8 @@ com/nvidia/spark/rapids/shims/OrcReadingShims.class
 com/nvidia/spark/rapids/shims/PartitionedFileUtilsShimBase.class
 com/nvidia/spark/rapids/shims/QueryStageRowCountShims$.class
 com/nvidia/spark/rapids/shims/QueryStageRowCountShims.class
+com/nvidia/spark/rapids/shims/ShuffleOriginUtil$.class
+com/nvidia/spark/rapids/shims/ShuffleOriginUtil.class
 com/nvidia/spark/rapids/shims/RankFunction$.class
 com/nvidia/spark/rapids/shims/RankFunction.class
 com/nvidia/spark/rapids/shims/RankFunctionType.class
@@ -878,6 +887,8 @@ org/apache/spark/shuffle/rapids/RapidsShuffleTimeoutException.class
 org/apache/spark/sql/delta/rapids/DeltaCommandShims.class
 org/apache/spark/sql/delta/rapids/DeltaMdcShims$.class
 org/apache/spark/sql/delta/rapids/DeltaMdcShims.class
+org/apache/spark/sql/delta/rapids/ShimDeltaInvariantCheckerExec$.class
+org/apache/spark/sql/delta/rapids/ShimDeltaInvariantCheckerExec.class
 org/apache/spark/sql/delta/rapids/DeltaTrampoline$.class
 org/apache/spark/sql/delta/rapids/DeltaTrampoline.class
 org/apache/spark/sql/execution/datasources/parquet/ParquetVectorizedReader$.class
@@ -1111,6 +1122,9 @@ org/apache/spark/sql/execution/aggregate/ObjectHashAggregateExecShim$.class
 org/apache/spark/sql/execution/aggregate/ObjectHashAggregateExecShim.class
 org/apache/spark/sql/execution/aggregate/SortAggregateExecShim$.class
 org/apache/spark/sql/execution/aggregate/SortAggregateExecShim.class
+org/apache/spark/sql/rapids/execution/python/shims/GpuArrowPythonRunner$.class
+org/apache/spark/sql/rapids/execution/python/shims/GpuCoGroupedArrowPythonRunner$.class
+org/apache/spark/sql/rapids/execution/python/shims/WindowInPandasExecTypeShim$.class
 org/apache/spark/sql/rapids/execution/python/shims/GpuWindowArrowPythonRunner$.class
 org/apache/spark/sql/rapids/shims/RapidsHadoopWriterUtils$.class
 org/apache/spark/sql/rapids/shims/RapidsHadoopWriterUtils.class
