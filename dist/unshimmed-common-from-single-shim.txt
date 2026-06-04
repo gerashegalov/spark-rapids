@@ -733,6 +733,10 @@ com/nvidia/spark/rapids/shims/LegacyBehaviorPolicyShim.class
 com/nvidia/spark/rapids/shims/NullOutputStreamShim$$anon$1.class
 com/nvidia/spark/rapids/shims/NullOutputStreamShim$.class
 com/nvidia/spark/rapids/shims/NullOutputStreamShim.class
+com/nvidia/spark/rapids/shims/OrcProtoWriterShim$.class
+com/nvidia/spark/rapids/shims/OrcProtoWriterShim$ProtoApi$.class
+com/nvidia/spark/rapids/shims/OrcProtoWriterShim$ProtoApi.class
+com/nvidia/spark/rapids/shims/OrcProtoWriterShim.class
 com/nvidia/spark/rapids/shims/OrcReadingShims$.class
 com/nvidia/spark/rapids/shims/OrcReadingShims.class
 com/nvidia/spark/rapids/shims/PartitionedFileUtilsShimBase.class
