@@ -519,6 +519,13 @@ org/apache/spark/sql/vectorized/rapids/AccessibleArrowColumnVector$AccessibleStr
 org/apache/spark/sql/vectorized/rapids/AccessibleArrowColumnVector$AccessibleTimestampAccessor.class
 com/nvidia/spark/rapids/OrcExtraInfo.class
 com/nvidia/spark/rapids/OrcExtraInfo$.class
+org/apache/spark/sql/catalyst/util/rapids/DateFormatter$.class
+org/apache/spark/sql/catalyst/util/rapids/DateFormatter.class
+org/apache/spark/sql/catalyst/util/rapids/DefaultDateFormatter.class
+org/apache/spark/sql/catalyst/util/rapids/Iso8601DateFormatter.class
+org/apache/spark/sql/catalyst/util/rapids/LegacyDateFormatter.class
+org/apache/spark/sql/catalyst/util/rapids/LegacyFastDateFormatter.class
+org/apache/spark/sql/catalyst/util/rapids/LegacySimpleDateFormatter.class
 org/apache/spark/sql/rapids/AvroDataBlock.class
 org/apache/spark/sql/rapids/AvroDataBlock$.class
 org/apache/spark/sql/rapids/AvroExtraInfo.class
@@ -714,6 +721,8 @@ com/nvidia/spark/rapids/shims/GpuParquetCrypto.class
 com/nvidia/spark/rapids/shims/GpuScalarSubqueryShims.class
 com/nvidia/spark/rapids/shims/KeyGroupedPartitioningShim$.class
 com/nvidia/spark/rapids/shims/KeyGroupedPartitioningShim.class
+com/nvidia/spark/rapids/shims/LegacyBehaviorPolicyShim$.class
+com/nvidia/spark/rapids/shims/LegacyBehaviorPolicyShim.class
 com/nvidia/spark/rapids/shims/OrcReadingShims$.class
 com/nvidia/spark/rapids/shims/OrcReadingShims.class
 com/nvidia/spark/rapids/shims/PartitionedFileUtilsShimBase.class
