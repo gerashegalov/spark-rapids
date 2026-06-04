@@ -225,9 +225,12 @@ function unshimmed_class_needs_shared_identity() {
   # the class provides concrete implementations for ALL getReader variants,
   # so the JVM resolves the correct one at runtime regardless of which
   # ShuffleManager version the class was compiled against.
+  # GpuShuffleDependency has identical JVM bytecode and descriptors between
+  # Spark 3.5 and 4.1. Only ScalaSignature metadata differs after compiling
+  # the same source against different Spark dependency jars.
   if [[ "$class_file_quoted" =~ com/nvidia/spark/rapids/spark[34].*/.*ShuffleManager.class || \
           "$class_file_quoted" == "com/nvidia/spark/ParquetCachedBatchSerializer.class" || \
-          "$class_file_quoted" =~ org/apache/spark/sql/rapids/ProxyRapidsShuffleInternalManagerBase ]]; then
+          "$class_file_quoted" =~ org/apache/spark/sql/rapids/ProxyRapidsShuffleInternalManagerBase || "$class_file_quoted" == "org/apache/spark/sql/rapids/GpuShuffleDependency.class" ]]; then
       return 1
   fi
   return 0

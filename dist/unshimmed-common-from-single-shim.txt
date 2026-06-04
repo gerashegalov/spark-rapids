@@ -977,6 +977,8 @@ org/apache/spark/sql/rapids/GpuFloorCeil.class
 org/apache/spark/sql/rapids/GpuPartitionwiseSampledRDD$.class
 org/apache/spark/sql/rapids/GpuPartitionwiseSampledRDD.class
 org/apache/spark/sql/rapids/GpuShuffleDependency$.class
+org/apache/spark/sql/rapids/GpuShuffleHandle.class
+org/apache/spark/sql/rapids/ShuffleHandleWithMetrics.class
 org/apache/spark/sql/rapids/GpuTimeMath$.class
 org/apache/spark/sql/rapids/InputFileUtils$.class
 org/apache/spark/sql/rapids/InputFileUtils.class
