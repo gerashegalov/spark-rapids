@@ -29,15 +29,13 @@ import ai.rapids.cudf.{ColumnVector, DType, HostColumnVector, Scalar}
 import ai.rapids.cudf.ast
 import com.nvidia.spark.rapids.Arm.withResource
 import com.nvidia.spark.rapids.RapidsPluginImplicits.AutoCloseableProducingArray
-import com.nvidia.spark.rapids.shims.{GpuTypeShims, SparkShimImpl}
+import com.nvidia.spark.rapids.shims.{GpuLiteralShim, GpuTypeShims, SparkShimImpl}
 import org.apache.commons.codec.binary.{Hex => ApacheHex}
-import org.json4s.JsonAST.{JField, JNull, JString, JValue}
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{Literal, UnsafeArrayData}
 import org.apache.spark.sql.catalyst.util.{ArrayData, DateTimeUtils, MapData, TimestampFormatter}
 import org.apache.spark.sql.internal.SQLConf
-import org.apache.spark.sql.rapids.execution.TrampolineUtil
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.unsafe.types.UTF8String
@@ -643,7 +641,7 @@ object GpuLiteral {
 /**
  * In order to do type conversion and checking, use GpuLiteral.create() instead of constructor.
  */
-case class GpuLiteral (value: Any, dataType: DataType) extends GpuLeafExpression {
+case class GpuLiteral (value: Any, dataType: DataType) extends GpuLiteralShim {
 
   // Assume this came from Spark Literal and no need to call Literal.validateLiteralValue here.
 
@@ -674,19 +672,6 @@ case class GpuLiteral (value: Any, dataType: DataType) extends GpuLeafExpression
         case (a, b) => a != null && a == b
       }
     case _ => false
-  }
-
-  override protected def jsonFields: List[JField] = {
-    // Turns all kinds of literal values to string in json field, as the type info is hard to
-    // retain in json format, e.g. {"a": 123} can be an int, or double, or decimal, etc.
-    val jsonValue = (value, dataType) match {
-      case (null, _) => JNull
-      case (i: Int, DateType) => JString(DateTimeUtils.toJavaDate(i).toString)
-      case (l: Long, TimestampType) => JString(DateTimeUtils.toJavaTimestamp(l).toString)
-      case (other, _) => JString(other.toString)
-    }
-    ("value" -> jsonValue) ::
-      ("dataType" -> TrampolineUtil.jsonValue(dataType).asInstanceOf[JValue]) :: Nil
   }
 
   override def sql: String = (value, dataType) match {
