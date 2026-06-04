@@ -93,6 +93,8 @@ com/nvidia/spark/rapids/IcebergS3RangeCopier$1.class
 com/nvidia/spark/rapids/IcebergS3RangeCopier$CachedClient.class
 com/nvidia/spark/rapids/IcebergS3RangeCopier$IcebergS3AsyncClientProp.class
 com/nvidia/spark/rapids/IcebergS3RangeCopier$IcebergS3Client.class
+com/nvidia/spark/rapids/IntRangeWithOffset.class
+com/nvidia/spark/rapids/IntRangeWithOffset$.class
 com/nvidia/spark/rapids/Initialized.class
 com/nvidia/spark/rapids/Initialized$.class
 com/nvidia/spark/rapids/JsonFormatType.class
@@ -159,6 +161,7 @@ com/nvidia/spark/rapids/RapidsHostColumnVectorCore.class
 com/nvidia/spark/rapids/RapidsHostColumnVector.class
 com/nvidia/spark/rapids/RapidsNullSafeHostColumnVectorCore.class
 com/nvidia/spark/rapids/RapidsNullSafeHostColumnVector.class
+com/nvidia/spark/rapids/RangeWithOffset.class
 com/nvidia/spark/rapids/ReadFileOp.class
 com/nvidia/spark/rapids/ReadFileOp$.class
 com/nvidia/spark/rapids/RequireSingleBatchLike.class
@@ -245,6 +248,8 @@ com/nvidia/spark/rapids/SplittableGoal.class
 com/nvidia/spark/rapids/StatEstimator.class
 com/nvidia/spark/rapids/SupportLevel.class
 com/nvidia/spark/rapids/Supported.class
+com/nvidia/spark/rapids/SuffixRangeWithOffset.class
+com/nvidia/spark/rapids/SuffixRangeWithOffset$.class
 com/nvidia/spark/rapids/TableCompressionCodecConfig.class
 com/nvidia/spark/rapids/TableCompressionCodecConfig$.class
 com/nvidia/spark/rapids/TaskCompletionCallbackHandle.class
