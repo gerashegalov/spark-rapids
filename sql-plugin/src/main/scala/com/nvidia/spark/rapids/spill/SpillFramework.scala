@@ -2047,7 +2047,19 @@ object SpillableTableHandle {
   }
 }
 
-object SpillFramework extends Logging {
+object SpillFramework {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logInfo(msg: => String): Unit = {
+    if (log.isInfoEnabled) {
+      log.info(msg)
+    }
+  }
+
+  private def logWarning(msg: => String): Unit = {
+    log.warn(msg)
+  }
+
   // public for tests. Some tests not in the `spill` package require setting this
   // because they need fine control over allocations.
   var storesInternal: SpillableStores = _

@@ -1187,6 +1187,8 @@ com/nvidia/spark/rapids/RangeDebugger$.class
 com/nvidia/spark/rapids/RangeDebugger.class
 com/nvidia/spark/rapids/spill/SpillableStore$SpillPlan.class
 com/nvidia/spark/rapids/spill/SpillableStore.class
+com/nvidia/spark/rapids/VersionUtils$.class
+com/nvidia/spark/rapids/VersionUtils.class
 com/nvidia/spark/rapids/delta/shims/ShimUsesMetadataFields.class
 org/apache/spark/sql/delta/rapids/ShimOptimisticTransaction.class
 rapids/*.py

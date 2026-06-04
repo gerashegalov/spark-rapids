@@ -38,7 +38,6 @@ import com.nvidia.spark.rapids.shims.ShimUnaryExecNode
 import org.apache.hadoop.conf.Configuration
 
 import org.apache.spark.TaskContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.Attribute
@@ -113,7 +112,13 @@ case class CoalesceReadOption private(
     kudoEnabled: Boolean, kudoMode: RapidsConf.ShuffleKudoMode.Value, kudoDebugMode: DumpOption,
     kudoDebugDumpPrefix: Option[String], useAsync: Boolean)
 
-object CoalesceReadOption extends Logging {
+object CoalesceReadOption {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logWarning(msg: => String): Unit = {
+    log.warn(msg)
+  }
+
 
   private def resolveUseAsync(kudoMode: RapidsConf.ShuffleKudoMode.Value,
       useAsync: Boolean): Boolean = {

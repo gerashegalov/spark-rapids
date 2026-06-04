@@ -31,7 +31,6 @@ import org.apache.hadoop.fs.Path
 
 import org.apache.spark.SparkEnv
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.trees.TreeNodeTag
@@ -64,7 +63,17 @@ trait GpuLoreRDD {
   }
 }
 
-object GpuLore extends Logging {
+object GpuLore {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logWarning(msg: => String): Unit = {
+    log.warn(msg)
+  }
+
+  private def logWarning(msg: => String, throwable: Throwable): Unit = {
+    log.warn(msg, throwable)
+  }
+
   /**
    * Lore id of a plan node.
    */

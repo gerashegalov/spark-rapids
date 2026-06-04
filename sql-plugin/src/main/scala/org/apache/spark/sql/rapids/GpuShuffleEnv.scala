@@ -89,7 +89,7 @@ class GpuShuffleEnv(rapidsConf: RapidsConf) extends Logging {
   }
 }
 
-object GpuShuffleEnv extends Logging {
+object GpuShuffleEnv {
   def isUCXShuffleAndEarlyStart(conf: RapidsConf): Boolean = {
     conf.isUCXShuffleManagerMode &&
       conf.shuffleTransportEarlyStart

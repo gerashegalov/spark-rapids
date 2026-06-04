@@ -18,9 +18,14 @@ package com.nvidia.spark.rapids
 
 import com.nvidia.spark.rapids.jni.{SparkPlatformType => PlatformForJni, Version => VersionForJni}
 
-import org.apache.spark.internal.Logging
 
-object VersionUtils extends Logging {
+object VersionUtils {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logWarning(msg: => String): Unit = {
+    log.warn(msg)
+  }
+
 
   lazy val isSpark320OrLater: Boolean = cmpSparkVersion(3, 2, 0) >= 0
 
