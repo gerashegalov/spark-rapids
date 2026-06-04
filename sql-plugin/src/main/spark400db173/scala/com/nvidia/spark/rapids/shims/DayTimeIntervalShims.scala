@@ -34,8 +34,27 @@ import org.apache.spark.unsafe.types.CalendarInterval
  * DayTimeInterval shims for Spark 4.1.1+
  * TimeAdd was renamed to TimestampAddInterval in Spark 4.1.0
  */
+// Keep shared rule line metadata aligned with pre-Spark-4 shims for binary-dedupe.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 object DayTimeIntervalShims {
   def exprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = Seq(
+
+
     GpuOverrides.expr[Abs](
       "Absolute value",
       ExprChecks.unaryProjectAndAstInputMatchesOutput(

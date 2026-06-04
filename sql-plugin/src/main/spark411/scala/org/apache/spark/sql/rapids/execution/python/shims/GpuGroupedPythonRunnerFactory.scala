@@ -25,6 +25,17 @@ import org.apache.spark.sql.rapids.shims.ArrowUtilsShim
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+// Keep case-class companion line metadata aligned with pre-Spark-4 shims for binary-dedupe.
+
+
+
+
+
+
+
+
+
+
 /**
  * Factory for creating Python runners for grouped UDFs in Spark 4.1.x.
  * 
