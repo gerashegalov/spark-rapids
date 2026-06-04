@@ -1182,6 +1182,11 @@ org/apache/spark/sql/rapids/shims/SchemaUtilsShims$.class
 org/apache/spark/sql/rapids/shims/SchemaUtilsShims.class
 org/apache/spark/sql/rapids/shims/SparkUpgradeExceptionShims$.class
 org/apache/spark/sql/rapids/shims/SparkUpgradeExceptionShims.class
+com/nvidia/spark/rapids/RangeDebugger$$anon$1.class
+com/nvidia/spark/rapids/RangeDebugger$.class
+com/nvidia/spark/rapids/RangeDebugger.class
+com/nvidia/spark/rapids/spill/SpillableStore$SpillPlan.class
+com/nvidia/spark/rapids/spill/SpillableStore.class
 com/nvidia/spark/rapids/delta/shims/ShimUsesMetadataFields.class
 org/apache/spark/sql/delta/rapids/ShimOptimisticTransaction.class
 rapids/*.py

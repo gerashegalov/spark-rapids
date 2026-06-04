@@ -31,9 +31,9 @@ import com.nvidia.spark.rapids.jni.{CpuRetryOOM, CpuSplitAndRetryOOM, GpuRetryOO
 import com.nvidia.spark.rapids.spill.SpillFramework
 
 import org.apache.spark.TaskContext
-import org.apache.spark.internal.Logging
 
-object RmmRapidsRetryIterator extends Logging {
+object RmmRapidsRetryIterator {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
 
   /**
    * withRetry for Iterator[T]. This helper calls a function `fn` as it takes
@@ -754,7 +754,7 @@ object RmmRapidsRetryIterator extends Logging {
               } else {
                 splitReason = SplitReason.CPU_OOM
               }
-              logInfo("splitReason is set " +
+              log.info("splitReason is set " +
                 s"to ${splitReason} after checking isRetryOrSplitAndRetry, related exception:",
                 ex)
             }
@@ -773,7 +773,7 @@ object RmmRapidsRetryIterator extends Logging {
                   }
                 }
                 if (splitReason == SplitReason.GPU_OOM || splitReason == SplitReason.CPU_OOM) {
-                  logInfo(s"splitReason is set to ${splitReason} after checking " +
+                  log.info(s"splitReason is set to ${splitReason} after checking " +
                     s"causedByRetryOrSplit, related exception:", ex)
                 }
               }
@@ -791,7 +791,7 @@ object RmmRapidsRetryIterator extends Logging {
               if (isOrCausedByColumnSizeOverflow(ex)) {
                 // CUDF column size overflow? Attempt split-retry.
                 splitReason = SplitReason.CUDF_OVERFLOW
-                logInfo(s"splitReason is set to ${splitReason} after checking " +
+                log.info(s"splitReason is set to ${splitReason} after checking " +
                   s"isOrCausedByColumnSizeOverflow, related exception:", ex)
               } else {
                 // we want to throw early here, since we got an exception
@@ -937,8 +937,8 @@ object RmmRapidsRetryIterator extends Logging {
 
   private def logSpillFrameworkSummary(): Unit = {
     // print spillable status
-    logInfo(SpillFramework.getHostStoreSpillableSummary)
-    logInfo(SpillFramework.getDeviceStoreSpillableSummary)
+    log.info(SpillFramework.getHostStoreSpillableSummary)
+    log.info(SpillFramework.getDeviceStoreSpillableSummary)
   }
 
   // For GPU/CPU SplitAndRetryOOM, we are very interested what each task is doing when one
@@ -956,12 +956,12 @@ object RmmRapidsRetryIterator extends Logging {
       }
       sb.append("\n\n")
     })
-    logInfo(sb.toString())
+    log.info(sb.toString())
   }
 
   private def logMemoryBookkeeping(): Unit = { // use synchronized to keep neat
     // print host memory bookkeeping
-    logInfo(HostAlloc.getHostAllocBookkeepSummary())
+    log.info(HostAlloc.getHostAllocBookkeepSummary())
 
     // print device memory bookkeeping
     // TODO: uncomment this once we have device memory bookkeeping in spark-rapids-jni
