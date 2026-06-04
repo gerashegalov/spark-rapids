@@ -37,6 +37,7 @@ com/nvidia/spark/rapids/ConfHelper$.class
 com/nvidia/spark/rapids/CudfVersionMismatchException.class
 com/nvidia/spark/rapids/CudfVersionMismatchException$.class
 com/nvidia/spark/rapids/DataFromReplacementRule.class
+com/nvidia/spark/rapids/DataBlockBase.class
 com/nvidia/spark/rapids/DataTypeMeta.class
 com/nvidia/spark/rapids/DataTypeMeta$.class
 com/nvidia/spark/rapids/AvroFormatType.class
@@ -47,6 +48,8 @@ com/nvidia/spark/rapids/DeltaFormatType.class
 com/nvidia/spark/rapids/DeltaFormatType$.class
 com/nvidia/spark/rapids/Errored.class
 com/nvidia/spark/rapids/Errored$.class
+com/nvidia/spark/rapids/EmptyGpuDataProducer.class
+com/nvidia/spark/rapids/ExtraInfo.class
 com/nvidia/spark/rapids/FileUtils.class
 com/nvidia/spark/rapids/FileUtils$.class
 com/nvidia/spark/rapids/FileFormatOp.class
@@ -54,6 +57,8 @@ com/nvidia/spark/rapids/FileFormatType.class
 com/nvidia/spark/rapids/FullSortSingleBatch.class
 com/nvidia/spark/rapids/FullSortSingleBatch$.class
 com/nvidia/spark/rapids/GpuCreatableRelationProvider.class
+com/nvidia/spark/rapids/GpuDataProducer.class
+com/nvidia/spark/rapids/GpuDataProducer$.class
 com/nvidia/spark/rapids/GpuEvalMode.class
 com/nvidia/spark/rapids/GpuEvalMode$.class
 com/nvidia/spark/rapids/GpuColumnVectorBase.class
@@ -102,6 +107,7 @@ com/nvidia/spark/rapids/JsonFormatType$.class
 com/nvidia/spark/rapids/LineBufferer.class
 com/nvidia/spark/rapids/LineBuffererFactory.class
 com/nvidia/spark/rapids/MemoryState.class
+com/nvidia/spark/rapids/MultiFileReaderFunctions.class
 com/nvidia/spark/rapids/MemoryBoundedPoolConf.class
 com/nvidia/spark/rapids/MemoryBoundedPoolConf$.class
 com/nvidia/spark/rapids/MutableBlockInfo.class
@@ -120,6 +126,8 @@ com/nvidia/spark/rapids/OrcFormatType.class
 com/nvidia/spark/rapids/OrcFormatType$.class
 com/nvidia/spark/rapids/OomInjectionConf.class
 com/nvidia/spark/rapids/OomInjectionConf$.class
+com/nvidia/spark/rapids/PartitionRowData.class
+com/nvidia/spark/rapids/PartitionRowData$.class
 com/nvidia/spark/rapids/OutOfCoreSort.class
 com/nvidia/spark/rapids/OutOfCoreSort$.class
 com/nvidia/spark/rapids/ParquetFormatType.class
@@ -232,6 +240,7 @@ com/nvidia/spark/rapids/SlicedSerializedColumnVector.class
 com/nvidia/spark/rapids/SortEachBatch.class
 com/nvidia/spark/rapids/SortEachBatch$.class
 com/nvidia/spark/rapids/SortExecType.class
+com/nvidia/spark/rapids/SingleGpuDataProducer.class
 com/nvidia/spark/rapids/SparkRapidsBuildInfoEvent.class
 com/nvidia/spark/rapids/SparkRapidsBuildInfoEvent$.class
 com/nvidia/spark/rapids/SparkRapidsShuffleDiskSavingsEvent.class
@@ -240,6 +249,7 @@ com/nvidia/spark/rapids/ScalableTaskCompletion.class
 com/nvidia/spark/rapids/ScalableTaskCompletion$.class
 com/nvidia/spark/rapids/ScalableTaskCompletion$TopLevelTaskCompletion.class
 com/nvidia/spark/rapids/ScalableTaskCompletion$UserTaskCompletion.class
+com/nvidia/spark/rapids/SchemaBase.class
 com/nvidia/spark/rapids/SpillPriorities.class
 com/nvidia/spark/rapids/SpillPriorities$.class
 com/nvidia/spark/rapids/SplitReason.class
@@ -267,6 +277,7 @@ com/nvidia/spark/rapids/Uninitialized$.class
 com/nvidia/spark/rapids/UnsupportedMode.class
 com/nvidia/spark/rapids/UnsupportedMode$.class
 com/nvidia/spark/rapids/WithTableBuffer.class
+com/nvidia/spark/rapids/WrappedGpuDataProducer.class
 com/nvidia/spark/rapids/WriteFileOp.class
 com/nvidia/spark/rapids/WriteFileOp$.class
 com/nvidia/spark/rapids/XORShiftRandom.class
