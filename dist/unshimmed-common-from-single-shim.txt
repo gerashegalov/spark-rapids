@@ -362,6 +362,9 @@ com/nvidia/spark/rapids/format/TableMeta.class
 com/nvidia/spark/rapids/format/TransferRequest.class
 com/nvidia/spark/rapids/format/TransferResponse.class
 com/nvidia/spark/rapids/format/TransferState.class
+com/nvidia/spark/rapids/parquet/ByteArrayInputFile$$anon$1.class
+com/nvidia/spark/rapids/parquet/ByteArrayInputFile.class
+com/nvidia/spark/rapids/parquet/ByteBufferInputStream.class
 com/nvidia/spark/rapids/parquet/ByteArrayOutputFile.class
 com/nvidia/spark/rapids/parquet/ByteArrayOutputFile$.class
 com/nvidia/spark/rapids/parquet/ByteArrayOutputFile$$anon$2.class
