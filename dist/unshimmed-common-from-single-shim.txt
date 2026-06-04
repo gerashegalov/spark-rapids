@@ -1196,4 +1196,5 @@ com/nvidia/spark/rapids/delta/shims/ShimUsesMetadataFields.class
 org/apache/spark/sql/delta/rapids/ShimOptimisticTransaction.class
 com/nvidia/spark/rapids/parquet/GpuParquetUtils$.class
 com/nvidia/spark/rapids/parquet/GpuParquetUtils.class
+com/nvidia/spark/rapids/python/PythonWorkerSemaphore.class
 rapids/*.py

@@ -22,7 +22,6 @@ import com.nvidia.spark.rapids.RapidsPluginImplicits.AutoCloseableColumn
 import com.nvidia.spark.rapids.format.TableMeta
 import com.nvidia.spark.rapids.spill.SpillableDeviceBufferHandle
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
@@ -34,7 +33,7 @@ case class RapidsShuffleHandle(
 }
 
 /** Catalog for lookup of shuffle buffers by block ID */
-class ShuffleReceivedBufferCatalog() extends Logging {
+class ShuffleReceivedBufferCatalog() {
 
   /**
    * Adds a buffer to the device storage, taking ownership of the buffer.

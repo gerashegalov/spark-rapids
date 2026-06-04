@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import ai.rapids.cudf.MemoryBuffer
 import com.nvidia.spark.rapids.{NvtxRegistry, RapidsConf, ShimReflectionUtils}
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.rapids.storage.RapidsStorageUtils
 import org.apache.spark.storage.BlockManagerId
 
@@ -400,7 +399,15 @@ trait RapidsShuffleTransport extends AutoCloseable {
  *
  * @param bufferSize the size of direct `ByteBuffer` to allocate.
  */
-class DirectByteBufferPool(bufferSize: Long) extends Logging {
+class DirectByteBufferPool(bufferSize: Long) {
+  private val log = org.slf4j.LoggerFactory.getLogger(classOf[DirectByteBufferPool])
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
   val buffers = new ConcurrentLinkedQueue[ByteBuffer]()
   val high = new AtomicInteger(0)
 
@@ -550,7 +557,16 @@ object TransportUtils {
   }
 }
 
-object RapidsShuffleTransport extends Logging {
+object RapidsShuffleTransport {
+  private val log = org.slf4j.LoggerFactory.getLogger(
+    "com.nvidia.spark.rapids.shuffle.RapidsShuffleTransport")
+
+  private def logError(msg: => String, throwable: Throwable): Unit = {
+    if (log.isErrorEnabled) {
+      log.error(msg, throwable)
+    }
+  }
+
   /**
    * Used in `BlockManagerId`s when returning a map status after a shuffle write to
    * let the readers know what TCP port to use to establish a transport connection.
