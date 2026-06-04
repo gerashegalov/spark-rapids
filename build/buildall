@@ -23,6 +23,7 @@ SKIP_CLEAN=1
 BUILD_ALL_DEBUG=0
 SCALA213=0
 UNSHIM_FAST=0
+UNSHIM_PARALLEL_WORLD_ONLY=0
 
 function join_by { local IFS="$1"; shift; echo "$*"; }
 
@@ -59,6 +60,8 @@ function print_usage() {
   echo "        build 2.13 shims"
   echo "   --unshim-fast"
   echo "        skip Maven checks/docs and snapshot refresh for repeated unshim/dist iteration"
+  echo "   --parallel-world-only, --unshim-parallel-world-only"
+  echo "        stop after dist generate-resources, leaving parallel-world output for dependency analysis"
 }
 
 function bloopInstall() {
@@ -155,6 +158,10 @@ case "$1" in
   UNSHIM_FAST=1
   ;;
 
+--parallel-world-only|--unshim-parallel-world-only)
+  UNSHIM_PARALLEL_WORLD_ONLY=1
+  ;;
+
 --rebuild-dist-only)
   SKIP_DIST_DEPS="1"
   MODULE="dist"
@@ -179,6 +186,11 @@ done
 
 if [[ "$DIST_PROFILE" == *Scala213 ]]; then
   SCALA213=1
+fi
+
+if [[ "$UNSHIM_PARALLEL_WORLD_ONLY" == "1" ]]; then
+  FINAL_OP="generate-resources"
+  MODULE="${MODULE:-dist}"
 fi
 
 MVN=${MVN:-"mvn"}
@@ -236,6 +248,15 @@ if [[ "$UNSHIM_FAST" == "1" ]]; then
   export RAPIDS_PROJECT_VERSION=$($MVN help:evaluate -Dexpression=project.version -q -DforceStdout)
   export RAPIDS_SCALA_BINARY_VERSION=$($MVN help:evaluate -Dexpression=scala.binary.version -q -DforceStdout)
 fi
+
+if [[ "$UNSHIM_PARALLEL_WORLD_ONLY" == "1" ]]; then
+  echo "Unshim parallel-world-only: stopping at generate-resources and skipping JNI unpack and jar packaging"
+  MVN_FAST_SKIP_OPTS="$MVN_FAST_SKIP_OPTS -Drapids.jni.unpack.skip=true"
+elif [[ "$UNSHIM_FAST" == "1" && -d "$MVN_BASE_DIR/dist/target/jni-deps" ]]; then
+  echo "Unshim fast: reusing existing JNI deps from $MVN_BASE_DIR/dist/target/jni-deps"
+  MVN_FAST_SKIP_OPTS="$MVN_FAST_SKIP_OPTS -Drapids.jni.unpack.skip=true"
+fi
+export MVN_FAST_SKIP_OPTS
 
 if [[ "$GEN_BLOOP" == "true" ]]; then
   bloopInstall

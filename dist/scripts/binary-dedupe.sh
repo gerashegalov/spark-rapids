@@ -111,20 +111,26 @@ function copy_unshimmed_from_spark_shared() {
   }
 
   : > "$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST"
-  while read -r shared_path; do
-    local rel_path="${shared_path#./parallel-world/spark-shared/}"
-    local pattern
-    while read -r pattern; do
-      [[ -n "$pattern" ]] || continue
-      [[ "$pattern" =~ ^[[:space:]]*# ]] && continue
-      # shellcheck disable=SC2053
-      if [[ "$rel_path" == $pattern ]]; then
-        echo "$rel_path" >> "$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST"
-        break
-      fi
-    done < "$unshimmed_patterns_txt"
-  done < <(find ./parallel-world/spark-shared -type f)
+  local shared_dir="./parallel-world/spark-shared"
+  local pattern
+  while IFS= read -r pattern; do
+    [[ -n "$pattern" ]] || continue
+    [[ "$pattern" =~ ^[[:space:]]*# ]] && continue
+    case "$pattern" in
+      *[\*\?\[]*)
+        find "$shared_dir" -type f -path "$shared_dir/$pattern" |
+          sed "s|^\./parallel-world/spark-shared/||" >> \
+            "$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST"
+        ;;
+      *)
+        [[ -f "$shared_dir/$pattern" ]] && \
+          echo "$pattern" >> "$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST"
+        ;;
+    esac
+  done < "$unshimmed_patterns_txt"
 
+  sort -u -o "$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST" \
+    "$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST"
   if [[ -s "$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST" ]]; then
     echo "Promoting root-layout files from spark-shared via $unshimmed_patterns_txt"
     rsync --files-from="$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST" \
