@@ -28,7 +28,6 @@ import com.nvidia.spark.rapids.format.TableMeta
 import com.nvidia.spark.rapids.spill.{SpillableDeviceBufferHandle, SpillableHandle}
 
 import org.apache.spark.{SparkEnv, TaskContext}
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.rapids.execution.TrampolineUtil
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.vectorized.ColumnarBatch
@@ -43,7 +42,15 @@ case class ShuffleBufferId(
 }
 
 /** Catalog for lookup of shuffle buffers by block ID */
-class ShuffleBufferCatalog extends Logging {
+class ShuffleBufferCatalog {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logWarning(msg: => String): Unit = {
+    if (log.isWarnEnabled) {
+      log.warn(msg)
+    }
+  }
+
   /**
    * Information stored for each active shuffle.
    * A shuffle block can be comprised of multiple batches. Each batch

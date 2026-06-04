@@ -28,10 +28,15 @@ import com.nvidia.spark.rapids.jni.kudo.KudoSerializer
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
-object DumpUtils extends Logging {
+object DumpUtils {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logWarning(msg: => String): Unit = {
+    log.warn(msg)
+  }
+
   /**
    * Debug utility to dump a host memory buffer to a file.
    *
@@ -324,7 +329,15 @@ private class ColumnIndex() {
   }
 }
 
-object ParquetDumper extends Logging {
+object ParquetDumper {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
   val COMPRESS_TYPE = CompressionType.SNAPPY
 
   def parquetWriterOptionsFromTable[T <: NestedBuilder[_, _], V <: ColumnWriterOptions](

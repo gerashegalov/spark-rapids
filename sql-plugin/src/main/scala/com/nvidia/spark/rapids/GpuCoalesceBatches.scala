@@ -27,7 +27,6 @@ import com.nvidia.spark.rapids.jni.GpuSplitAndRetryOOM
 import com.nvidia.spark.rapids.shims.{ShimExpression, ShimUnaryExecNode}
 
 import org.apache.spark.TaskContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{Attribute, Expression, SortOrder}
@@ -267,7 +266,20 @@ abstract class AbstractGpuCoalesceIterator(
     streamTimeOrNoop: GpuMetric,
     concatTime: GpuMetric,
     opTime: GpuMetric,
-    opName: String) extends Iterator[ColumnarBatch] with Logging {
+    opName: String) extends Iterator[ColumnarBatch] {
+
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  protected def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
+  protected def logWarning(msg: => String): Unit = {
+    log.warn(msg)
+  }
+
 
   val streamTime = streamTimeOrNoop match {
     case NoopMetric => new LocalGpuMetric

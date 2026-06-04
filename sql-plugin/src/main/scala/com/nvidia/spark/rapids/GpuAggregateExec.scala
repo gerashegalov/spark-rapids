@@ -48,7 +48,15 @@ import org.apache.spark.sql.rapids.execution.{GpuBatchSubPartitioner, GpuShuffle
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
-object AggregateUtils extends Logging {
+object AggregateUtils {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
 
   private val aggs = List("min", "max", "avg", "sum", "count", "first", "last")
 
@@ -619,7 +627,8 @@ class AggHelper(
   }
 }
 
-object GpuAggregateIterator extends Logging {
+object GpuAggregateIterator {
+
   /**
    * @note abstracted away for a unit test..
    * @param helper

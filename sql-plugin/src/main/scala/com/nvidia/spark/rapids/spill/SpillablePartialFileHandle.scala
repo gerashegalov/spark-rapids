@@ -24,7 +24,6 @@ import ai.rapids.cudf.HostMemoryBuffer
 import com.nvidia.spark.rapids.Arm.{closeOnExcept, withResource}
 import com.nvidia.spark.rapids.HostAlloc
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.rapids.GpuTaskMetrics
 import org.apache.spark.sql.rapids.execution.TrampolineUtil
 
@@ -74,7 +73,25 @@ class SpillablePartialFileHandle private (
     priority: Long,
     syncWrites: Boolean,
     capacityHintProvider: Option[(Long, Long) => Long])
-  extends HostSpillableHandle[ai.rapids.cudf.HostMemoryBuffer] with Logging {
+  extends HostSpillableHandle[ai.rapids.cudf.HostMemoryBuffer] {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
+  private def logDebug(msg: => String, throwable: Throwable): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg, throwable)
+    }
+  }
+
+  private def logWarning(msg: => String, throwable: Throwable): Unit = {
+    log.warn(msg, throwable)
+  }
+
 
   // State management
   @volatile private var spilledToDisk: Boolean = false
@@ -798,7 +815,7 @@ class SpillablePartialFileHandle private (
   }
 }
 
-object SpillablePartialFileHandle extends Logging {
+object SpillablePartialFileHandle {
 
   /**
    * Create a file-only handle.

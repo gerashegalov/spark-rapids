@@ -28,7 +28,6 @@ import scala.collection.mutable.ArrayBuffer
 import _root_.io.netty.handler.stream.ChunkedStream
 import com.nvidia.spark.rapids.spill.SpillablePartialFileHandle
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.network.buffer.ManagedBuffer
 import org.apache.spark.network.util.AbstractFileRegion
 import org.apache.spark.storage.{ShuffleBlockBatchId, ShuffleBlockId}
@@ -57,7 +56,19 @@ case class PartitionSegment(
  * (MEMORY_WITH_SPILL mode) or stored directly on disk (ONLY_FILE mode) depending
  * on memory pressure - both modes work with this skip-merge design.
  */
-class MultithreadedShuffleBufferCatalog extends Logging {
+class MultithreadedShuffleBufferCatalog {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
+  private def logError(msg: => String, throwable: Throwable): Unit = {
+    log.error(msg, throwable)
+  }
+
 
   /**
    * Map from ShuffleBlockId to list of segments.
