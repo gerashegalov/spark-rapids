@@ -539,4 +539,10 @@ com/nvidia/spark/rapids/shuffle/WindowedBlockIterator$BlockWindow.class
 com/nvidia/spark/rapids/shuffle/WindowedBlockIterator$BlockWindow$.class
 com/nvidia/spark/rapids/shuffle/WindowedBlockIterator$BlockWithOffset.class
 com/nvidia/spark/rapids/shuffle/WindowedBlockIterator$BlockWithOffset$.class
+com/nvidia/spark/rapids/OrcOutputStripe.class
+com/nvidia/spark/rapids/OrcOutputStripe$.class
+com/nvidia/spark/rapids/OrcPartitionReaderContext.class
+com/nvidia/spark/rapids/OrcPartitionReaderContext$.class
+com/nvidia/spark/rapids/OrcSchemaWrapper.class
+com/nvidia/spark/rapids/OrcSchemaWrapper$.class
 rapids/*.py
