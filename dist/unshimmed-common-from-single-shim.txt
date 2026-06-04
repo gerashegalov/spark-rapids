@@ -160,6 +160,7 @@ com/nvidia/spark/rapids/ProfileJobStageQueryMsg$.class
 com/nvidia/spark/rapids/ProfileMsg.class
 com/nvidia/spark/rapids/ProfileStatusMsg.class
 com/nvidia/spark/rapids/ProfileStatusMsg$.class
+com/nvidia/spark/rapids/RapidsExecutorPlugin$.class
 com/nvidia/spark/rapids/RapidsReaderType.class
 com/nvidia/spark/rapids/RapidsReaderType$.class
 com/nvidia/spark/rapids/RapidsHostColumnBuilder.class

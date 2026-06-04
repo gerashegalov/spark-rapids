@@ -31,7 +31,6 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.csv.{CSVOptions, GpuCsvUtils}
@@ -54,7 +53,15 @@ trait ScanWithMetrics {
   var metrics : Map[String, GpuMetric] = Map.empty
 }
 
-object GpuCSVScan extends Logging {
+object GpuCSVScan {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logWarning(msg: => String): Unit = {
+    if (log.isWarnEnabled) {
+      log.warn(msg)
+    }
+  }
+
   private def tryLoadCharset(name: String): Option[Charset] = {
     try {
       Some(Charset.forName(name))

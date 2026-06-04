@@ -40,7 +40,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils
 
 import org.apache.spark.{ExceptionFailure, SparkConf, SparkContext, TaskContext, TaskFailedReason}
 import org.apache.spark.api.plugin.{DriverPlugin, ExecutorPlugin, PluginContext, SparkPlugin}
-import org.apache.spark.internal.Logging
 import org.apache.spark.rapids.hybrid.HybridExecutionUtils
 import org.apache.spark.serializer.{JavaSerializer, KryoSerializer}
 import org.apache.spark.sql.catalyst.rules.Rule
@@ -53,7 +52,7 @@ class PluginException(msg: String) extends RuntimeException(msg)
 
 case class CudfVersionMismatchException(errorMsg: String) extends PluginException(errorMsg)
 
-case class ColumnarOverrideRules() extends ColumnarRule with Logging {
+case class ColumnarOverrideRules() extends ColumnarRule {
   lazy val overrides: Rule[SparkPlan] = GpuOverrides()
   lazy val overrideTransitions: Rule[SparkPlan] = new GpuTransitionOverrides()
 
@@ -62,7 +61,33 @@ case class ColumnarOverrideRules() extends ColumnarRule with Logging {
   override def postColumnarTransitions: Rule[SparkPlan] = overrideTransitions
 }
 
-object RapidsPluginUtils extends Logging {
+object RapidsPluginUtils {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logInfo(msg: => String): Unit = {
+    if (log.isInfoEnabled) {
+      log.info(msg)
+    }
+  }
+
+  private def logWarning(msg: => String): Unit = {
+    if (log.isWarnEnabled) {
+      log.warn(msg)
+    }
+  }
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
+  private def logDebug(msg: => String, throwable: Throwable): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg, throwable)
+    }
+  }
+
   val CUDF_PROPS_FILENAME = "cudf-java-version-info.properties"
   val JNI_PROPS_FILENAME = "spark-rapids-jni-version-info.properties"
   val PLUGIN_PROPS_FILENAME = "rapids4spark-version-info.properties"
@@ -441,11 +466,31 @@ object RapidsPluginUtils extends Logging {
 /**
  * The Spark driver plugin provided by the RAPIDS Spark plugin.
  */
-class RapidsDriverPlugin extends DriverPlugin with Logging {
+class RapidsDriverPlugin extends DriverPlugin {
   var rapidsShuffleHeartbeatManager: RapidsShuffleHeartbeatManager = null
   var shuffleCleanupListener: ShuffleCleanupListener = null
   private lazy val extraDriverPlugins =
     RapidsPluginUtils.extraPlugins.map(_.driverPlugin()).filterNot(_ == null)
+
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logInfo(msg: => String): Unit = {
+    if (log.isInfoEnabled) {
+      log.info(msg)
+    }
+  }
+
+  private def logWarning(msg: => String): Unit = {
+    if (log.isWarnEnabled) {
+      log.warn(msg)
+    }
+  }
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
 
   override def receive(msg: Any): AnyRef = {
     msg match {
@@ -586,11 +631,49 @@ case class ActiveTaskMetrics(
 /**
  * The Spark executor plugin provided by the RAPIDS Spark plugin.
  */
-class RapidsExecutorPlugin extends ExecutorPlugin with Logging {
+class RapidsExecutorPlugin extends ExecutorPlugin {
   var rapidsShuffleHeartbeatEndpoint: RapidsShuffleHeartbeatEndpoint = null
   var shuffleCleanupEndpoint: ShuffleCleanupEndpoint = null
   private lazy val extraExecutorPlugins =
     RapidsPluginUtils.extraPlugins.map(_.executorPlugin()).filterNot(_ == null)
+
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logInfo(msg: => String): Unit = {
+    if (log.isInfoEnabled) {
+      log.info(msg)
+    }
+  }
+
+  private def logWarning(msg: => String): Unit = {
+    if (log.isWarnEnabled) {
+      log.warn(msg)
+    }
+  }
+
+  private def logWarning(msg: => String, throwable: Throwable): Unit = {
+    if (log.isWarnEnabled) {
+      log.warn(msg, throwable)
+    }
+  }
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
+  private def logError(msg: => String): Unit = {
+    if (log.isErrorEnabled) {
+      log.error(msg)
+    }
+  }
+
+  private def logError(msg: => String, throwable: Throwable): Unit = {
+    if (log.isErrorEnabled) {
+      log.error(msg, throwable)
+    }
+  }
 
   private val activeTaskInfo = new ConcurrentHashMap[Thread, ActiveTaskMetrics]()
 
@@ -888,7 +971,27 @@ class RapidsExecutorPlugin extends ExecutorPlugin with Logging {
   }
 }
 
-object RapidsExecutorPlugin extends Logging {
+object RapidsExecutorPlugin {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logInfo(msg: => String): Unit = {
+    if (log.isInfoEnabled) {
+      log.info(msg)
+    }
+  }
+
+  private def logWarning(msg: => String): Unit = {
+    if (log.isWarnEnabled) {
+      log.warn(msg)
+    }
+  }
+
+  private def logWarning(msg: => String, throwable: Throwable): Unit = {
+    if (log.isWarnEnabled) {
+      log.warn(msg, throwable)
+    }
+  }
+
   /**
    * Calling System.exit will trigger shutdown hooks to run.
    * This code is intended to let them run, but then force
