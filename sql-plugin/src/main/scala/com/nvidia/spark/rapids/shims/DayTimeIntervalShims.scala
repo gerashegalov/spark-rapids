@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-/*** spark-rapids-shim-json-lines
-{"spark": "400db173"}
-{"spark": "411"}
-spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.shims
 
 import com.nvidia.spark.rapids._
@@ -25,36 +21,10 @@ import com.nvidia.spark.rapids._
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.rapids._
-import org.apache.spark.sql.rapids.shims.{GpuDivideDTInterval, GpuMultiplyDTInterval,
-  GpuTimestampAddInterval}
-import org.apache.spark.sql.types.{CalendarIntervalType, DayTimeIntervalType}
-import org.apache.spark.unsafe.types.CalendarInterval
-
-/**
- * DayTimeInterval shims for Spark 4.1.1+
- * TimeAdd was renamed to TimestampAddInterval in Spark 4.1.0
- */
-// Keep shared rule line metadata aligned with pre-Spark-4 shims for binary-dedupe.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import org.apache.spark.sql.rapids.shims.{GpuDivideDTInterval, GpuMultiplyDTInterval}
 
 object DayTimeIntervalShims {
   def exprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = Seq(
-
-
     GpuOverrides.expr[Abs](
       "Absolute value",
       ExprChecks.unaryProjectAndAstInputMatchesOutput(
@@ -85,7 +55,7 @@ object DayTimeIntervalShims {
           GpuMultiplyDTInterval(lhs, rhs)
       }),
     GpuOverrides.expr[DivideDTInterval](
-      "Day-time interval / number",
+      "Day-time interval * operator",
       ExprChecks.binaryProject(
         TypeSig.DAYTIME,
         TypeSig.DAYTIME,
@@ -94,31 +64,7 @@ object DayTimeIntervalShims {
       (a, conf, p, r) => new BinaryExprMeta[DivideDTInterval](a, conf, p, r) {
         override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
           GpuDivideDTInterval(lhs, rhs)
-      }),
-    GpuOverrides.expr[TimestampAddInterval](
-      "Adds interval to timestamp",
-      ExprChecks.binaryProject(TypeSig.TIMESTAMP, TypeSig.TIMESTAMP,
-        ("start", TypeSig.TIMESTAMP, TypeSig.TIMESTAMP),
-        // interval support DAYTIME column or CALENDAR literal
-        ("interval", TypeSig.DAYTIME + TypeSig.lit(TypeEnum.CALENDAR)
-            .withPsNote(TypeEnum.CALENDAR, "month intervals are not supported"),
-            TypeSig.DAYTIME + TypeSig.CALENDAR)),
-      (timeAdd, conf, p, r) => new BinaryExprMeta[TimestampAddInterval](timeAdd, conf, p, r) {
-        override def tagExprForGpu(): Unit = {
-          GpuOverrides.extractLit(timeAdd.interval).foreach { lit =>
-            lit.dataType match {
-              case CalendarIntervalType =>
-                val intvl = lit.value.asInstanceOf[CalendarInterval]
-                if (intvl.months != 0) {
-                  willNotWorkOnGpu("interval months isn't supported")
-                }
-              case _: DayTimeIntervalType => // Supported
-            }
-          }
-        }
-
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuTimestampAddInterval(lhs, rhs)
       })
-  ).map(r => (r.getClassFor.asSubclass(classOf[Expression]), r)).toMap
+  ).map(r => (r.getClassFor.asSubclass(classOf[Expression]), r))
+    .toMap[Class[_ <: Expression], ExprRule[_ <: Expression]]
 }
