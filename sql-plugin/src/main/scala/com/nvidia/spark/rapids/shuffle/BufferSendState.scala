@@ -22,7 +22,6 @@ import com.nvidia.spark.rapids.Arm.withResource
 import com.nvidia.spark.rapids.RapidsPluginImplicits._
 import com.nvidia.spark.rapids.format.{BufferMeta, BufferTransferRequest}
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.shuffle.rapids.RapidsShuffleSendPrepareException
 
 /**
@@ -56,7 +55,21 @@ class BufferSendState(
     sendBounceBuffers: SendBounceBuffers,
     requestHandler: RapidsShuffleRequestHandler,
     serverStream: Cuda.Stream = Cuda.DEFAULT_STREAM)
-    extends AutoCloseable with Logging {
+    extends AutoCloseable {
+
+  private val log = org.slf4j.LoggerFactory.getLogger(classOf[BufferSendState])
+
+  private def logWarning(msg: => String): Unit = {
+    if (log.isWarnEnabled) {
+      log.warn(msg)
+    }
+  }
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
 
   class SendBlock(val bufferHandle: RapidsShuffleHandle) extends BlockWithSize {
     // we assume that the size of the buffer won't change as it goes to host/disk

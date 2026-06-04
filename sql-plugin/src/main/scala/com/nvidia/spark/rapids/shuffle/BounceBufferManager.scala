@@ -20,7 +20,6 @@ import java.util
 
 import ai.rapids.cudf.MemoryBuffer
 
-import org.apache.spark.internal.Logging
 
 /**
  * Class to hold a bounce buffer reference in `buffer`.
@@ -82,8 +81,22 @@ class BounceBufferManager[T <: MemoryBuffer](
     val bufferSize: Long,
     val numBuffers: Int,
     allocator: Long => T)
-  extends AutoCloseable
-  with Logging {
+  extends AutoCloseable {
+
+  private val log = org.slf4j.LoggerFactory.getLogger(
+    "com.nvidia.spark.rapids.shuffle.BounceBufferManager")
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
+  private def logTrace(msg: => String): Unit = {
+    if (log.isTraceEnabled) {
+      log.trace(msg)
+    }
+  }
 
   class BounceBufferImpl(buff: MemoryBuffer) extends BounceBuffer(buff) {
     override def free(bb: BounceBuffer): Unit = {

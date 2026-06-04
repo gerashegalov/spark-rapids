@@ -1197,4 +1197,6 @@ org/apache/spark/sql/delta/rapids/ShimOptimisticTransaction.class
 com/nvidia/spark/rapids/parquet/GpuParquetUtils$.class
 com/nvidia/spark/rapids/parquet/GpuParquetUtils.class
 com/nvidia/spark/rapids/python/PythonWorkerSemaphore.class
+com/nvidia/spark/rapids/shuffle/BounceBufferManager$BounceBufferImpl.class
+com/nvidia/spark/rapids/shuffle/BounceBufferManager.class
 rapids/*.py
