@@ -22,7 +22,6 @@ import java.util.concurrent.locks.ReentrantLock
 
 import scala.collection.mutable
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.rapids.execution.TrampolineUtil.bytesToString
 
 // Being thrown when a task requests resources that are not valid or exceed the limits
@@ -68,7 +67,13 @@ trait ResourcePool {
  * The implementation uses condition variables to efficiently block and wake up waiting
  * tasks when resources become available through task completion and resource release.
  */
-class HostMemoryPool(val maxHostMemoryBytes: Long) extends ResourcePool with Logging {
+class HostMemoryPool(val maxHostMemoryBytes: Long) extends ResourcePool {
+
+  private val log = org.slf4j.LoggerFactory.getLogger(classOf[HostMemoryPool])
+
+  private def logWarning(msg: => String): Unit = if (log.isWarnEnabled) log.warn(msg)
+
+  private def logDebug(msg: => String): Unit = if (log.isDebugEnabled) log.debug(msg)
 
   private val lock = new ReentrantLock()
 

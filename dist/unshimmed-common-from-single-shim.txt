@@ -1203,4 +1203,8 @@ com/nvidia/spark/rapids/FoldLocalAggregate$$anonfun$apply$1.class
 com/nvidia/spark/rapids/FoldLocalAggregate$.class
 com/nvidia/spark/rapids/LocalAggregatePattern$.class
 com/nvidia/spark/rapids/LocalAggregatePattern.class
+com/nvidia/spark/rapids/ShuffleMetadata$.class
+com/nvidia/spark/rapids/ShuffleMetadata.class
+com/nvidia/spark/rapids/io/async/RapidsFutureTask.class
+com/nvidia/spark/rapids/io/async/RapidsFutureTaskComparator.class
 rapids/*.py

@@ -26,7 +26,6 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 
 import org.apache.spark.{SparkContext, TaskContext}
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.SQLExecution
 import org.apache.spark.sql.execution.datasources.WriteTaskStats
@@ -56,7 +55,20 @@ case class BasicColumnarWriteTaskStats(
 class BasicColumnarWriteTaskStatsTracker(
     hadoopConf: Configuration,
     taskCommitTimeMetric: Option[GpuMetric])
-    extends ColumnarWriteTaskStatsTracker with Logging {
+    extends ColumnarWriteTaskStatsTracker {
+
+  private val log = org.slf4j.LoggerFactory.getLogger(classOf[BasicColumnarWriteTaskStatsTracker])
+
+  private def logInfo(msg: => String): Unit = if (log.isInfoEnabled) log.info(msg)
+
+  private def logWarning(msg: => String): Unit = if (log.isWarnEnabled) log.warn(msg)
+
+  private def logDebug(msg: => String): Unit = if (log.isDebugEnabled) log.debug(msg)
+
+  private def logDebug(msg: => String, throwable: Throwable): Unit = {
+    if (log.isDebugEnabled) log.debug(msg, throwable)
+  }
+
   private[this] val partitions: mutable.ArrayBuffer[InternalRow] = mutable.ArrayBuffer.empty
   private[this] var numFiles: Int = 0
   private[this] var numSubmittedFiles: Int = 0

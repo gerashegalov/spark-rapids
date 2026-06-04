@@ -25,7 +25,6 @@ import com.google.flatbuffers.FlatBufferBuilder
 import com.nvidia.spark.rapids.Arm.withResource
 import com.nvidia.spark.rapids.format._
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.storage.ShuffleBlockBatchId
@@ -262,7 +261,7 @@ class DirectByteBufferFactory extends FlatBufferBuilder.ByteBufferFactory {
   }
 }
 
-object ShuffleMetadata extends Logging{
+object ShuffleMetadata {
 
   val bbFactory = new DirectByteBufferFactory
 

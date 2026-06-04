@@ -21,7 +21,6 @@ import java.util.concurrent.{BlockingQueue, Callable, Future, FutureTask, Priori
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 
 import org.apache.spark.TaskContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.rapids.execution.TrampolineUtil
 import org.apache.spark.util.TaskCompletionListener
 
@@ -37,7 +36,11 @@ import org.apache.spark.util.TaskCompletionListener
  * @tparam T the result type returned by the AsyncRunner
  */
 class RapidsFutureTask[T](val runner: AsyncRunner[T])
-    extends FutureTask[AsyncResult[T]](runner) with Logging {
+    extends FutureTask[AsyncResult[T]](runner) {
+
+  private val log = org.slf4j.LoggerFactory.getLogger(classOf[RapidsFutureTask[_]])
+
+  private def logWarning(msg: => String): Unit = if (log.isWarnEnabled) log.warn(msg)
 
   override def run(): Unit = runner.withStateLock { rr =>
     rr.getState match {
@@ -144,7 +147,21 @@ class ResourceBoundedThreadExecutor(mgr: ResourcePool,
     workQueue: BlockingQueue[Runnable],
     threadFactory: ThreadFactory,
     keepAliveTime: Long = 100L) extends ThreadPoolExecutor(corePoolSize,
-  maximumPoolSize, keepAliveTime, TimeUnit.SECONDS, workQueue, threadFactory) with Logging {
+  maximumPoolSize, keepAliveTime, TimeUnit.SECONDS, workQueue, threadFactory) {
+
+  private val log = org.slf4j.LoggerFactory.getLogger(classOf[ResourceBoundedThreadExecutor])
+
+  private def logInfo(msg: => String): Unit = if (log.isInfoEnabled) log.info(msg)
+
+  private def logWarning(msg: => String): Unit = if (log.isWarnEnabled) log.warn(msg)
+
+  private def logDebug(msg: => String): Unit = if (log.isDebugEnabled) log.debug(msg)
+
+  private def logError(msg: => String): Unit = if (log.isErrorEnabled) log.error(msg)
+
+  private def logError(msg: => String, throwable: Throwable): Unit = {
+    if (log.isErrorEnabled) log.error(msg, throwable)
+  }
 
   logInfo(s"Creating ResourceBoundedThreadExecutor with resourcePool: ${mgr.toString}, " +
       s"corePoolSize: $corePoolSize, maximumPoolSize: $maximumPoolSize, " +
