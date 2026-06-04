@@ -514,4 +514,14 @@ org/apache/spark/sql/vectorized/rapids/AccessibleArrowColumnVector$AccessibleSho
 org/apache/spark/sql/vectorized/rapids/AccessibleArrowColumnVector$AccessibleStringAccessor.class
 org/apache/spark/sql/vectorized/rapids/AccessibleArrowColumnVector$AccessibleStructAccessor.class
 org/apache/spark/sql/vectorized/rapids/AccessibleArrowColumnVector$AccessibleTimestampAccessor.class
+com/nvidia/spark/rapids/OrcExtraInfo.class
+com/nvidia/spark/rapids/OrcExtraInfo$.class
+org/apache/spark/sql/rapids/AvroDataBlock.class
+org/apache/spark/sql/rapids/AvroDataBlock$.class
+org/apache/spark/sql/rapids/AvroExtraInfo.class
+org/apache/spark/sql/rapids/AvroExtraInfo$.class
+org/apache/spark/sql/rapids/AvroSchemaWrapper.class
+org/apache/spark/sql/rapids/AvroSchemaWrapper$.class
+org/apache/spark/sql/rapids/AvroSingleDataBlockInfo.class
+org/apache/spark/sql/rapids/AvroSingleDataBlockInfo$.class
 rapids/*.py
