@@ -29,13 +29,32 @@ import org.apache.hadoop.fs.permission.{FsAction, FsPermission}
 
 import org.apache.spark.SparkContext
 import org.apache.spark.api.plugin.PluginContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.io.CompressionCodec
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.rapids.execution.TrampolineUtil
 import org.apache.spark.util.SerializableConfiguration
 
-object GpuCoreDumpHandler extends Logging {
+object GpuCoreDumpHandler {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logInfo(msg: => String): Unit = {
+    if (log.isInfoEnabled) {
+      log.info(msg)
+    }
+  }
+
+  private def logWarning(msg: => String, throwable: Throwable): Unit = {
+    log.warn(msg, throwable)
+  }
+
+  private def logError(msg: => String): Unit = {
+    log.error(msg)
+  }
+
+  private def logError(msg: => String, throwable: Throwable): Unit = {
+    log.error(msg, throwable)
+  }
+
   private var executor: Option[ExecutorService] = None
   private var dumpedPath: Option[String] = None
   private var namedPipeFile: File = _

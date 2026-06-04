@@ -23,7 +23,6 @@ import com.nvidia.spark.rapids.Arm.{closeOnExcept, withResource}
 import com.nvidia.spark.rapids.RapidsPluginImplicits._
 import com.nvidia.spark.rapids.format.{BufferMeta, CodecType, TableMeta}
 
-import org.apache.spark.internal.Logging
 
 /**
  * Compressed table descriptor
@@ -76,7 +75,15 @@ trait TableCompressionCodec {
  */
 case class TableCompressionCodecConfig(lz4ChunkSize: Long, zstdChunkSize: Long)
 
-object TableCompressionCodec extends Logging {
+object TableCompressionCodec {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
   private val codecNameToId = Map(
     "copy" -> CodecType.COPY,
     "zstd" -> CodecType.NVCOMP_ZSTD,
@@ -117,7 +124,15 @@ object TableCompressionCodec extends Logging {
  * @param stream CUDA stream to use
  */
 abstract class BatchedTableCompressor(maxBatchMemorySize: Long, stream: Cuda.Stream)
-    extends AutoCloseable with Logging {
+    extends AutoCloseable {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
   // The tables that need to be compressed in the next batch
   private[this] val tables = new ArrayBuffer[ContiguousTable]
 
@@ -262,7 +277,15 @@ abstract class BatchedTableCompressor(maxBatchMemorySize: Long, stream: Cuda.Str
  * @param stream CUDA stream to use
  */
 abstract class BatchedBufferDecompressor(maxBatchMemorySize: Long, stream: Cuda.Stream)
-    extends AutoCloseable with Logging {
+    extends AutoCloseable {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
   // The buffers of compressed data that will be decompressed in the next batch
   private[this] val inputBuffers = new ArrayBuffer[BaseDeviceMemoryBuffer]
 

@@ -185,7 +185,19 @@ trait MultiFileReaderFunctions {
 
 // Singleton thread pool used across all tasks for multifile reading.
 // Please note that the TaskContext is not set in these threads and should not be used.
-object MultiFileReaderThreadPool extends Logging {
+object MultiFileReaderThreadPool {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
+  private def logWarning(msg: => String): Unit = {
+    log.warn(msg)
+  }
+
   @volatile
   private var threadPool: Option[ThreadPoolExecutor] = None
 
@@ -440,7 +452,19 @@ class ThreadPoolConfBuilder(
     private val memoryCapacityFromDriver: Long,
     private val timeoutMs: Long,
     private val stageLevelPool: Boolean
-) extends Logging with Serializable {
+) extends Serializable {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
+  private def logWarning(msg: => String): Unit = {
+    log.warn(msg)
+  }
+
 
   // Finalize the ThreadPoolConf, which mainly determines the memory capacity of the
   // ResourceBoundedThreadExecutor if isMemoryBounded is true.

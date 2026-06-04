@@ -789,6 +789,8 @@ com/nvidia/spark/rapids/shuffle/ucx/UCXError$.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXError.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXTransactionType$.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXTransactionType.class
+com/nvidia/spark/rapids/spill/BounceBuffer.class
+com/nvidia/spark/rapids/spill/BounceBufferPool.class
 com/nvidia/spark/rapids/spill/HandleComparator$.class
 com/nvidia/spark/rapids/spill/HandleComparator.class
 com/nvidia/spark/rapids/spill/HandleStore.class

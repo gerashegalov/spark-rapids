@@ -32,7 +32,6 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.mapreduce.TaskAttemptContext
 
 import org.apache.spark.TaskContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.rapids.{ColumnarWriteTaskStatsTracker, GpuWriteTaskStatsTracker}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.vectorized.ColumnarBatch
@@ -81,7 +80,23 @@ abstract class ColumnarOutputWriter(context: TaskAttemptContext,
     debugDumpPath: Option[String],
     holdGpuBetweenBatches: Boolean = false,
     useAsyncWrite: Boolean = false,
-    rapidsFileIO: RapidsFileIO) extends HostBufferConsumer with Logging {
+    rapidsFileIO: RapidsFileIO) extends HostBufferConsumer {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logDebug(msg: => String): Unit = {
+    if (log.isDebugEnabled) {
+      log.debug(msg)
+    }
+  }
+
+  private def logWarning(msg: => String): Unit = {
+    log.warn(msg)
+  }
+
+  private def logError(msg: => String, throwable: Throwable): Unit = {
+    log.error(msg, throwable)
+  }
+
 
   // Length of the file written so far. This is used to track the size of the file
   private var fileLength: Long = 0L
