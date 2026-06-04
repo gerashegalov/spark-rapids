@@ -14,24 +14,29 @@
  * limitations under the License.
  */
 
-/*** spark-rapids-shim-json-lines
-{"spark": "400"}
-{"spark": "400db173"}
-{"spark": "401"}
-{"spark": "402"}
-{"spark": "411"}
-spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.rapids.shims
 
-import org.apache.spark.sql.classic.SparkSession
+import java.lang.reflect.InvocationTargetException
+
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.SparkPlan
 
 object SparkSessionUtils {
-  def sessionFromPlan(plan: SparkPlan): org.apache.spark.sql.SparkSession = {
-    plan.session
+
+  def sessionFromPlan(plan: SparkPlan): SparkSession = {
+    invokeNoArg(plan, "session").asInstanceOf[SparkSession]
   }
 
   def leafNodeDefaultParallelism(ss: SparkSession): Int = {
-    ss.leafNodeDefaultParallelism
+    invokeNoArg(ss, "leafNodeDefaultParallelism").asInstanceOf[Int]
+  }
+
+  private def invokeNoArg(target: AnyRef, methodName: String): AnyRef = {
+    try {
+      target.getClass.getMethod(methodName).invoke(target)
+    } catch {
+      case e: InvocationTargetException =>
+        throw e.getCause
+    }
   }
 }
