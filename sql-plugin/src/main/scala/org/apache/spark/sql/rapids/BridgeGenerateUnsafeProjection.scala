@@ -65,7 +65,31 @@ class InterpretedBridgeUnsafeProjection(expressions: Seq[Expression])
 /**
  * The factory object for `UnsafeProjection`.
  */
-object BridgeUnsafeProjection
+object BridgeUnsafeProjection {
+
+  def createOptimizedAppendFunction(dataType: DataType,
+    nullable: Boolean): (Any, RapidsHostColumnBuilder) => Unit = {
+    BridgeUnsafeProjectionCodegen.createOptimizedAppendFunction(dataType, nullable)
+  }
+
+  def create(schema: StructType): BridgeUnsafeProjection = create(schema.fields.map(_.dataType))
+
+  def create(fields: Array[DataType]): BridgeUnsafeProjection = {
+    create(fields.zipWithIndex.map(x => BoundReference(x._2, x._1, true)))
+  }
+
+  def create(exprs: Seq[Expression]): BridgeUnsafeProjection = {
+    BridgeUnsafeProjectionCodegen.create(exprs)
+  }
+
+  def create(expr: Expression): BridgeUnsafeProjection = create(Seq(expr))
+
+  def create(exprs: Seq[Expression], inputSchema: Seq[Attribute]): BridgeUnsafeProjection = {
+    create(bindReferences(exprs, inputSchema))
+  }
+}
+
+private object BridgeUnsafeProjectionCodegen
   extends CodeGeneratorWithInterpretedFallback[Seq[Expression], BridgeUnsafeProjection] {
 
   override protected def createCodeGeneratedObject(in: Seq[Expression]): BridgeUnsafeProjection = {

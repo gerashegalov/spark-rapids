@@ -469,6 +469,144 @@ object GpuOverrides {
     log.warn(msg)
   }
 
+  private def confValueToString(value: Any): String = value.toString
+
+  private def dataTypeExistsRecursively(
+      dataType: DataType,
+      f: DataType => Boolean): Boolean = {
+    f(dataType) || (dataType match {
+      case ArrayType(elementType, _) =>
+        dataTypeExistsRecursively(elementType, f)
+      case MapType(keyType, valueType, _) =>
+        dataTypeExistsRecursively(keyType, f) || dataTypeExistsRecursively(valueType, f)
+      case StructType(fields) =>
+        fields.exists(field => dataTypeExistsRecursively(field.dataType, f))
+      case _ => false
+    })
+  }
+
+  // Keep version-specific shim rule registries out of this object's constant pool.
+  private def shimSingleton(name: String): AnyRef = {
+    Class.forName("com.nvidia.spark.rapids.shims." + name + "$")
+      .getField("MODULE" + "$")
+      .get(null)
+      .asInstanceOf[AnyRef]
+  }
+
+  private def invokeShimSingleton(name: String, method: String): Any = {
+    val module = shimSingleton(name)
+    module.getClass.getMethod(method).invoke(module)
+  }
+
+  private def shimExprs(
+      name: String): Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = {
+    invokeShimSingleton(name, "exprs")
+      .asInstanceOf[Map[Class[_ <: Expression], ExprRule[_ <: Expression]]]
+  }
+
+  private def shimExprRules(
+      name: String,
+      method: String): Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = {
+    invokeShimSingleton(name, method)
+      .asInstanceOf[Map[Class[_ <: Expression], ExprRule[_ <: Expression]]]
+  }
+
+  private def shimExprRule(name: String, method: String): ExprRule[_ <: Expression] = {
+    invokeShimSingleton(name, method).asInstanceOf[ExprRule[_ <: Expression]]
+  }
+
+  private def shimScanRules(
+      name: String,
+      method: String): Map[Class[_ <: Scan], ScanRule[_ <: Scan]] = {
+    invokeShimSingleton(name, method)
+      .asInstanceOf[Map[Class[_ <: Scan], ScanRule[_ <: Scan]]]
+  }
+
+  private def shimPartRules(
+      name: String,
+      method: String): Map[Class[_ <: Partitioning], PartRule[_ <: Partitioning]] = {
+    invokeShimSingleton(name, method)
+      .asInstanceOf[Map[Class[_ <: Partitioning], PartRule[_ <: Partitioning]]]
+  }
+
+  private def shimDataWriteCmdRules(
+      name: String,
+      method: String): Map[Class[_ <: DataWritingCommand],
+      DataWritingCommandRule[_ <: DataWritingCommand]] = {
+    invokeShimSingleton(name, method)
+      .asInstanceOf[Map[Class[_ <: DataWritingCommand],
+        DataWritingCommandRule[_ <: DataWritingCommand]]]
+  }
+
+  private def shimRunnableCmdRules(
+      name: String,
+      method: String): Map[Class[_ <: RunnableCommand],
+      RunnableCommandRule[_ <: RunnableCommand]] = {
+    invokeShimSingleton(name, method)
+      .asInstanceOf[Map[Class[_ <: RunnableCommand],
+        RunnableCommandRule[_ <: RunnableCommand]]]
+  }
+
+  private def shimExecRules(
+      name: String,
+      method: String): Map[Class[_ <: SparkPlan], ExecRule[_ <: SparkPlan]] = {
+    invokeShimSingleton(name, method)
+      .asInstanceOf[Map[Class[_ <: SparkPlan], ExecRule[_ <: SparkPlan]]]
+  }
+
+  private def shimExecRule(name: String, method: String): ExecRule[_ <: SparkPlan] = {
+    invokeShimSingleton(name, method).asInstanceOf[ExecRule[_ <: SparkPlan]]
+  }
+
+  private def optionalShimExecRule(name: String, method: String): ExecRule[_ <: SparkPlan] = {
+    invokeShimSingleton(name, method)
+      .asInstanceOf[Option[ExecRule[_ <: SparkPlan]]]
+      .orNull
+  }
+
+  @transient private[this] lazy val aggregateInPandasExecShimsModule = {
+    Class.forName("com.nvidia.spark.rapids.shims.AggregateInPandasExecShims" + "$")
+      .getField("MODULE" + "$")
+      .get(null)
+  }
+
+  @transient private[this] lazy val aggregateInPandasExecRuleMethod =
+    aggregateInPandasExecShimsModule.getClass.getMethod("execRule")
+
+  private def aggregateInPandasExecRule: ExecRule[_ <: SparkPlan] = {
+    aggregateInPandasExecRuleMethod.invoke(aggregateInPandasExecShimsModule)
+      .asInstanceOf[Option[ExecRule[_ <: SparkPlan]]]
+      .orNull
+  }
+
+  @transient private[this] lazy val batchScanExecMetaConstructor =
+    Class.forName("com.nvidia.spark.rapids.shims.BatchScanExecMeta")
+      .getConstructor(classOf[BatchScanExec], classOf[RapidsConf],
+        classOf[Option[_]], classOf[DataFromReplacementRule])
+
+  private def newBatchScanExecMeta(
+      p: BatchScanExec,
+      conf: RapidsConf,
+      parent: Option[RapidsMeta[_, _, _]],
+      rule: DataFromReplacementRule): SparkPlanMeta[BatchScanExec] = {
+    batchScanExecMetaConstructor.newInstance(p, conf, parent, rule)
+      .asInstanceOf[SparkPlanMeta[BatchScanExec]]
+  }
+
+  @transient private[this] lazy val gpuSubqueryBroadcastMetaConstructor =
+    Class.forName("org.apache.spark.sql.rapids.execution.GpuSubqueryBroadcastMeta")
+      .getConstructor(classOf[SubqueryBroadcastExec], classOf[RapidsConf],
+        classOf[Option[_]], classOf[DataFromReplacementRule])
+
+  private def newGpuSubqueryBroadcastMeta(
+      plan: SubqueryBroadcastExec,
+      conf: RapidsConf,
+      parent: Option[RapidsMeta[_, _, _]],
+      rule: DataFromReplacementRule): SparkPlanMeta[SubqueryBroadcastExec] = {
+    gpuSubqueryBroadcastMetaConstructor.newInstance(plan, conf, parent, rule)
+      .asInstanceOf[SparkPlanMeta[SubqueryBroadcastExec]]
+  }
+
   val FLOAT_DIFFERS_GROUP_INCOMPAT =
     "when enabling these, there may be extra groups produced for floating point grouping " +
     "keys (e.g. -0.0, and 0.0)"
@@ -729,13 +867,13 @@ object GpuOverrides {
     expressions.exists(isStringLit)
 
   def isOrContainsFloatingPoint(dataType: DataType): Boolean =
-    TrampolineUtil.dataTypeExistsRecursively(dataType, dt => dt == FloatType || dt == DoubleType)
+    dataTypeExistsRecursively(dataType, dt => dt == FloatType || dt == DoubleType)
 
   def isOrContainsDateOrTimestamp(dataType: DataType): Boolean =
-    TrampolineUtil.dataTypeExistsRecursively(dataType, dt => dt == TimestampType || dt == DateType)
+    dataTypeExistsRecursively(dataType, dt => dt == TimestampType || dt == DateType)
 
   def isOrContainsTimestamp(dataType: DataType): Boolean =
-    TrampolineUtil.dataTypeExistsRecursively(dataType, dt => dt == TimestampType)
+    dataTypeExistsRecursively(dataType, dt => dt == TimestampType)
 
   /** Tries to predict whether an adaptive plan will end up with data on the GPU or not. */
   def probablyGpuPlan(adaptivePlan: AdaptiveSparkPlanExec, conf: RapidsConf): Boolean = {
@@ -2749,7 +2887,7 @@ object GpuOverrides {
       (in, conf, p, r) => new UnaryExprMeta[MapFromEntries](in, conf, p, r) {
         override def tagExprForGpu(): Unit = {
           // Spark 4.1+ returns an enum value instead of String, so use toString first
-          SQLConf.get.getConf(SQLConf.MAP_KEY_DEDUP_POLICY).toString.toUpperCase match {
+          confValueToString(SQLConf.get.getConf(SQLConf.MAP_KEY_DEDUP_POLICY)).toUpperCase match {
             case "EXCEPTION" | "LAST_WIN" => // Good we can support this
             case other =>
               willNotWorkOnGpu(s"$other is not supported for config setting" +
@@ -3178,7 +3316,7 @@ object GpuOverrides {
       (in, conf, p, r) => new ExprMeta[TransformKeys](in, conf, p, r) {
         override def tagExprForGpu(): Unit = {
           // Spark 4.1+ returns an enum value instead of String, so use toString first
-          SQLConf.get.getConf(SQLConf.MAP_KEY_DEDUP_POLICY).toString.toUpperCase match {
+          confValueToString(SQLConf.get.getConf(SQLConf.MAP_KEY_DEDUP_POLICY)).toUpperCase match {
             case "EXCEPTION"| "LAST_WIN" => // Good we can support this
             case other =>
               willNotWorkOnGpu(s"$other is not supported for config setting" +
@@ -4042,7 +4180,7 @@ object GpuOverrides {
         Seq(ParamCheck("jsonStr", TypeSig.STRING, TypeSig.STRING))),
       (a, conf, p, r) => new UnaryExprMeta[JsonToStructs](a, conf, p, r) {
         def hasDuplicateFieldNames(dt: DataType): Boolean =
-          TrampolineUtil.dataTypeExistsRecursively(dt, {
+          dataTypeExistsRecursively(dt, {
             case st: StructType =>
               val fn = st.fieldNames
               fn.length != fn.distinct.length
@@ -4050,7 +4188,7 @@ object GpuOverrides {
           })
 
         def hasDateTimeType(dt: DataType): Boolean =
-          TrampolineUtil.dataTypeExistsRecursively(dt, t =>
+          dataTypeExistsRecursively(dt, t =>
             t.isInstanceOf[DateType] || t.isInstanceOf[TimestampType]
           )
 
@@ -4246,16 +4384,16 @@ object GpuOverrides {
       StaticInvokeCheck,
       (a, conf, p, r) => new StaticInvokeMeta(a, conf, p, r)
     ).note("The supported types are not deterministic since it's a dynamic expression"),
-    SparkShimImpl.ansiCastRule
+    shimExprRule("SparkShimImpl", "ansiCastRule")
   ).collect { case r if r != null => (r.getClassFor.asSubclass(classOf[Expression]), r)}.toMap
 
   // Shim expressions should be last to allow overrides with shim-specific versions
   val expressions: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] =
     commonExpressions ++ TimeStamp.getExprs ++ GpuHiveOverrides.exprs ++
         ZOrderRules.exprs ++ DecimalArithmeticOverrides.exprs ++
-        BloomFilterShims.exprs ++ StringDecodeShims.exprs ++
-        InSubqueryShims.exprs ++ RaiseErrorShim.exprs ++
-        ExternalSource.exprRules ++ SparkShimImpl.getExprs
+        BloomFilterShims.exprs ++ shimExprs("StringDecodeShims") ++
+        shimExprs("InSubqueryShims") ++ shimExprs("RaiseErrorShim") ++
+        ExternalSource.exprRules ++ shimExprRules("SparkShimImpl", "getExprs")
 
   def wrapScan[INPUT <: Scan](
       scan: INPUT,
@@ -4304,7 +4442,7 @@ object GpuOverrides {
       })).map(r => (r.getClassFor.asSubclass(classOf[Scan]), r)).toMap
 
   val scans: Map[Class[_ <: Scan], ScanRule[_ <: Scan]] =
-    commonScans ++ SparkShimImpl.getScans ++ ExternalSource.getScans
+    commonScans ++ shimScanRules("SparkShimImpl", "getScans") ++ ExternalSource.getScans
 
   def wrapPart[INPUT <: Partitioning](
       part: INPUT,
@@ -4342,7 +4480,7 @@ object GpuOverrides {
               }
             case Murmur3Mode =>
               val arrayWithStructsHashing = hp.expressions.exists(e =>
-                TrampolineUtil.dataTypeExistsRecursively(e.dataType,
+                dataTypeExistsRecursively(e.dataType,
                   {
                     case ArrayType(_: StructType, _) => true
                     case _ => false
@@ -4396,7 +4534,7 @@ object GpuOverrides {
   ).map(r => (r.getClassFor.asSubclass(classOf[Partitioning]), r)).toMap
 
   val parts : Map[Class[_ <: Partitioning], PartRule[_ <: Partitioning]] =
-    commonParts ++ SparkShimImpl.getPartitionings
+    commonParts ++ shimPartRules("SparkShimImpl", "getPartitionings")
 
   def wrapDataWriteCmds[INPUT <: DataWritingCommand](
       writeCmd: INPUT,
@@ -4415,7 +4553,8 @@ object GpuOverrides {
 
   val dataWriteCmds: Map[Class[_ <: DataWritingCommand],
       DataWritingCommandRule[_ <: DataWritingCommand]] =
-    commonDataWriteCmds ++ GpuHiveOverrides.dataWriteCmds ++ SparkShimImpl.getDataWriteCmds
+    commonDataWriteCmds ++ GpuHiveOverrides.dataWriteCmds ++
+      shimDataWriteCmdRules("SparkShimImpl", "getDataWriteCmds")
 
   def runnableCmd[INPUT <: RunnableCommand](
       desc: String,
@@ -4454,7 +4593,7 @@ object GpuOverrides {
   val runnableCmds = commonRunnableCmds ++
     GpuHiveOverrides.runnableCmds ++
       ExternalSource.runnableCmds ++
-      SparkShimImpl.getRunnableCmds
+      shimRunnableCmdRules("SparkShimImpl", "getRunnableCmds")
 
   def wrapPlan[INPUT <: SparkPlan](
       plan: INPUT,
@@ -4496,7 +4635,7 @@ object GpuOverrides {
         (TypeSig.commonCudfTypes + TypeSig.STRUCT + TypeSig.MAP + TypeSig.ARRAY +
           TypeSig.DECIMAL_128 + TypeSig.BINARY).nested(),
         TypeSig.all),
-      (p, conf, parent, r) => new BatchScanExecMeta(p, conf, parent, r)),
+      (p, conf, parent, r) => newBatchScanExecMeta(p, conf, parent, r)),
     exec[CoalesceExec](
       "The backend for the dataframe coalesce method",
       ExecChecks((gpuCommonTypes + TypeSig.STRUCT + TypeSig.ARRAY +
@@ -4721,11 +4860,11 @@ object GpuOverrides {
     exec[SubqueryBroadcastExec](
       "Plan to collect and transform the broadcast key values",
       ExecChecks(TypeSig.all, TypeSig.all),
-      (s, conf, p, r) => new GpuSubqueryBroadcastMeta(s, conf, p, r)
+      (s, conf, p, r) => newGpuSubqueryBroadcastMeta(s, conf, p, r)
     ),
-    SparkShimImpl.aqeShuffleReaderExec,
+    shimExecRule("SparkShimImpl", "aqeShuffleReaderExec"),
     // AggregateInPandasExec renamed to ArrowAggregatePythonExec in Spark 4.1.0
-    AggregateInPandasExecShims.execRule.orNull,
+    aggregateInPandasExecRule,
     exec[ArrowEvalPythonExec](
       "The backend of the Scalar Pandas UDFs. Accelerates the data transfer between the" +
         " Java process and the Python process. It also supports scheduling GPU resources" +
@@ -4781,8 +4920,8 @@ object GpuOverrides {
     neverReplaceExec[DescribeNamespaceExec]("Namespace metadata operation"),
     neverReplaceExec[DropNamespaceExec]("Namespace metadata operation"),
     neverReplaceExec[SetCatalogAndNamespaceExec]("Namespace metadata operation"),
-    SparkShimImpl.neverReplaceShowCurrentNamespaceCommand,
-    ShowNamespacesExecShims.neverReplaceExec.orNull,
+    shimExecRule("SparkShimImpl", "neverReplaceShowCurrentNamespaceCommand"),
+    optionalShimExecRule("ShowNamespacesExecShims", "neverReplaceExec"),
     neverReplaceExec[AlterTableExec]("Table metadata operation"),
     neverReplaceExec[CreateTableExec]("Table metadata operation"),
     neverReplaceExec[DeleteFromTableExec]("Table metadata operation"),
@@ -4799,9 +4938,10 @@ object GpuOverrides {
     neverReplaceExec[ShuffleQueryStageExec]("Shuffle query stage")
   ).collect { case r if r != null => (r.getClassFor.asSubclass(classOf[SparkPlan]), r) }.toMap
 
+  // Shim execs at the end; shims get the last word in substitutions.
   lazy val execs: Map[Class[_ <: SparkPlan], ExecRule[_ <: SparkPlan]] =
     commonExecs ++ GpuHiveOverrides.execs ++ ExternalSource.execRules ++
-      SparkShimImpl.getExecs // Shim execs at the end; shims get the last word in substitutions.
+      shimExecRules("SparkShimImpl", "getExecs")
 
   def getTimeParserPolicy: TimeParserPolicy = {
     val policy = SQLConf.get.getConfString(SQLConf.LEGACY_TIME_PARSER_POLICY.key, "EXCEPTION")

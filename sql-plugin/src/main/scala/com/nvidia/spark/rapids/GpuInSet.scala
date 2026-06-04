@@ -18,14 +18,15 @@ package com.nvidia.spark.rapids
 
 import ai.rapids.cudf.{ColumnVector, DType, Scalar}
 import com.nvidia.spark.rapids.Arm.{closeOnExcept, withResource}
+import com.nvidia.spark.rapids.shims.ShimPredicate
 
-import org.apache.spark.sql.catalyst.expressions.{Expression, Literal, Predicate}
+import org.apache.spark.sql.catalyst.expressions.{Expression, Literal}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.{DoubleType, FloatType}
 
 case class GpuInSet(
     child: Expression,
-    list: Seq[Any]) extends GpuUnaryExpression with Predicate {
+    list: Seq[Any]) extends GpuUnaryExpression with ShimPredicate {
   require(list != null, "list should not be null")
 
   @transient private[this] lazy val hasNull: Boolean = list.contains(null)
