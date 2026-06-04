@@ -545,4 +545,12 @@ com/nvidia/spark/rapids/OrcPartitionReaderContext.class
 com/nvidia/spark/rapids/OrcPartitionReaderContext$.class
 com/nvidia/spark/rapids/OrcSchemaWrapper.class
 com/nvidia/spark/rapids/OrcSchemaWrapper$.class
+com/nvidia/spark/rapids/HttpBackendType.class
+com/nvidia/spark/rapids/HttpBackendType$.class
+com/nvidia/spark/rapids/lore/LoreDumpRDDInfo.class
+com/nvidia/spark/rapids/lore/LoreDumpRDDInfo$.class
+com/nvidia/spark/rapids/MapUtil.class
+com/nvidia/spark/rapids/MapUtil$.class
+com/nvidia/spark/rapids/MarkdownUtils.class
+com/nvidia/spark/rapids/MarkdownUtils$.class
 rapids/*.py
