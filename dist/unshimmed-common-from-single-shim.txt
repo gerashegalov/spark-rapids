@@ -143,7 +143,6 @@ com/nvidia/spark/rapids/PathInstruction$Subscript$.class
 com/nvidia/spark/rapids/PathInstruction$Wildcard$.class
 com/nvidia/spark/rapids/PartiallySupported.class
 com/nvidia/spark/rapids/PartiallySupported$.class
-com/nvidia/spark/rapids/PartitionIterator.class
 com/nvidia/spark/rapids/PluginException.class
 com/nvidia/spark/rapids/QuantifierFixedLength.class
 com/nvidia/spark/rapids/QuantifierFixedLength$.class

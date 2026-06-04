@@ -36,7 +36,7 @@ import org.apache.spark.sql.catalyst.plans.physical.{Distribution, OrderedDistri
 import org.apache.spark.sql.execution.{SortExec, SparkPlan}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.rapids.{GpuWriteJobStatsTracker, GpuWriteTaskStatsTracker}
-import org.apache.spark.sql.rapids.execution.TrampolineUtil
+import org.apache.spark.sql.rapids.shims.DataTypeUtilsShim
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
 sealed trait SortExecType extends Serializable
@@ -328,7 +328,7 @@ case class GpuOutOfCoreSortIterator(
   // Used for converting between rows and columns when we have to put a cuttoff on the GPU
   // to know how much of the data after a merge sort is fully sorted.
   private lazy val converters = new GpuRowToColumnConverter(
-    TrampolineUtil.fromAttributes(sorter.projectedBatchSchema))
+    DataTypeUtilsShim.fromAttributes(sorter.projectedBatchSchema))
 
   /**
    * Convert the boundaries (first rows for each batch) into unsafe rows for use later on.
@@ -517,7 +517,7 @@ case class GpuOutOfCoreSortIterator(
           val cutoff = pending.peek().firstRow
           val result = RmmRapidsRetryIterator.withRetryNoSplit[ColumnVector] {
             withResource(converters.convertBatch(Array(cutoff),
-              TrampolineUtil.fromAttributes(sorter.projectedBatchSchema))) { cutoffCb =>
+              DataTypeUtilsShim.fromAttributes(sorter.projectedBatchSchema))) { cutoffCb =>
               withResource(mergedSpillBatch.getColumnarBatch()) { mergedBatch =>
                 sorter.upperBound(mergedBatch, cutoffCb)
               }

@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 import ai.rapids.cudf.{NvtxColor, NvtxRange}
-import com.nvidia.spark.rapids.{NvtxId, NvtxRegistry, PerfIO}
+import com.nvidia.spark.rapids.{NvtxId, NvtxRegistry}
 import com.nvidia.spark.rapids.Arm.withResource
 import com.nvidia.spark.rapids.ScalableTaskCompletion.onTaskCompletion
 import com.nvidia.spark.rapids.jni.RmmSpark
@@ -513,13 +513,13 @@ class GpuTaskMetrics extends Serializable {
    * to prevent double-counting — each new stage creates fresh accumulators with new IDs.
    */
   def recordPerfioS3BackendOnce(): Unit = {
-    val acc = PerfIO.s3BackendName match {
+    val acc = GpuTaskMetrics.perfIOS3BackendName match {
       case "netty" => perfioS3NettyExecutors
       case "crt"   => perfioS3CrtExecutors
       case _       => perfioS3S3aExecutors
     }
     try {
-      if (PerfIO.reportedBackendAccIds.add(acc.id)) {
+      if (GpuTaskMetrics.perfIOReportedBackendAccIds.add(acc.id)) {
         acc.add(1L)
       }
     } catch {
@@ -532,6 +532,24 @@ class GpuTaskMetrics extends Serializable {
  * Provides task level metrics
  */
 object GpuTaskMetrics {
+  @transient private[this] lazy val perfIOModule = {
+    Class.forName("com.nvidia.spark.rapids.PerfIO" + "$")
+      .getField("MODULE" + "$")
+      .get(null)
+  }
+
+  @transient private[this] lazy val perfIOS3BackendNameMethod =
+    perfIOModule.getClass.getMethod("s3BackendName")
+  @transient private[this] lazy val perfIOReportedBackendAccIdsMethod =
+    perfIOModule.getClass.getMethod("reportedBackendAccIds")
+
+  private def perfIOS3BackendName: String =
+    perfIOS3BackendNameMethod.invoke(perfIOModule).asInstanceOf[String]
+
+  private def perfIOReportedBackendAccIds: java.util.Set[java.lang.Long] =
+    perfIOReportedBackendAccIdsMethod.invoke(perfIOModule)
+      .asInstanceOf[java.util.Set[java.lang.Long]]
+
   private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
   private val taskLevelMetrics = new ConcurrentHashMap[Long, GpuTaskMetrics]()
 

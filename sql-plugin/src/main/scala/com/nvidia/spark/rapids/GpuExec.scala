@@ -35,7 +35,6 @@ import org.apache.spark.sql.execution.exchange.{Exchange, ReusedExchangeExec}
 import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.rapids.GpuTaskMetrics
 import org.apache.spark.sql.rapids.execution.{GpuCustomShuffleReaderExec}
-import org.apache.spark.sql.rapids.shims.SparkSessionUtils
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
@@ -133,6 +132,12 @@ trait RapidsLocalLog {
 }
 
 object GpuExec {
+  @transient private[this] lazy val sparkPlanSessionMethod =
+    classOf[SparkPlan].getMethod("session")
+
+  def sessionFromPlan(plan: SparkPlan): SparkSession =
+    sparkPlanSessionMethod.invoke(plan).asInstanceOf[SparkSession]
+
   def outputBatching(sp: SparkPlan): CoalesceGoal = sp match {
     case gpu: GpuExec => gpu.outputBatching
     case _ => null
@@ -148,7 +153,7 @@ trait GpuExec extends SparkPlan with Logging {
     RapidsConf.OP_TIME_TRACKING_RDD_ENABLED.get(conf)
 
   def sparkSession: SparkSession = {
-    SparkSessionUtils.sessionFromPlan(this)
+    GpuExec.sessionFromPlan(this)
   }
 
   /**
