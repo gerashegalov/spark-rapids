@@ -365,6 +365,47 @@ def direct_classifier_edges(graph):
     return sorted(edges)
 
 
+def version_blocker_counts(graph, version_nodes, root_or_shared):
+    """Count root/shared classes that can reach each version-specific node."""
+    rev = reverse_graph(graph)
+    counts = []
+    for version_node in sorted(version_nodes):
+        seen = {version_node}
+        queue = collections.deque([version_node])
+        impacted = set()
+        while queue:
+            node = queue.popleft()
+            for parent in rev[node]:
+                if parent in seen:
+                    continue
+                seen.add(parent)
+                queue.append(parent)
+                if parent in root_or_shared:
+                    impacted.add(parent)
+        if impacted:
+            counts.append((len(impacted), version_node))
+    return sorted(counts, key=lambda item: (-item[0], item[1]))
+
+
+def nearest_version_target_counts(graph, blocked):
+    """Count terminal version nodes from each blocked node's shortest path."""
+    counts = collections.Counter()
+    examples = {}
+    paths = []
+    for node in blocked:
+        path = shortest_path_to_version(graph, node)
+        if not path:
+            continue
+        paths.append((node, path))
+        target = path[-1]
+        counts[target] += 1
+        examples.setdefault(target, path)
+    ranked = sorted(
+        ((count, target, examples[target]) for target, count in counts.items()),
+        key=lambda item: (-item[0], item[1]))
+    return ranked, paths
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("path", help="dist/target/parallel-world directory or a dist jar")
@@ -376,6 +417,8 @@ def main():
         help="print examples of spark-shared classes with no path to version-specific code")
     parser.add_argument("--show-topo", action="store_true",
         help="print root-safe spark-shared SCCs in dependency-first order")
+    parser.add_argument("--show-reachability", action="store_true",
+        help="print overlapping reachability counts for version-specific nodes")
     parser.add_argument("--format", choices=("text", "json"), default="text",
         help="output format")
     args = parser.parse_args()
@@ -404,6 +447,10 @@ def main():
         safe_members = sorted(node for node in component if node in safe_shared)
         if safe_members:
             safe_sccs.append((comp_id, safe_members))
+    version_blockers = (
+        version_blocker_counts(graph, version_nodes, root_or_shared)
+        if args.show_reachability or args.format == "json" else [])
+    nearest_targets, blocked_paths = nearest_version_target_counts(graph, blocked)
 
     if args.format == "json":
         output = {
@@ -423,6 +470,21 @@ def main():
                 }
                 for source, target in classifier_edges[:args.limit]
             ],
+            "topVersionBlockersByReachability": [
+                {
+                    "blockedRootOrSharedCount": count,
+                    "target": json_node(target),
+                }
+                for count, target in version_blockers[:args.limit]
+            ],
+            "nearestVersionTargetCounts": [
+                {
+                    "blockedShortestPathCount": count,
+                    "target": json_node(target),
+                    "examplePath": [json_node(node) for node in path],
+                }
+                for count, target, path in nearest_targets[:args.limit]
+            ],
             "rootSafeSparkSharedSccCount": len(safe_sccs),
             "rootSafeSparkSharedSccExamples": [
                 {
@@ -433,8 +495,8 @@ def main():
                 for comp_id, members in safe_sccs[:args.limit]
             ],
             "blockedExamples": [
-                [json_node(node) for node in shortest_path_to_version(graph, blocked_node)]
-                for blocked_node in blocked[:args.limit]
+                [json_node(node) for node in path]
+                for _, path in blocked_paths[:args.limit]
             ],
         }
         json.dump(output, sys.stdout, indent=2, sort_keys=True)
@@ -459,11 +521,23 @@ def main():
     if len(classifier_edges) > args.limit:
         print("  ... %d more" % (len(classifier_edges) - args.limit))
 
+    if args.show_reachability:
+        print("\nTop version-specific blockers by upstream root/shared reachability:")
+        for count, target in version_blockers[:args.limit]:
+            print("  %d <- %s" % (count, format_node(target)))
+        if len(version_blockers) > args.limit:
+            print("  ... %d more" % (len(version_blockers) - args.limit))
+
+    print("\nNearest version targets from shortest blocked paths:")
+    for count, target, path in nearest_targets[:args.limit]:
+        print("  %d -> %s" % (count, format_node(target)))
+        print("    e.g. %s" % print_path(path))
+    if len(nearest_targets) > args.limit:
+        print("  ... %d more" % (len(nearest_targets) - args.limit))
+
     print("\nNearest paths from root/spark-shared code to version-specific code:")
-    for node in blocked[:args.limit]:
-        path = shortest_path_to_version(graph, node)
-        if path:
-            print("  %s" % print_path(path))
+    for _, path in blocked_paths[:args.limit]:
+        print("  %s" % print_path(path))
     if len(blocked) > args.limit:
         print("  ... %d more blocked classes" % (len(blocked) - args.limit))
 
