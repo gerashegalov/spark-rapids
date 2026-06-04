@@ -18,6 +18,8 @@ package org.apache.spark.sql.rapids.execution
 
 import java.util.concurrent.{ExecutorService, ScheduledExecutorService, ThreadPoolExecutor}
 
+import org.apache.avro.Schema
+
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.{SparkConf, SparkContext, SparkEnv, SparkMasterRegex, SparkUpgradeException, TaskContext}
 import org.apache.spark.broadcast.Broadcast
@@ -38,7 +40,6 @@ import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.rapids.GpuTaskMetrics
 import org.apache.spark.sql.rapids.shims.DataTypeUtilsShim
 import org.apache.spark.sql.rapids.shims.SparkUpgradeExceptionShims
-import org.apache.spark.sql.rapids.shims.TrampolineConnectShims
 import org.apache.spark.sql.types.{DataType, StructType}
 import org.apache.spark.storage.BlockManagerId
 import org.apache.spark.util.{ShutdownHookManager, ThreadUtils, Utils}
@@ -60,6 +61,20 @@ object TrampolineUtil {
   private[this] lazy val dataTypeJsonValue = classOf[DataType].getMethod("jsonValue")
 
   def jsonValue(dataType: DataType): AnyRef = dataTypeJsonValue.invoke(dataType)
+
+  private[this] lazy val trampolineConnectShims = Class
+    .forName("org.apache.spark.sql.rapids.shims.TrampolineConnectShims$")
+    .getField("MODULE$")
+    .get(null)
+
+  private[this] lazy val cleanupAnyExistingSessionMethod =
+    trampolineConnectShims.getClass.getMethod("cleanupAnyExistingSession")
+
+  private[this] lazy val createSchemaParserMethod =
+    trampolineConnectShims.getClass.getMethod("createSchemaParser")
+
+  def createSchemaParser(): Schema.Parser =
+    createSchemaParserMethod.invoke(trampolineConnectShims).asInstanceOf[Schema.Parser]
 
   /** Get a human-readable string, e.g.: "4.0 MiB", for a value in bytes. */
   def bytesToString(size: Long): String = Utils.bytesToString(size)
@@ -103,7 +118,8 @@ object TrampolineUtil {
   }
 
   /** Shuts down and cleans up any existing Spark session */
-  def cleanupAnyExistingSession(): Unit = TrampolineConnectShims.cleanupAnyExistingSession()
+  def cleanupAnyExistingSession(): Unit =
+    cleanupAnyExistingSessionMethod.invoke(trampolineConnectShims)
 
   def asNullable(dt: DataType): DataType = dt.asNullable
 
