@@ -19,8 +19,6 @@ package org.apache.spark.sql.rapids.execution
 import java.util.concurrent.{ExecutorService, ScheduledExecutorService, ThreadPoolExecutor}
 
 import org.apache.hadoop.conf.Configuration
-import org.json4s.JsonAST
-
 import org.apache.spark.{SparkConf, SparkContext, SparkEnv, SparkMasterRegex, SparkUpgradeException, TaskContext}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.deploy.SparkHadoopUtil
@@ -59,7 +57,9 @@ object TrampolineUtil {
   def toAttributes(structType: StructType): Seq[Attribute] =
     DataTypeUtilsShim.toAttributes(structType)
 
-  def jsonValue(dataType: DataType): JsonAST.JValue = dataType.jsonValue
+  private[this] lazy val dataTypeJsonValue = classOf[DataType].getMethod("jsonValue")
+
+  def jsonValue(dataType: DataType): AnyRef = dataTypeJsonValue.invoke(dataType)
 
   /** Get a human-readable string, e.g.: "4.0 MiB", for a value in bytes. */
   def bytesToString(size: Long): String = Utils.bytesToString(size)
