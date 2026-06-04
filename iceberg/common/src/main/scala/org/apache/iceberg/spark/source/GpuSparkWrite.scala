@@ -69,7 +69,7 @@ class GpuSparkWrite(cpu: Write) extends GpuWrite with RequiresDistributionAndOrd
     val cpuBatchClassName = cpuBatch.getClass.getSimpleName
 
     cpuBatchClassName match {
-      case "BatchAppend" => new GpuBatchAppend(this)
+      case "BatchAppend" => new GpuBatchAppend(this, cpuBatch)
       case "DynamicOverwrite" => new GpuDynamicOverwrite(this, cpuBatch)
       case "OverwriteByFilter" => new GpuOverwriteByFilter(this, cpuBatch)
       case "CopyOnWriteOperation" => new GpuCopyOnWriteOperation(this, cpuBatch)
@@ -97,7 +97,6 @@ class GpuSparkWrite(cpu: Write) extends GpuWrite with RequiresDistributionAndOrd
     writeRequirements.advisoryPartitionSizeInBytes()
 
   override def requiredDistribution(): Distribution = writeRequirements.requiredDistribution()
-
   override def requiredOrdering(): Array[SortOrder] = writeRequirements.requiredOrdering()
 
   private[source] def createDataWriterFactory: DataWriterFactory = {
