@@ -55,7 +55,6 @@ import org.apache.orc.mapred.OrcInputFormat
 
 import org.apache.spark.TaskContext
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.Expression
@@ -88,7 +87,7 @@ case class GpuOrcScan(
     dataFilters: Seq[Expression],
     rapidsConf: RapidsConf,
     queryUsesInputFile: Boolean = false)
-  extends FileScan with GpuScan with Logging {
+  extends FileScan with GpuScan {
 
   override def isSplitable(path: Path): Boolean = true
 
@@ -1033,8 +1032,8 @@ trait OrcCommonFunctions extends OrcCodecWritingHelper { self: FilePartitionRead
 /**
  * A base ORC partition reader which compose of some common methods
  */
-trait OrcPartitionReaderBase extends OrcCommonFunctions with Logging
-  with ScanWithMetrics { self: FilePartitionReaderBase =>
+trait OrcPartitionReaderBase extends OrcCommonFunctions
+  with RapidsLocalLog with ScanWithMetrics { self: FilePartitionReaderBase =>
 
   def populateCurrentBlockChunk(
       blockIterator: BufferedIterator[OrcOutputStripe],
@@ -2927,7 +2926,7 @@ case class OrcTableReader(
     tableSchema: TypeDescription,
     splits: Array[PartitionedFile],
     debugDumpPrefix: Option[String],
-    debugDumpAlways: Boolean) extends GpuDataProducer[Table] with Logging {
+    debugDumpAlways: Boolean) extends GpuDataProducer[Table] with RapidsLocalLog {
 
   private[this] val reader = new ORCChunkedReader(chunkSizeByteLimit,
     maxChunkedReaderMemoryUsageSizeBytes, parseOpts, buffer, offset, bufferSize)

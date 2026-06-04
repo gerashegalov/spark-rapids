@@ -40,7 +40,6 @@ import org.apache.hadoop.fs.{FSDataInputStream, Path}
 
 import org.apache.spark.TaskContext
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.avro.{AvroOptions, SchemaConverters}
 import org.apache.spark.sql.catalyst.InternalRow
@@ -162,7 +161,7 @@ case class GpuAvroPartitionReaderFactory(
     avroOptions: AvroOptions,
     metrics: Map[String, GpuMetric],
     @transient params: Map[String, String])
-  extends ShimFilePartitionReaderFactory(params) with Logging {
+  extends ShimFilePartitionReaderFactory(params) with RapidsLocalLog {
 
   private val debugDumpPrefix = rapidsConf.avroDebugDumpPrefix
   private val debugDumpAlways = rapidsConf.avroDebugDumpAlways
@@ -312,7 +311,7 @@ case class GpuAvroMultiFilePartitionReaderFactory(
 }
 
 /** A trait collecting common methods across the 3 kinds of avro readers */
-trait GpuAvroReaderBase extends Logging { self: FilePartitionReaderBase =>
+trait GpuAvroReaderBase extends RapidsLocalLog { self: FilePartitionReaderBase =>
   def debugDumpPrefix: Option[String]
 
   def debugDumpAlways: Boolean
@@ -726,7 +725,7 @@ class GpuMultiFileCloudAvroPartitionReader(
       taskContext: TaskContext,
       partFile: PartitionedFile,
       config: Configuration,
-      filters: Array[Filter]) extends UnboundedAsyncRunner[BufferInfo] with Logging {
+      filters: Array[Filter]) extends UnboundedAsyncRunner[BufferInfo] with RapidsLocalLog {
 
     override def callImpl(): BufferInfo = {
       TrampolineUtil.setTaskContext(taskContext)
@@ -1057,7 +1056,7 @@ class GpuMultiFileAvroPartitionReader(
 /** A tool to filter Avro blocks */
 case class AvroFileFilterHandler(
     hadoopConf: Configuration,
-    @transient options: AvroOptions) extends Logging {
+    @transient options: AvroOptions) extends RapidsLocalLog {
 
   @scala.annotation.nowarn(
     "msg=value ignoreExtension in class AvroOptions is deprecated*"

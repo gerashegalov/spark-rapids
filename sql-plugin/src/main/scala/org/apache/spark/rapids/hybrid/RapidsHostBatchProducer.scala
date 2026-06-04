@@ -25,7 +25,6 @@ import com.nvidia.spark.rapids.hybrid.RapidsHostColumn
 import com.nvidia.spark.rapids.jni.RmmSpark
 
 import org.apache.spark.TaskContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.rapids.execution.TrampolineUtil
 
 /**
@@ -92,7 +91,15 @@ class PrefetchHostBatchProducer(
     taskAttId: Long,
     base: Iterator[Array[RapidsHostColumn]],
     capacity: Int,
-    waitTimeMetric: GpuMetric) extends RapidsHostBatchProducer with Logging {
+    waitTimeMetric: GpuMetric) extends RapidsHostBatchProducer {
+
+  @transient private lazy val log = org.slf4j.LoggerFactory.getLogger(
+    classOf[PrefetchHostBatchProducer])
+
+  private def logInfo(msg: => String): Unit = if (log.isInfoEnabled) log.info(msg)
+
+  private def logError(msg: => String): Unit = if (log.isErrorEnabled) log.error(msg)
+
 
   @volatile private var isInit: Boolean = false
   // Mark if there is in-progress element being produced in producerThread

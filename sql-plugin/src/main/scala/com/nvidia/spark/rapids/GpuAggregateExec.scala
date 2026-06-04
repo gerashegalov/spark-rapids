@@ -31,7 +31,6 @@ import com.nvidia.spark.rapids.ScalableTaskCompletion.onTaskCompletion
 import com.nvidia.spark.rapids.shims.AggregationTagging
 
 import org.apache.spark.TaskContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{Alias, Ascending, Attribute, AttributeReference, AttributeSeq, AttributeSet, Expression, ExprId, If, NamedExpression, SortOrder}
@@ -918,7 +917,7 @@ class GpuMergeAggregateIterator(
     localInputRowsCount: LocalGpuMetric,
     allMetrics: Map[String, GpuMetric]
 )
-  extends Iterator[ColumnarBatch] with AutoCloseable with Logging {
+  extends Iterator[ColumnarBatch] with AutoCloseable with RapidsLocalLog {
   private[this] val isReductionOnly = groupingExpressions.isEmpty
   private[this] val targetMergeBatchSize = computeTargetMergeBatchSize(configuredTargetBatchSize)
 
@@ -1961,7 +1960,7 @@ case class GpuHashAggregateExec(
     allowSinglePassAgg: Boolean,
     allowNonFullyAggregatedOutput: Boolean,
     skipAggPassReductionRatio: Double
-) extends GpuPartitioningPreservingUnaryExecNode with GpuExec with Logging {
+) extends GpuPartitioningPreservingUnaryExecNode with GpuExec {
 
   // lifted directly from `BaseAggregateExec.inputAttributes`, edited comment.
   def inputAttributes: Seq[Attribute] =

@@ -66,7 +66,6 @@ import org.xerial.snappy.Snappy
 
 import org.apache.spark.TaskContext
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.Expression
@@ -117,7 +116,7 @@ case class GpuParquetScan(
     dataFilters: Seq[Expression],
     rapidsConf: RapidsConf,
     queryUsesInputFile: Boolean = false)
-  extends FileScan with GpuScan with Logging {
+  extends FileScan with GpuScan {
 
   override def isSplitable(path: Path): Boolean = true
 
@@ -492,7 +491,7 @@ class HMBInputFile(buffer: HostMemoryBuffer) extends InputFile {
 
 protected case class GpuParquetFileFilterHandler(
     @transient sqlConf: SQLConf,
-    metrics: Map[String, GpuMetric]) extends Logging {
+    metrics: Map[String, GpuMetric]) extends RapidsLocalLog {
 
   private val FOOTER_LENGTH_SIZE = 4
   private val isCaseSensitive = sqlConf.caseSensitiveAnalysis
@@ -1287,7 +1286,7 @@ abstract class AbstractGpuParquetMultiFilePartitionReaderFactory(
       conf: Configuration,
       filters: Array[Filter],
       readDataSchema: StructType) extends UnboundedAsyncRunner[Array[BlockMetaWithPartFile]]
-      with Logging {
+      with RapidsLocalLog {
 
     override def callImpl(): Array[BlockMetaWithPartFile] = {
       TrampolineUtil.setTaskContext(taskContext)
@@ -1519,7 +1518,7 @@ case class GpuParquetPartitionReaderFactory(
     @transient params: Map[String, String])
   extends GpuParquetPartitionReaderFactoryBase(
     sqlConf, broadcastedConf, dataSchema, readDataSchema, partitionSchema,
-    rapidsConf, metrics, params) with Logging {
+    rapidsConf, metrics, params) with RapidsLocalLog {
 
   override protected def buildBaseColumnarParquetReader(
       file: PartitionedFile): PartitionReader[ColumnarBatch] = {
@@ -1558,7 +1557,7 @@ object CpuCompressionConfig {
   def disabled(): CpuCompressionConfig = CpuCompressionConfig(false, false)
 }
 
-trait ParquetPartitionReaderBase extends Logging with ScanWithMetrics
+trait ParquetPartitionReaderBase extends RapidsLocalLog with ScanWithMetrics
     with MultiFileReaderFunctions {
   // the size of Parquet magic (at start+end) and footer length values
   val PARQUET_META_SIZE: Long = 4 + 4 + 4
@@ -2911,7 +2910,7 @@ abstract class AbstractMultiFileCloudParquetPartitionReader(
   private class ReadBatchRunner(
       file: PartitionedFile,
       filterFunc: PartitionedFile => ParquetFileInfoWithBlockMeta,
-      taskContext: TaskContext) extends MemoryBoundedAsyncRunner[BufferInfo] with Logging {
+      taskContext: TaskContext) extends MemoryBoundedAsyncRunner[BufferInfo] with RapidsLocalLog {
 
     // Set TaskContext in terms of an AsyncRunner
     override def sparkTaskContext: Option[TaskContext] = Some(taskContext)
@@ -3430,7 +3429,7 @@ abstract class AbstractParquetTableReader(
     clippedParquetSchema: MessageType,
     splits: Array[PartitionedFile],
     debugDumpPrefix: Option[String],
-    debugDumpAlways: Boolean) extends GpuDataProducer[Table] with Logging {
+    debugDumpAlways: Boolean) extends GpuDataProducer[Table] with RapidsLocalLog {
 
   protected val reader: ChunkedReader
 

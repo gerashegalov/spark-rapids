@@ -37,7 +37,7 @@ import com.nvidia.spark.rapids.spill.SpillablePartialFileHandle
 
 import org.apache.spark.{InterruptibleIterator, MapOutputTracker, ShuffleDependency, SparkConf, SparkEnv, TaskContext}
 import org.apache.spark.executor.ShuffleWriteMetrics
-import org.apache.spark.internal.{config, Logging}
+import org.apache.spark.internal.config
 import org.apache.spark.io.CompressionCodec
 import org.apache.spark.network.buffer.ManagedBuffer
 import org.apache.spark.serializer.SerializerManager
@@ -71,7 +71,7 @@ class ShuffleHandleWithMetrics[K, V, C](
 abstract class GpuShuffleBlockResolverBase(
     val wrapped: IndexShuffleBlockResolver,
     catalog: ShuffleBufferCatalog)
-  extends ShuffleBlockResolver with Logging {
+  extends ShuffleBlockResolver with RapidsLocalLog {
   override def getBlockData(blockId: BlockId, dirs: Option[Array[String]]): ManagedBuffer = {
     // Get MultithreadedShuffleBufferCatalog dynamically since it may not be
     // initialized when the resolver is created
@@ -147,7 +147,7 @@ class ThreadSafeShuffleWriteMetricsReporter(val wrapped: ShuffleWriteMetricsRepo
   }
 }
 
-object RapidsShuffleInternalManagerBase extends Logging {
+object RapidsShuffleInternalManagerBase extends RapidsLocalLog {
   def unwrapHandle(handle: ShuffleHandle): ShuffleHandle = handle match {
     case gh: GpuShuffleHandle[_, _] => gh.wrapped
     case other => other
@@ -1121,7 +1121,7 @@ abstract class RapidsShuffleThreadedReaderBase[K, C](
     mapOutputTracker: MapOutputTracker = SparkEnv.get.mapOutputTracker,
     canUseBatchFetch: Boolean = false,
     numReaderThreads: Int = 0)
-  extends ShuffleReader[K, C] with Logging {
+  extends ShuffleReader[K, C] with RapidsLocalLog {
 
   case class GetMapSizesResult(
       blocksByAddress: Iterator[(BlockManagerId, collection.Seq[(BlockId, Long, Int)])],
@@ -1712,8 +1712,8 @@ class RapidsCachingWriter[K, V](
  *       Apache Spark to use the RAPIDS shuffle manager,
  */
 class RapidsShuffleInternalManagerBase(conf: SparkConf, val isDriver: Boolean)
-  extends ShuffleManager with RapidsShuffleHeartbeatHandler with Logging
-  with RapidsShuffleReaderShim with ProxyShuffleReaderDelegate {
+  extends ShuffleManager with RapidsShuffleHeartbeatHandler
+  with RapidsLocalLog with RapidsShuffleReaderShim with ProxyShuffleReaderDelegate {
 
   def getServerId: BlockManagerId = server.fold(blockManager.blockManagerId)(_.getId)
 

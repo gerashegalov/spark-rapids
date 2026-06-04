@@ -28,7 +28,6 @@ import org.apache.hadoop.fs.Path
 
 import org.apache.spark.{SparkContext, TaskContext}
 import org.apache.spark.api.plugin.PluginContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.io.CompressionCodec
 import org.apache.spark.scheduler.{SparkListener, SparkListenerJobEnd, SparkListenerStageCompleted}
 import org.apache.spark.sql.rapids.execution.TrampolineUtil
@@ -38,7 +37,21 @@ import org.apache.spark.util.SerializableConfiguration
  * For profiling with com.nvidia.spark.rapids.jni.Profiler
  */
 
-object ProfilerOnExecutor extends Logging {
+object ProfilerOnExecutor {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logInfo(msg: => String): Unit = if (log.isInfoEnabled) log.info(msg)
+
+  private def logWarning(msg: => String): Unit = if (log.isWarnEnabled) log.warn(msg)
+
+  private def logWarning(msg: => String, throwable: Throwable): Unit = {
+    if (log.isWarnEnabled) log.warn(msg, throwable)
+  }
+
+  private def logError(msg: => String, throwable: Throwable): Unit = {
+    if (log.isErrorEnabled) log.error(msg, throwable)
+  }
+
   private val jobPattern = raw"SPARK_.*_JId_([0-9]+).*".r
   private var writer: Option[ProfileWriter] = None
   private var timeRanges: Option[Seq[(Long, Long)]] = None
@@ -314,7 +327,11 @@ object ProfilerOnExecutor extends Logging {
 class ProfileWriter(
     val pluginCtx: PluginContext,
     profilePathPrefix: String,
-    codec: Option[CompressionCodec]) extends Profiler.DataWriter with Logging {
+    codec: Option[CompressionCodec]) extends Profiler.DataWriter {
+  @transient private lazy val log = org.slf4j.LoggerFactory.getLogger(classOf[ProfileWriter])
+
+  private def logWarning(msg: => String): Unit = if (log.isWarnEnabled) log.warn(msg)
+
   val executorId: String = pluginCtx.executorID()
   private val outPath = getOutputPath(profilePathPrefix, codec)
   private val out = openOutput(codec)
@@ -364,7 +381,15 @@ class ProfileWriter(
   }
 }
 
-object ProfilerOnDriver extends Logging {
+object ProfilerOnDriver {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logWarning(msg: => String): Unit = if (log.isWarnEnabled) log.warn(msg)
+
+  private def logDebug(msg: => String): Unit = if (log.isDebugEnabled) log.debug(msg)
+
+  private def logError(msg: => String): Unit = if (log.isErrorEnabled) log.error(msg)
+
   private var hadoopConf: SerializableConfiguration = null
   private var jobRanges: RangeConfMatcher = null
   private var numJobsToProfile: Long = 0L

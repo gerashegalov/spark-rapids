@@ -33,7 +33,6 @@ import com.nvidia.spark.rapids.jni.GpuSplitAndRetryOOM
 import com.nvidia.spark.rapids.shims._
 
 import org.apache.spark.{InterruptibleIterator, Partition, SparkContext, TaskContext}
-import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
@@ -53,7 +52,7 @@ class GpuProjectExecMeta(
     conf: RapidsConf,
     p: Option[RapidsMeta[_, _, _]],
     r: DataFromReplacementRule) extends SparkPlanMeta[ProjectExec](proj, conf, p, r)
-    with Logging {
+    with RapidsLocalLog {
   override def convertToGpu(): GpuExec = {
     // Force list to avoid recursive Java serialization of lazy list Seq implementation
     val gpuExprs = childExprs.map(_.convertToGpu().asInstanceOf[NamedExpression]).toList
@@ -1400,7 +1399,7 @@ class GpuSampleExecMeta(
     conf: RapidsConf,
     p: Option[RapidsMeta[_, _, _]],
     r: DataFromReplacementRule) extends SparkPlanMeta[SampleExec](sample, conf, p, r)
-    with Logging {
+    with RapidsLocalLog {
   override def convertToGpu(): GpuExec = {
     val gpuChild = childPlans.head.convertIfNeeded()
     if (conf.isFastSampleEnabled) {
@@ -1569,7 +1568,7 @@ private[rapids] class GpuRangeIterator(
     step: Long,
     maxRowCountPerBatch: Long,
     taskContext: TaskContext,
-    opTime: GpuMetric) extends Iterator[ColumnarBatch] with Logging {
+    opTime: GpuMetric) extends Iterator[ColumnarBatch] with RapidsLocalLog {
 
   // This iterator is designed for GpuRangeExec, so it has the requirement for the inputs.
   assert((partitionEnd - partitionStart) % step == 0)

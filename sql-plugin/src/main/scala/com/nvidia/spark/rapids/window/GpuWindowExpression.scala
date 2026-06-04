@@ -28,7 +28,6 @@ import com.nvidia.spark.rapids.RapidsPluginImplicits._
 import com.nvidia.spark.rapids.shims.{GpuWindowUtil, ShimExpression}
 import scala.util.{Left, Right}
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult.{TypeCheckFailure, TypeCheckSuccess}
 import org.apache.spark.sql.catalyst.expressions._
@@ -1088,7 +1087,7 @@ class BatchedUnboundedToUnboundedBinaryFixer(val binOp: BinaryOp, val dataType: 
  * right thing when they see a null.
  */
 class BatchedRunningWindowBinaryFixer(val binOp: BinaryOp, val name: String)
-    extends BatchedRunningWindowFixer with Logging {
+    extends BatchedRunningWindowFixer with RapidsLocalLog {
   private var previousResult: Option[Scalar] = None
 
   // checkpoint
@@ -1157,7 +1156,7 @@ class BatchedRunningWindowBinaryFixer(val binOp: BinaryOp, val name: String)
  * @param ignoreNulls Whether the function needs to ignore NULL values in the calculation.
  */
 abstract class FirstLastRunningWindowFixerBase(val name: String, val ignoreNulls: Boolean = false)
-  extends BatchedRunningWindowFixer with Logging {
+  extends BatchedRunningWindowFixer with RapidsLocalLog {
 
   /**
    * Saved "carry-over" result that might be applied to the next batch.
@@ -1365,7 +1364,7 @@ class LastRunningWindowFixer(ignoreNulls: Boolean = false)
  * might be able to make this more generic but we need to see what the use case really is.
  */
 class SumBinaryFixer(toType: DataType, isAnsi: Boolean)
-    extends BatchedRunningWindowFixer with Logging {
+    extends BatchedRunningWindowFixer with RapidsLocalLog {
   private val name = "sum"
   private var previousResult: Option[Scalar] = None
   private var previousOverflow: Option[Scalar] = None
@@ -1642,7 +1641,7 @@ class SumBinaryFixer(toType: DataType, isAnsi: Boolean)
  * happens in the `scanCombine` method for GpuRank.  It is a little ugly but it works to maintain
  * the requirement that the input to the fixer is a single column.
  */
-class RankFixer extends BatchedRunningWindowFixer with Logging {
+class RankFixer extends BatchedRunningWindowFixer with RapidsLocalLog {
   import RankFixer._
 
   // We have to look at row number as well as rank.  This fixer is the same one that `GpuRowNumber`
@@ -1769,7 +1768,7 @@ object RankFixer {
  * If anything is outside of a continues partition by group then we just keep
  * those values unchanged.
  */
-class DenseRankFixer extends BatchedRunningWindowFixer with Logging {
+class DenseRankFixer extends BatchedRunningWindowFixer with RapidsLocalLog {
   import DenseRankFixer._
 
   private var previousRank: Option[Scalar] = None

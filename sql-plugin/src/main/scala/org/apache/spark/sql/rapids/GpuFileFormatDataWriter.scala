@@ -31,7 +31,6 @@ import com.nvidia.spark.rapids.shims.GpuFileFormatDataWriterShim
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.mapreduce.TaskAttemptContext
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.internal.io.FileCommitProtocol
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.catalog.{BucketSpec, ExternalCatalogUtils}
@@ -719,7 +718,7 @@ class GpuDynamicPartitionDataConcurrentWriter(
     debugOutputBasePath: Option[String])
   extends GpuDynamicPartitionDataSingleWriter(description, taskAttemptContext,
     committer, debugOutputBasePath)
-  with Logging {
+  with RapidsLocalLog {
 
   /** Wrapper class for status and caches of a unique concurrent output writer. */
   private class WriterStatusWithBatches extends WriterAndStatus with AutoCloseable {

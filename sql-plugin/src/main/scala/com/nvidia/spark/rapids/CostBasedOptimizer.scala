@@ -20,7 +20,6 @@ import scala.collection.mutable.ListBuffer
 
 import com.nvidia.spark.rapids.shims.{GlobalLimitShims, QueryStageRowCountShims, SparkShimImpl}
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.expressions.{Alias, AttributeReference, Expression, GetStructField, WindowFrame, WindowSpecDefinition}
 import org.apache.spark.sql.catalyst.plans.{JoinType, LeftAnti, LeftSemi}
 import org.apache.spark.sql.execution.{GlobalLimitExec, LocalLimitExec, SparkPlan, TakeOrderedAndProjectExec, UnionExec}
@@ -51,7 +50,13 @@ trait Optimizer {
  * data to the GPU just for a trivial projection and then have to move data back to the CPU on the
  * next step.
  */
-class CostBasedOptimizer extends Optimizer with Logging {
+class CostBasedOptimizer extends Optimizer {
+
+  @transient private lazy val log = org.slf4j.LoggerFactory.getLogger(
+    classOf[CostBasedOptimizer])
+
+  private def logTrace(msg: => String): Unit = if (log.isTraceEnabled) log.trace(msg)
+
 
   /**
    * Walk the plan and determine CPU and GPU costs for each operator and then make decisions

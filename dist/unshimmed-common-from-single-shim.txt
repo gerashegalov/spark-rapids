@@ -161,6 +161,7 @@ com/nvidia/spark/rapids/ProfileMsg.class
 com/nvidia/spark/rapids/ProfileStatusMsg.class
 com/nvidia/spark/rapids/ProfileStatusMsg$.class
 com/nvidia/spark/rapids/RapidsExecutorPlugin$.class
+com/nvidia/spark/rapids/RapidsLocalLog.class
 com/nvidia/spark/rapids/RapidsReaderType.class
 com/nvidia/spark/rapids/RapidsReaderType$.class
 com/nvidia/spark/rapids/RapidsHostColumnBuilder.class
@@ -806,6 +807,7 @@ com/nvidia/spark/rapids/window/BigIntRangeBoundaryValue$.class
 com/nvidia/spark/rapids/window/BigIntRangeBoundaryValue.class
 com/nvidia/spark/rapids/window/DoubleRangeBoundaryValue$.class
 com/nvidia/spark/rapids/window/DoubleRangeBoundaryValue.class
+com/nvidia/spark/rapids/window/FirstLastRunningWindowFixerBase.class
 com/nvidia/spark/rapids/window/FirstLastRunningWindowFixerBase$.class
 com/nvidia/spark/rapids/window/FirstRunningWindowFixer$.class
 com/nvidia/spark/rapids/window/FixerPair.class

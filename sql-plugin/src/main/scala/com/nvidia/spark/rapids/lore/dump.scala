@@ -27,7 +27,6 @@ import org.apache.hadoop.fs.Path
 
 import org.apache.spark.{Partition, SparkContext, TaskContext}
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.Attribute
@@ -46,7 +45,7 @@ case class LoreDumpRDDInfo(
     nonStrictMode: Boolean = false)
 
 class GpuLoreDumpRDD(info: LoreDumpRDDInfo, input: RDD[ColumnarBatch])
-  extends RDD[ColumnarBatch](input) with GpuLoreRDD with Logging {
+  extends RDD[ColumnarBatch](input) with GpuLoreRDD {
   override def rootPath: Path = pathOfChild(info.loreOutputInfo.path, info.idxInParent)
   private val factDataTypes = info.attrs.map(_.dataType)
   lazy val kudoSerializer: KudoSerializer = new KudoSerializer(
@@ -161,7 +160,7 @@ class SimpleRDD(_sc: SparkContext, data: Broadcast[Any], schema: StructType) ext
 case class GpuLoreDumpExec(
     child: GpuExec,
     loreDumpInfo: LoreDumpRDDInfo)
-    extends ShimUnaryExecNode with GpuExec with Logging {
+    extends ShimUnaryExecNode with GpuExec {
 
   override def output: Seq[Attribute] = child.output
 

@@ -40,7 +40,6 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 
 import org.apache.spark.{SparkEnv, TaskContext}
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
 import org.apache.spark.sql.execution.QueryExecutionException
@@ -308,7 +307,7 @@ abstract class MultiFilePartitionReaderFactoryBase(
     @transient sqlConf: SQLConf,
     broadcastedConf: Broadcast[SerializableConfiguration],
     @transient rapidsConf: RapidsConf)
-  extends PartitionReaderFactory with Logging {
+  extends PartitionReaderFactory with RapidsLocalLog {
 
   protected val maxReadBatchSizeRows: Int = rapidsConf.maxReadBatchSizeRows
   protected val maxReadBatchSizeBytes: Long = rapidsConf.maxReadBatchSizeBytes
@@ -400,7 +399,7 @@ abstract class MultiFilePartitionReaderFactoryBase(
  * @param execMetrics metrics
  */
 abstract class FilePartitionReaderBase(conf: Configuration, execMetrics: Map[String, GpuMetric])
-    extends PartitionReader[ColumnarBatch] with Logging with ScanWithMetrics {
+    extends PartitionReader[ColumnarBatch] with RapidsLocalLog with ScanWithMetrics {
 
   metrics = execMetrics
 

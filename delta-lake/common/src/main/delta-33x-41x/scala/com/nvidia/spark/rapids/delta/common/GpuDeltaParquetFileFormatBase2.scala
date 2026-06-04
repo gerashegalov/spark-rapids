@@ -35,7 +35,6 @@ import org.apache.parquet.schema.MessageType
 
 import org.apache.spark.TaskContext
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.QuotingUtils
@@ -70,7 +69,7 @@ class GpuDeltaParquetFileFormatBase2(
     optimizationsEnabled: Boolean = true,
     tablePath: Option[String] = None,
     isCDCRead: Boolean = false
-) extends com.nvidia.spark.rapids.delta.GpuDeltaParquetFileFormat with Logging {
+) extends com.nvidia.spark.rapids.delta.GpuDeltaParquetFileFormat {
 
   // Validate either we have all arguments for DV enabled read or none of them.
 
@@ -502,7 +501,7 @@ class GpuDeltaParquetFileFormatBase2(
       queryUsesInputFile: Boolean)
     extends AbstractGpuParquetMultiFilePartitionReaderFactory(sqlConf, broadcastedConf,
       dataSchema, readDataSchema, partitionSchema, filters, rapidsConf, poolConfBuilder,
-      metrics, queryUsesInputFile) with Logging {
+      metrics, queryUsesInputFile) {
 
     logDebug("Using GpuDeltaParquetMultiFilePartitionReaderFactory for multi-threaded Parquet " +
       "reading with deletion vectors")
@@ -1300,7 +1299,7 @@ case class DeltaParquetTableReader(
   }
 }
 
-object MakeParquetTableWithDVProducer extends Logging {
+object MakeParquetTableWithDVProducer extends RapidsLocalLog {
   def apply(
       useChunkedReader: Boolean,
       maxChunkedReaderMemoryUsageSizeBytes: Long,

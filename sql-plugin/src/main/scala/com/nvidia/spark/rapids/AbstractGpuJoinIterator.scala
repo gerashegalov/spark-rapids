@@ -23,7 +23,6 @@ import com.nvidia.spark.rapids.RmmRapidsRetryIterator.{splitTargetSizeInHalfGpu,
 import com.nvidia.spark.rapids.ScalableTaskCompletion.onTaskCompletion
 
 import org.apache.spark.TaskContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.plans.{InnerLike, JoinType, LeftOuter, RightOuter}
 import org.apache.spark.sql.rapids.execution.GatherMapsResult
@@ -199,7 +198,7 @@ abstract class SplittableJoinIterator(
       targetSize,
       sizeEstimateThreshold,
       opTime = opTime,
-      joinTime = joinTime) with Logging {
+      joinTime = joinTime) with RapidsLocalLog {
   // For some join types even if there is no stream data we might output something
   private var isInitialJoin = true
   // If the join explodes this holds batches from the stream side split into smaller pieces.

@@ -18,12 +18,11 @@ package org.apache.spark.sql.nvidia
 
 import com.nvidia.spark.rapids.RapidsConf
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.expressions.{Expression, ScalaUDF}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 
-case class LogicalPlanRules() extends Rule[LogicalPlan] with Logging {
+case class LogicalPlanRules() extends Rule[LogicalPlan] {
   val replacePartialFunc: PartialFunction[Expression, Expression] = {
     case f: ScalaUDF if DFUDF.getDFUDF(f.function).isDefined =>
       DFUDF.getDFUDF(f.function).map {

@@ -30,7 +30,6 @@ import com.nvidia.spark.rapids.shims._
 import com.nvidia.spark.rapids.window.{GpuDenseRank, GpuLag, GpuLead, GpuPercentRank, GpuRank, GpuRowNumber, GpuSpecialFrameBoundary, GpuWindowExecMeta, GpuWindowSpecDefinitionMeta}
 import org.apache.hadoop.fs.Path
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.rapids.hybrid.HybridExecutionUtils
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.catalyst.expressions._
@@ -5012,7 +5011,7 @@ object GpuOverrideUtil {
 }
 
 /** Tag the initial plan when AQE is enabled */
-case class GpuQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
+case class GpuQueryStagePrepOverrides() extends Rule[SparkPlan] {
   override def apply(sparkPlan: SparkPlan): SparkPlan = GpuOverrideUtil.tryOverride { plan =>
     // Exposing a bare exchange at the root is only valid while AQE is preparing a
     // query stage. Tag the exchanges seen in this rule so transition cleanup can
@@ -5026,7 +5025,7 @@ case class GpuQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
   }(sparkPlan)
 }
 
-case class GpuOverrides() extends Rule[SparkPlan] with Logging {
+case class GpuOverrides() extends Rule[SparkPlan] {
 
   // Spark calls this method once for the whole plan when AQE is off. When AQE is on, it
   // gets called once for each query stage (where a query stage is an `Exchange`).

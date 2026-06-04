@@ -21,7 +21,6 @@ import com.nvidia.spark.rapids._
 import com.nvidia.spark.rapids.GpuColumnVector.GpuColumnarBatchBuilder
 
 import org.apache.spark.TaskContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.{MapPartitionsRDD, RDD}
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.catalyst.InternalRow
@@ -645,7 +644,11 @@ private class ExternalRowToColumnarIterator(
  * of GPU memory.  By convention it is the responsibility of the one consuming the data to close it
  * when they no longer need it.
  */
-object InternalColumnarRddConverter extends Logging {
+object InternalColumnarRddConverter {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
+
+  private def logDebug(msg: => String): Unit = if (log.isDebugEnabled) log.debug(msg)
+
   def apply(df: DataFrame): RDD[Table] = {
     convert(df)
   }
