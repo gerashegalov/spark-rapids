@@ -30,7 +30,6 @@ import com.nvidia.spark.rapids.ScalableTaskCompletion.onTaskCompletion
 import com.nvidia.spark.rapids.jni.RmmSpark
 
 import org.apache.spark.{SparkContext, TaskContext}
-import org.apache.spark.internal.Logging
 import org.apache.spark.util.{AccumulatorV2, LongAccumulator, Utils}
 
 case class NanoTime(value: java.lang.Long) {
@@ -242,7 +241,7 @@ class AvgLongAccumulator extends AccumulatorV2[jl.Long, jl.Double] {
   } else 0;
 }
 
-class GpuTaskMetrics extends Serializable with Logging {
+class GpuTaskMetrics extends Serializable {
   private val semaphoreHoldingTime = new NanoSecondAccumulator
   private val semWaitTimeNs = new NanoSecondAccumulator
   private val retryCount = new LongAccumulator
@@ -465,7 +464,8 @@ class GpuTaskMetrics extends Serializable with Logging {
       // allocations lives in the JNI. Therefore, we can stick the convention here of calling the
       // add method instead of adding a dedicated max method to the accumulator.
       if (maxDeviceMemoryBytes.value.value > 0) {
-        logError(s"updateMaxMemory called twice for task $taskAttemptId with maxMem $maxMem")
+        GpuTaskMetrics.log.error(s"updateMaxMemory called twice for task $taskAttemptId " +
+          s"with maxMem $maxMem")
       }
       maxDeviceMemoryBytes.add(maxMem)
     }
@@ -531,7 +531,8 @@ class GpuTaskMetrics extends Serializable with Logging {
 /**
  * Provides task level metrics
  */
-object GpuTaskMetrics extends Logging {
+object GpuTaskMetrics {
+  private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
   private val taskLevelMetrics = new ConcurrentHashMap[Long, GpuTaskMetrics]()
 
   private val hostBytesAllocated = new AtomicLong(0)

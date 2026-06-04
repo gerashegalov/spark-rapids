@@ -33,7 +33,6 @@ import com.nvidia.spark.rapids.shims.{GpuTypeShims, SparkShimImpl}
 import org.apache.commons.codec.binary.{Hex => ApacheHex}
 import org.json4s.JsonAST.{JField, JNull, JString}
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{Literal, UnsafeArrayData}
 import org.apache.spark.sql.catalyst.util.{ArrayData, DateTimeUtils, MapData, TimestampFormatter}
@@ -45,12 +44,13 @@ import org.apache.spark.unsafe.types.UTF8String
 
 
 
-object GpuScalar extends Logging {
+object GpuScalar {
+  private[this] val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
 
   // TODO Support interpreting the value to a Spark DataType
   def extract(v: Scalar): Any = {
     if (v != null && v.isValid) {
-      logDebug(s"Extracting data from the Scalar $v.")
+      log.debug(s"Extracting data from the Scalar $v.")
       v.getType match {
         case DType.BOOL8 => v.getBoolean
         case DType.FLOAT32 => v.getFloat
