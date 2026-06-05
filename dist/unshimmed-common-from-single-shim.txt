@@ -253,7 +253,6 @@ com/nvidia/spark/rapids/ScalableTaskCompletion$TopLevelTaskCompletion.class
 com/nvidia/spark/rapids/ScalableTaskCompletion$UserTaskCompletion.class
 com/nvidia/spark/rapids/SchemaBase.class
 com/nvidia/spark/rapids/SpillPriorities.class
-com/nvidia/spark/rapids/SpillPriorities$.class
 com/nvidia/spark/rapids/SplitReason.class
 com/nvidia/spark/rapids/SplitReason$.class
 com/nvidia/spark/rapids/SplittableGoal.class
@@ -681,7 +680,9 @@ com/nvidia/spark/rapids/EmptyGpuColumnarBatchIterator$.class
 com/nvidia/spark/rapids/EmptyTableReader.class
 com/nvidia/spark/rapids/EmptyTableReader$.class
 com/nvidia/spark/rapids/ExecutorCache.class
-com/nvidia/spark/rapids/ExecutorCache$.class
+com/nvidia/spark/rapids/ExecutorCache$CurrentDeviceComputeModeHolder.class
+com/nvidia/spark/rapids/ExecutorCache$CurrentDeviceUuidHolder.class
+com/nvidia/spark/rapids/ExecutorCache$ProcessNameHolder.class
 com/nvidia/spark/rapids/ExtractedG.class
 com/nvidia/spark/rapids/ExtractedG$.class
 com/nvidia/spark/rapids/ExtremumOp.class
