@@ -17,7 +17,7 @@
 package com.nvidia.spark.rapids.spill
 
 import java.io._
-import java.nio.ByteBuffer
+import java.nio.{Buffer, ByteBuffer}
 import java.nio.channels.{Channels, FileChannel, WritableByteChannel}
 import java.nio.file.StandardOpenOption
 import java.util
@@ -2353,7 +2353,7 @@ class ChunkedPacker(table: Table,
     val tmpBB = packedMeta.getMetadataDirectBuffer
     val metaCopy = ByteBuffer.allocateDirect(tmpBB.capacity())
     metaCopy.put(tmpBB)
-    metaCopy.flip()
+    metaCopy.asInstanceOf[Buffer].flip()
     metaCopy
   }
 
