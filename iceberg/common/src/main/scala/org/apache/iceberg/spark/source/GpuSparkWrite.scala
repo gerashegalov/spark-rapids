@@ -211,7 +211,7 @@ object GpuSparkWrite {
         val transform = partitionField.transform()
         GpuTransform.tryFrom(transform) match {
           case Success(t) =>
-            val fieldTransform = GpuFieldTransform(partitionField.sourceId(), t)
+            val fieldTransform = new GpuFieldTransform(partitionField.sourceId(), t)
             if (!fieldTransform.supports(dataSparkType.get, dataSchema.get)) {
               meta.willNotWorkOnGpu(
                 s"Iceberg partition transform $transform is not supported on GPU")
