@@ -22,15 +22,6 @@ import org.apache.spark.sql.rapids.{ColumnarWriteTaskStatsTracker, GpuWriteTaskS
 
 
 /**
- * Stats related classes used by ThrottlingExecutor
- */
-case class ThrottlingExecutorStats (
-    var numTasksScheduled: Int,
-    var accumulatedThrottleTimeNs: Long,
-    var minThrottleTimeNs: Long,
-    var maxThrottleTimeNs: Long)
-
-/**
  * Only for GpuWriteTaskStatsTracker cases
  */
 class StatsUpdaterForWriteFunc(val statsTrackers: Seq[ColumnarWriteTaskStatsTracker]) {
@@ -53,7 +44,7 @@ class StatsUpdaterForWriteFunc(val statsTrackers: Seq[ColumnarWriteTaskStatsTrac
 class ThrottlingExecutor(executor: ExecutorService, throttler: TrafficController,
     updateStats : ThrottlingExecutorStats => Unit) {
 
-  val stats: ThrottlingExecutorStats = ThrottlingExecutorStats(0, 0L, Long.MaxValue, 0L)
+  val stats: ThrottlingExecutorStats = new ThrottlingExecutorStats(0, 0L, Long.MaxValue, 0L)
 
   private def blockUntilTaskRunnable(task: Task[_]): Unit = {
     val blockStart = System.nanoTime()

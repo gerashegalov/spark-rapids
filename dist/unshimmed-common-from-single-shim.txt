@@ -279,7 +279,6 @@ com/nvidia/spark/rapids/io/async/AcquireSuccessful.class
 com/nvidia/spark/rapids/io/async/AcquireSuccessful$.class
 com/nvidia/spark/rapids/io/async/AsyncFunctorForTest.class
 com/nvidia/spark/rapids/io/async/AsyncMetrics.class
-com/nvidia/spark/rapids/io/async/AsyncMetrics$.class
 com/nvidia/spark/rapids/io/async/AsyncMetricsBuilder.class
 com/nvidia/spark/rapids/io/async/AsyncResult.class
 com/nvidia/spark/rapids/io/async/AsyncRunResource.class
@@ -317,7 +316,6 @@ com/nvidia/spark/rapids/io/async/ScheduleFailed$.class
 com/nvidia/spark/rapids/io/async/Task.class
 com/nvidia/spark/rapids/io/async/Throttle.class
 com/nvidia/spark/rapids/io/async/ThrottlingExecutorStats.class
-com/nvidia/spark/rapids/io/async/ThrottlingExecutorStats$.class
 com/nvidia/spark/rapids/io/async/UnboundedAsyncRunner.class
 com/nvidia/spark/rapids/fileio/hadoop/HadoopInputFile.class
 com/nvidia/spark/rapids/fileio/hadoop/HadoopInputStream.class

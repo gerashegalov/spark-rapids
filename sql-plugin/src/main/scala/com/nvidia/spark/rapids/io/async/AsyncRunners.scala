@@ -76,8 +76,6 @@ trait AsyncResult[T] extends AutoCloseable {
   }
 }
 
-case class AsyncMetrics(scheduleTimeMs: Long, executionTimeMs: Long)
-
 class AsyncMetricsBuilder {
   private var scheduleTimeMs: Long = 0L
   private var executionTimeMs: Long = 0L
@@ -93,7 +91,7 @@ class AsyncMetricsBuilder {
   }
 
   def build(): AsyncMetrics = {
-    AsyncMetrics(scheduleTimeMs, executionTimeMs)
+    new AsyncMetrics(scheduleTimeMs, executionTimeMs)
   }
 }
 
