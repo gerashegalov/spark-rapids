@@ -3347,7 +3347,6 @@ com/nvidia/spark/rapids/GpuOrcPartitionReader.class
 com/nvidia/spark/rapids/GpuOrcPartitionReaderFactory$.class
 com/nvidia/spark/rapids/GpuOrcPartitionReaderFactory.class
 com/nvidia/spark/rapids/GpuOrcScan$.class
-com/nvidia/spark/rapids/GpuOrcTimezoneUtils$.class
 com/nvidia/spark/rapids/GpuOrcTimezoneUtils.class
 com/nvidia/spark/rapids/GpuOutOfCoreSortIterator$.class
 com/nvidia/spark/rapids/GpuOutOfCoreSortIterator.class
