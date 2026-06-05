@@ -43,6 +43,13 @@ export UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST="$PWD/unshimmed-from-spark-shared-c
 export UNSHIMMED_NEED_SHARED_TXT="$PWD/unshimmed-need-shared.txt"
 export UNSHIMMED_MISSING_SHARED_TXT="$PWD/unshimmed-missing-shared.txt"
 
+SPARK_SHIM_DIRS=()
+if [[ "${UNSHIM_FAST:-0}" == "1" ]]; then
+  while IFS= read -r shim_dir; do
+    SPARK_SHIM_DIRS+=("$shim_dir")
+  done < <(find ./parallel-world -maxdepth 1 -mindepth 1 -type d -name 'spark[34]*' | sort)
+fi
+
 # This script de-duplicates .class files at the binary level.
 # We could also diff classes using scalap / javap outputs.
 # However, with observed warnings in the output we have no guarantee that the
@@ -58,24 +65,34 @@ export UNSHIMMED_MISSING_SHARED_TXT="$PWD/unshimmed-missing-shared.txt"
 # - put the path starting with /sparkxyz back together for the final list
 echo "Retrieving class files hashing to a single value ..."
 
+# With one shim there is no cross-shim identity proof to perform; every
+# non-META file is the sole representative for its path.
+if [[ "${UNSHIM_FAST:-0}" == "1" && "${#SPARK_SHIM_DIRS[@]}" == "1" ]]; then
+  echo "$((++STEP))/ single shim fast path; listing files > $SPARK_SHARED_TXT"
+  : > tmp-sha1-files.txt
+  : > tmp-shim-sha-package-files.txt
+  : > tmp-count-shim-sha-package-files.txt
+  find "${SPARK_SHIM_DIRS[0]}" -name META-INF -prune -o -name webapps -prune -o \( -type f -print \) | \
+    sort | sed 's|^\./parallel-world||' > "$SPARK_SHARED_TXT"
+else
+  echo "$((++STEP))/ SHA1 of all non-META files > tmp-sha1-files.txt"
+  find ./parallel-world/spark[34]* -name META-INF -prune -o -name webapps -prune -o \( -type f -print0 \) | \
+    xargs --null $SHASUM > tmp-sha1-files.txt
 
-echo "$((++STEP))/ SHA1 of all non-META files > tmp-sha1-files.txt"
-find ./parallel-world/spark[34]* -name META-INF -prune -o -name webapps -prune -o \( -type f -print0 \) | \
-  xargs --null $SHASUM > tmp-sha1-files.txt
+  echo "$((++STEP))/ make shim column 1 > tmp-shim-sha-package-files.txt"
+  < tmp-sha1-files.txt awk -F/ '$1=$1' | \
+    awk '{checksum=$1; shim=$4; $1=shim; $2=$3=""; $4=checksum;  print $0}' | \
+    tr -s  ' ' > tmp-shim-sha-package-files.txt
 
-echo "$((++STEP))/ make shim column 1 > tmp-shim-sha-package-files.txt"
-< tmp-sha1-files.txt awk -F/ '$1=$1' | \
-  awk '{checksum=$1; shim=$4; $1=shim; $2=$3=""; $4=checksum;  print $0}' | \
-  tr -s  ' ' > tmp-shim-sha-package-files.txt
+  echo "$((++STEP))/ sort by path, sha1; output first from each group > tmp-count-shim-sha-package-files.txt"
+  sort -k3 -k2,2 -u tmp-shim-sha-package-files.txt | \
+    uniq -f 2 -c > tmp-count-shim-sha-package-files.txt
 
-echo "$((++STEP))/ sort by path, sha1; output first from each group > tmp-count-shim-sha-package-files.txt"
-sort -k3 -k2,2 -u tmp-shim-sha-package-files.txt | \
-  uniq -f 2 -c > tmp-count-shim-sha-package-files.txt
-
-echo "$((++STEP))/ files with unique sha1 > $SPARK_SHARED_TXT"
-grep '^\s\+1 .*' tmp-count-shim-sha-package-files.txt | \
-  awk '{$1=""; $3=""; print $0 }' | \
-  tr -s ' ' | sed 's/\ /\//g' > "$SPARK_SHARED_TXT"
+  echo "$((++STEP))/ files with unique sha1 > $SPARK_SHARED_TXT"
+  grep '^\s\+1 .*' tmp-count-shim-sha-package-files.txt | \
+    awk '{$1=""; $3=""; print $0 }' | \
+    tr -s ' ' | sed 's/\ /\//g' > "$SPARK_SHARED_TXT"
+fi
 
 function retain_single_copy() {
   set -e
