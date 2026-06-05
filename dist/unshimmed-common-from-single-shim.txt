@@ -2874,7 +2874,6 @@ com/nvidia/spark/rapids/AvroMetaFileReader.class
 com/nvidia/spark/rapids/BaseCrossJoinGatherMap.class
 com/nvidia/spark/rapids/BaseExprMeta.class
 com/nvidia/spark/rapids/BatchToGenerate.class
-com/nvidia/spark/rapids/BatchWithPartitionData$.class
 com/nvidia/spark/rapids/BatchWithPartitionData.class
 com/nvidia/spark/rapids/BatchWithPartitionDataIterator.class
 com/nvidia/spark/rapids/BatchWithPartitionDataUtils$.class

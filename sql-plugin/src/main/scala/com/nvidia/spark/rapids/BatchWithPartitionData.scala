@@ -37,10 +37,10 @@ import org.apache.spark.sql.vectorized.ColumnarBatch
  *                             rows to replicate the partition value.
  * @param partitionSchema      Schema of the partitioned data.
  */
-case class BatchWithPartitionData(
-    inputBatch: SpillableColumnarBatch,
-    partitionedRowsData: Array[PartitionRowData],
-    partitionSchema: StructType) extends AutoCloseable {
+class BatchWithPartitionData(
+    val inputBatch: SpillableColumnarBatch,
+    val partitionedRowsData: Array[PartitionRowData],
+    val partitionSchema: StructType) extends AutoCloseable {
 
   /**
    * Merges the partitioned data with the input ColumnarBatch.
@@ -344,7 +344,7 @@ object BatchWithPartitionDataUtils {
       // Combine the split GPU ColumnVectors with partition ColumnVectors.
       splitColumnarBatches.zip(listOfPartitionedRowsData).map {
         case (spillableBatch, partitionedRowsData) =>
-          BatchWithPartitionData(spillableBatch, partitionedRowsData, partitionSchema)
+          new BatchWithPartitionData(spillableBatch, partitionedRowsData, partitionSchema)
       }
     }
   }
