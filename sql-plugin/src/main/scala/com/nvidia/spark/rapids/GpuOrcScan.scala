@@ -39,6 +39,7 @@ import com.nvidia.spark.rapids.RmmRapidsRetryIterator.withRetryNoSplit
 import com.nvidia.spark.rapids.SchemaUtils._
 import com.nvidia.spark.rapids.filecache.FileCache
 import com.nvidia.spark.rapids.fileio.hadoop.HadoopFileIO
+import com.nvidia.spark.rapids.fileio.hadoop.PerfIOHadoopInputFileFactory
 import com.nvidia.spark.rapids.io.async._
 import com.nvidia.spark.rapids.jni.{CastStrings, RmmSpark}
 import com.nvidia.spark.rapids.shims.{ColumnDefaultValuesShims, GpuOrcDataReader, NullOutputStreamShim, OrcCastingShims, OrcReadingShims, OrcShims, ShimFilePartitionReaderFactory}
@@ -1789,7 +1790,9 @@ private object GpuOrcFileFilterHandler {
       fs: FileSystem,
       conf: Configuration,
       metrics: Map[String, GpuMetric]): OrcTail = {
-    val fileIO = new HadoopFileIO(conf)
+    val fileIO = new HadoopFileIO(
+      conf,
+      PerfIOHadoopInputFileFactory.INSTANCE)
     val inputFile = fileIO.newInputFile(filePath)
     val cachedFooter = FileCache.get.getFooter(inputFile)
     val bb = cachedFooter.map { hmb =>

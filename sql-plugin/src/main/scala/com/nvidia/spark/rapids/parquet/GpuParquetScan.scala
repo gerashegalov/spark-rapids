@@ -39,6 +39,7 @@ import com.nvidia.spark.rapids.RapidsPluginImplicits._
 import com.nvidia.spark.rapids.RmmRapidsRetryIterator.withRetryNoSplit
 import com.nvidia.spark.rapids.filecache.FileCache
 import com.nvidia.spark.rapids.fileio.hadoop.HadoopFileIO
+import com.nvidia.spark.rapids.fileio.hadoop.PerfIOHadoopInputFileFactory
 import com.nvidia.spark.rapids.io.async._
 import com.nvidia.spark.rapids.jni.{DateTimeRebase, ParquetFooter, RmmSpark}
 import com.nvidia.spark.rapids.jni.fileio.{RapidsFileIO, RapidsInputFile}
@@ -1136,7 +1137,9 @@ abstract class AbstractGpuParquetMultiFilePartitionReaderFactory(
   // from a task when we need to create the fileIO instance. This stops a regression
   // when we materialize the hadoop conf eagerly, see:
   // https://github.com/NVIDIA/spark-rapids/issues/13353
-  @transient protected lazy val fileIO = new HadoopFileIO(broadcastedConf.value.value)
+  @transient protected lazy val fileIO = new HadoopFileIO(
+    broadcastedConf.value.value,
+    PerfIOHadoopInputFileFactory.INSTANCE)
   protected val isCaseSensitive = sqlConf.caseSensitiveAnalysis
   protected val debugDumpPrefix = rapidsConf.parquetDebugDumpPrefix
   protected val debugDumpAlways = rapidsConf.parquetDebugDumpAlways
@@ -1468,7 +1471,9 @@ abstract class GpuParquetPartitionReaderFactoryBase(
   // from a task when we need to create the fileIO instance. This stops a regression
   // when we materialize the hadoop conf eagerly, see:
   // https://github.com/NVIDIA/spark-rapids/issues/13353
-  @transient protected lazy val fileIO = new HadoopFileIO(broadcastedConf.value.value)
+  @transient protected lazy val fileIO = new HadoopFileIO(
+    broadcastedConf.value.value,
+    PerfIOHadoopInputFileFactory.INSTANCE)
   protected val isCaseSensitive = sqlConf.caseSensitiveAnalysis
   protected val debugDumpPrefix = rapidsConf.parquetDebugDumpPrefix
   protected val debugDumpAlways = rapidsConf.parquetDebugDumpAlways

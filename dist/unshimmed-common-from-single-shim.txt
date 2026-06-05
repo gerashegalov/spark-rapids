@@ -1534,6 +1534,8 @@ com/nvidia/spark/rapids/filecache/FileCacheStub$.class
 com/nvidia/spark/rapids/filecache/FileCacheStub.class
 com/nvidia/spark/rapids/fileio/RapidsInputFiles.class
 com/nvidia/spark/rapids/fileio/hadoop/HadoopFileIO.class
+com/nvidia/spark/rapids/fileio/hadoop/HadoopInputFileFactory.class
+com/nvidia/spark/rapids/fileio/hadoop/PerfIOHadoopInputFileFactory.class
 com/nvidia/spark/rapids/fileio/hadoop/S3InputFile.class
 com/nvidia/spark/rapids/fileio/iceberg/IcebergFileIO.class
 com/nvidia/spark/rapids/hybrid/HostRetryAllocator$$anon$1.class
