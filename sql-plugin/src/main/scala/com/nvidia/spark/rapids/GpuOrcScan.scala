@@ -658,13 +658,13 @@ case class GpuOrcMultiFilePartitionReaderFactory(
           compressionAndStripes.getOrElseUpdate(orcPartitionReaderContext.compressionKind,
             new ArrayBuffer[OrcSingleStripeMeta]) ++=
             orcPartitionReaderContext.blockIterator.map(block =>
-              OrcSingleStripeMeta(
+              new OrcSingleStripeMeta(
                 orcPartitionReaderContext.filePath,
-                OrcDataStripe(OrcStripeWithMeta(block, orcPartitionReaderContext)),
+                new OrcDataStripe(new OrcStripeWithMeta(block, orcPartitionReaderContext)),
                 file.partitionValues,
-                OrcSchemaWrapper(orcPartitionReaderContext.updatedReadSchema),
+                new OrcSchemaWrapper(orcPartitionReaderContext.updatedReadSchema),
                 readDataSchema,
-                OrcExtraInfo(orcPartitionReaderContext.requestedMapping)))
+                new OrcExtraInfo(orcPartitionReaderContext.requestedMapping)))
         }
       }
     }
@@ -754,10 +754,10 @@ case class GpuOrcPartitionReaderFactory(
  * @param footer stripe footer
  * @param inputDataRanges input file ranges (based at file offset 0) of stripe data
  */
-case class OrcOutputStripe(
-    infoBuilder: OrcProto.StripeInformation.Builder,
-    footer: OrcProto.StripeFooter,
-    inputDataRanges: DiskRangeList)
+class OrcOutputStripe(
+    val infoBuilder: OrcProto.StripeInformation.Builder,
+    val footer: OrcProto.StripeFooter,
+    val inputDataRanges: DiskRangeList) extends Serializable
 
 /**
  * This class holds fields needed to read and iterate over the OrcFile
@@ -775,18 +775,18 @@ case class OrcOutputStripe(
  * @param blockIterator an iterator over the ORC output stripes
  * @param requestedMapping the optional requested column ids
  */
-case class OrcPartitionReaderContext(
-    filePath: Path,
-    conf: Configuration,
-    fileSchema: TypeDescription,
-    updatedReadSchema: TypeDescription,
-    evolution: SchemaEvolution,
-    fileTail: OrcProto.FileTail,
-    compressionSize: Int,
-    compressionKind: CompressionKind,
-    readerOpts: Reader.Options,
-    blockIterator: BufferedIterator[OrcOutputStripe],
-    requestedMapping: Option[Array[Int]])
+class OrcPartitionReaderContext(
+    val filePath: Path,
+    val conf: Configuration,
+    val fileSchema: TypeDescription,
+    val updatedReadSchema: TypeDescription,
+    val evolution: SchemaEvolution,
+    val fileTail: OrcProto.FileTail,
+    val compressionSize: Int,
+    val compressionKind: CompressionKind,
+    val readerOpts: Reader.Options,
+    val blockIterator: BufferedIterator[OrcOutputStripe],
+    val requestedMapping: Option[Array[Int]]) extends Serializable
 
 case class OrcBlockMetaForSplitCheck(
     filePath: Path,
@@ -1467,7 +1467,7 @@ private case class GpuOrcFileFilterHandler(
         sargApp, sargColumns, OrcConf.IGNORE_NON_UTF8_BLOOM_FILTERS.getBoolean(conf),
         orcReader.getWriterVersion, updatedReadSchema,
         resolveMemFileIncluded(fileIncluded, requestedMapping))
-      OrcPartitionReaderContext(filePath, conf, orcReader.getSchema, updatedReadSchema, evolution,
+      new OrcPartitionReaderContext(filePath, conf, orcReader.getSchema, updatedReadSchema, evolution,
         orcReader.getFileTail, orcReader.getCompressionSize, orcReader.getCompressionKind,
         readerOpts, stripes.iterator.buffered, requestedMapping)
     }
@@ -1611,7 +1611,7 @@ private case class GpuOrcFileFilterHandler(
         .setDataLength(outputStripeDataLength)
         .setNumberOfRows(inputStripe.getNumberOfRows)
 
-      OrcOutputStripe(infoBuilder, outputStripeFooter, rangeCreator.get)
+      new OrcOutputStripe(infoBuilder, outputStripeFooter, rangeCreator.get)
     }
 
     /**
@@ -2133,7 +2133,7 @@ class MultiFileCloudOrcPartitionReader(
                   maxReadBatchSizeBytes)
                 val (hostBuf, bufSize) = readPartFile(ctx, blocksToRead)
                 val numRows = blocksToRead.map(_.infoBuilder.getNumberOfRows).sum
-                val metas = blocksToRead.map(b => OrcDataStripe(OrcStripeWithMeta(b, ctx)))
+                val metas = blocksToRead.map(b => new OrcDataStripe(new OrcStripeWithMeta(b, ctx)))
                 hostBuffers += SingleHMBAndMeta(Array(hostBuf), bufSize, numRows, metas)
               }
               val bytesRead = fileSystemBytesRead() - startingBytesRead
@@ -2541,13 +2541,13 @@ trait OrcCodecWritingHelper {
 }
 
 // Orc schema wrapper
-private case class OrcSchemaWrapper(schema: TypeDescription) extends SchemaBase {
+private class OrcSchemaWrapper(val schema: TypeDescription) extends SchemaBase with Serializable {
 
   override def isEmpty: Boolean = schema.getFieldNames.isEmpty
 }
 
-case class OrcStripeWithMeta(stripe: OrcOutputStripe, ctx: OrcPartitionReaderContext)
-    extends OrcCodecWritingHelper {
+class OrcStripeWithMeta(val stripe: OrcOutputStripe, val ctx: OrcPartitionReaderContext)
+    extends OrcCodecWritingHelper with Serializable {
 
   lazy val stripeLength: Long = {
     // calculate the true stripe footer size
@@ -2562,7 +2562,8 @@ case class OrcStripeWithMeta(stripe: OrcOutputStripe, ctx: OrcPartitionReaderCon
 }
 
 // OrcOutputStripe wrapper
-private[rapids] case class OrcDataStripe(stripeMeta: OrcStripeWithMeta) extends DataBlockBase {
+private[rapids] class OrcDataStripe(val stripeMeta: OrcStripeWithMeta)
+    extends DataBlockBase with Serializable {
 
   override def getRowCount: Long = stripeMeta.stripe.infoBuilder.getNumberOfRows
 
@@ -2573,17 +2574,17 @@ private[rapids] case class OrcDataStripe(stripeMeta: OrcStripeWithMeta) extends 
 }
 
 /** Orc extra information containing the requested column ids for the current coalescing stripes */
-case class OrcExtraInfo(requestedMapping: Option[Array[Int]]) extends ExtraInfo
+class OrcExtraInfo(val requestedMapping: Option[Array[Int]]) extends ExtraInfo with Serializable
 
 // Contains meta about a single stripe of an ORC file
-private case class OrcSingleStripeMeta(
-  filePath: Path, // Orc file path
-  dataBlock: OrcDataStripe, // Orc stripe information with the OrcPartitionReaderContext
-  partitionValues: InternalRow, // partitioned values
-  schema: OrcSchemaWrapper, // Orc schema
-  readSchema: StructType, // Orc read schema
-  extraInfo: OrcExtraInfo // Orc ExtraInfo containing the requested column ids
-) extends SingleDataBlockInfo
+private class OrcSingleStripeMeta(
+  val filePath: Path, // Orc file path
+  val dataBlock: OrcDataStripe, // Orc stripe information with the OrcPartitionReaderContext
+  val partitionValues: InternalRow, // partitioned values
+  val schema: OrcSchemaWrapper, // Orc schema
+  val readSchema: StructType, // Orc read schema
+  val extraInfo: OrcExtraInfo // Orc ExtraInfo containing the requested column ids
+) extends SingleDataBlockInfo with Serializable
 
 /**
  *

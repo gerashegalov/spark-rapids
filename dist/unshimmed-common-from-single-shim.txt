@@ -576,7 +576,6 @@ org/apache/spark/sql/vectorized/rapids/AccessibleArrowColumnVector$AccessibleStr
 org/apache/spark/sql/vectorized/rapids/AccessibleArrowColumnVector$AccessibleStructAccessor.class
 org/apache/spark/sql/vectorized/rapids/AccessibleArrowColumnVector$AccessibleTimestampAccessor.class
 com/nvidia/spark/rapids/OrcExtraInfo.class
-com/nvidia/spark/rapids/OrcExtraInfo$.class
 org/apache/spark/sql/catalyst/util/rapids/DateFormatter$.class
 org/apache/spark/sql/catalyst/util/rapids/DateFormatter.class
 org/apache/spark/sql/catalyst/util/rapids/DefaultDateFormatter.class
@@ -603,12 +602,9 @@ com/nvidia/spark/rapids/shuffle/WindowedBlockIterator$BlocksForWindow.class
 com/nvidia/spark/rapids/shuffle/WindowedBlockIterator$BlockWindow.class
 com/nvidia/spark/rapids/shuffle/WindowedBlockIterator$BlockWithOffset.class
 com/nvidia/spark/rapids/OrcOutputStripe.class
-com/nvidia/spark/rapids/OrcOutputStripe$.class
 com/nvidia/spark/rapids/OrcPartitionReaderContext.class
-com/nvidia/spark/rapids/OrcPartitionReaderContext$.class
 com/nvidia/spark/rapids/GpuOrcFileFilterHandler$.class
 com/nvidia/spark/rapids/OrcSchemaWrapper.class
-com/nvidia/spark/rapids/OrcSchemaWrapper$.class
 com/nvidia/spark/rapids/HttpBackendType.class
 com/nvidia/spark/rapids/HttpBackendType$.class
 com/nvidia/spark/rapids/lore/LoreDumpRDDInfo.class
@@ -3842,12 +3838,9 @@ com/nvidia/spark/rapids/OrcBlockMetaForSplitCheck.class
 com/nvidia/spark/rapids/OrcCodecWritingHelper$$anon$1.class
 com/nvidia/spark/rapids/OrcCodecWritingHelper.class
 com/nvidia/spark/rapids/OrcCommonFunctions.class
-com/nvidia/spark/rapids/OrcDataStripe$.class
 com/nvidia/spark/rapids/OrcDataStripe.class
 com/nvidia/spark/rapids/OrcPartitionReaderBase.class
-com/nvidia/spark/rapids/OrcSingleStripeMeta$.class
 com/nvidia/spark/rapids/OrcSingleStripeMeta.class
-com/nvidia/spark/rapids/OrcStripeWithMeta$.class
 com/nvidia/spark/rapids/OrcStripeWithMeta.class
 com/nvidia/spark/rapids/OrcTableReader$.class
 com/nvidia/spark/rapids/OrcTableReader.class
