@@ -737,9 +737,7 @@ com/nvidia/spark/rapids/optimizer/AggPushdownRule$.class
 com/nvidia/spark/rapids/optimizer/OptimizeSubquerySharedScanRule$.class
 com/nvidia/spark/rapids/optimizer/RelationUtils$.class
 com/nvidia/spark/rapids/optimizer/RelationUtils.class
-com/nvidia/spark/rapids/python/GpuArgumentMeta$.class
 com/nvidia/spark/rapids/python/GpuArgumentMeta.class
-com/nvidia/spark/rapids/python/GpuPythonArguments$.class
 com/nvidia/spark/rapids/python/GpuPythonArguments.class
 com/nvidia/spark/rapids/shims/AggregationTagging$.class
 com/nvidia/spark/rapids/shims/AggregationTagging.class
@@ -862,7 +860,6 @@ com/nvidia/spark/udf/GpuScalaUDFLogical$.class
 com/nvidia/spark/udf/GpuScalaUDFLogical.class
 com/nvidia/spark/udf/Instruction$.class
 com/nvidia/spark/udf/LogicalPlanRules$$anonfun$replacePartialFunc$1.class
-com/nvidia/spark/udf/LogicalPlanRules$.class
 com/nvidia/spark/udf/LogicalPlanRules.class
 com/nvidia/spark/udf/State$.class
 com/nvidia/spark/udf/State.class
@@ -2919,7 +2916,6 @@ com/nvidia/spark/rapids/ColumnarOutputWriter$$anon$1.class
 com/nvidia/spark/rapids/ColumnarOutputWriter$.class
 com/nvidia/spark/rapids/ColumnarOutputWriter.class
 com/nvidia/spark/rapids/ColumnarOutputWriterFactory.class
-com/nvidia/spark/rapids/ColumnarOverrideRules$.class
 com/nvidia/spark/rapids/ColumnarOverrideRules.class
 com/nvidia/spark/rapids/ColumnarPartitionReaderWithPartitionValues$.class
 com/nvidia/spark/rapids/ColumnarPartitionReaderWithPartitionValues.class
