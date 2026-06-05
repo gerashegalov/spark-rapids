@@ -602,7 +602,6 @@ com/nvidia/spark/rapids/AllOp$.class
 com/nvidia/spark/rapids/AnyOp.class
 com/nvidia/spark/rapids/AnyOp$.class
 com/nvidia/spark/rapids/ArrayAggregateDecomposition.class
-com/nvidia/spark/rapids/ArrayAggregateDecomposition$.class
 com/nvidia/spark/rapids/AutoCloseColumnBatchIterator.class
 com/nvidia/spark/rapids/AutoCloseColumnBatchIterator$.class
 com/nvidia/spark/rapids/AvroSeekableInputStream.class
@@ -630,7 +629,6 @@ com/nvidia/spark/rapids/ExecutorCache$CurrentDeviceComputeModeHolder.class
 com/nvidia/spark/rapids/ExecutorCache$CurrentDeviceUuidHolder.class
 com/nvidia/spark/rapids/ExecutorCache$ProcessNameHolder.class
 com/nvidia/spark/rapids/ExtractedG.class
-com/nvidia/spark/rapids/ExtractedG$.class
 com/nvidia/spark/rapids/ExtremumOp.class
 com/nvidia/spark/rapids/GpuCoalesceIteratorBase$.class
 com/nvidia/spark/rapids/GpuColumnarBatchIterator.class
@@ -810,7 +808,6 @@ com/nvidia/spark/rapids/shuffle/BufferReceiveState$.class
 com/nvidia/spark/rapids/shuffle/BufferSendState$.class
 com/nvidia/spark/rapids/shuffle/CudfTransportBuffer.class
 com/nvidia/spark/rapids/shuffle/MemoryRegistrationCallback.class
-com/nvidia/spark/rapids/shuffle/SendBounceBuffers$.class
 com/nvidia/spark/rapids/shuffle/SendBounceBuffers.class
 com/nvidia/spark/rapids/shuffle/TransportBuffer.class
 com/nvidia/spark/rapids/shuffle/WindowedBlockIterator.class
@@ -1514,9 +1511,7 @@ com/nvidia/spark/rapids/shuffle/BufferReceiveState.class
 com/nvidia/spark/rapids/shuffle/BufferSendState$RangeBuffer.class
 com/nvidia/spark/rapids/shuffle/BufferSendState$SendBlock.class
 com/nvidia/spark/rapids/shuffle/BufferSendState.class
-com/nvidia/spark/rapids/shuffle/ConsumedBatchFromBounceBuffer$.class
 com/nvidia/spark/rapids/shuffle/ConsumedBatchFromBounceBuffer.class
-com/nvidia/spark/rapids/shuffle/PendingTransferRequest$.class
 com/nvidia/spark/rapids/shuffle/PendingTransferRequest.class
 com/nvidia/spark/rapids/shuffle/RapidsShuffleClient$.class
 com/nvidia/spark/rapids/shuffle/RapidsShuffleClient$ShuffleClientOps$.class
@@ -2877,7 +2872,6 @@ com/nvidia/spark/rapids/CaseWhenCheck.class
 com/nvidia/spark/rapids/CastChecks.class
 com/nvidia/spark/rapids/CastExprMeta.class
 com/nvidia/spark/rapids/CastExprMetaBase.class
-com/nvidia/spark/rapids/CloseableTableSeqWithTargetSize$.class
 com/nvidia/spark/rapids/CloseableTableSeqWithTargetSize.class
 com/nvidia/spark/rapids/CoalesceGoal$.class
 com/nvidia/spark/rapids/CoalesceGoal.class
@@ -3229,7 +3223,6 @@ com/nvidia/spark/rapids/GpuOrcPartitionReader.class
 com/nvidia/spark/rapids/GpuOrcPartitionReaderFactory.class
 com/nvidia/spark/rapids/GpuOrcScan$.class
 com/nvidia/spark/rapids/GpuOrcTimezoneUtils.class
-com/nvidia/spark/rapids/GpuOutOfCoreSortIterator$.class
 com/nvidia/spark/rapids/GpuOutOfCoreSortIterator.class
 com/nvidia/spark/rapids/GpuOverrideUtil$.class
 com/nvidia/spark/rapids/GpuOverrideUtil.class
@@ -3588,7 +3581,6 @@ com/nvidia/spark/rapids/GpuSimpleHigherOrderFunction$$anonfun$2.class
 com/nvidia/spark/rapids/GpuSimpleHigherOrderFunction.class
 com/nvidia/spark/rapids/GpuSinglePartitioning$.class
 com/nvidia/spark/rapids/GpuSortAggregateExecMeta.class
-com/nvidia/spark/rapids/GpuSortEachBatchIterator$.class
 com/nvidia/spark/rapids/GpuSortEachBatchIterator.class
 com/nvidia/spark/rapids/GpuSortExec$.class
 com/nvidia/spark/rapids/GpuSortExec.class
@@ -3611,7 +3603,6 @@ com/nvidia/spark/rapids/GpuTextBasedDateUtils$.class
 com/nvidia/spark/rapids/GpuTextBasedDateUtils.class
 com/nvidia/spark/rapids/GpuTextBasedPartitionReader$.class
 com/nvidia/spark/rapids/GpuTextBasedPartitionReader.class
-com/nvidia/spark/rapids/GpuTieredProject$.class
 com/nvidia/spark/rapids/GpuTieredProject.class
 com/nvidia/spark/rapids/GpuTopN$$anon$1.class
 com/nvidia/spark/rapids/GpuTopN$.class

@@ -195,9 +195,9 @@ object GpuShuffleCoalesceUtils {
       val secondHalfSize = newTargetSize.dataSize - firstHalfSize
 
       Seq(
-        CloseableTableSeqWithTargetSize(firstHalfTables,
+        new CloseableTableSeqWithTargetSize(firstHalfTables,
           new AutoCloseableTargetSize(targetByteSize, newTargetSize.minSize, firstHalfSize)),
-        CloseableTableSeqWithTargetSize(secondHalfTables,
+        new CloseableTableSeqWithTargetSize(secondHalfTables,
           new AutoCloseableTargetSize(targetByteSize, newTargetSize.minSize, secondHalfSize))
       )
     }
@@ -460,9 +460,9 @@ class KudoGpuTableOperator(dataTypes: Array[DataType])
  * splitting based on byte size when OOM occurs. Extends Seq[T] so it can be
  * used directly as a sequence.
  */
-case class CloseableTableSeqWithTargetSize[T <: AutoCloseable](
-    tables: Seq[T],
-    targetSize: AutoCloseableTargetSize) extends Seq[T] with AutoCloseable {
+class CloseableTableSeqWithTargetSize[T <: AutoCloseable](
+    val tables: Seq[T],
+    val targetSize: AutoCloseableTargetSize) extends Seq[T] with AutoCloseable with Serializable {
   override def close(): Unit = {
     tables.foreach(_.safeClose())
     targetSize.close()
@@ -555,7 +555,7 @@ abstract class CoalesceIteratorBase[T <: AutoCloseable : ClassTag, R <: AutoClos
           val dataSize = tablesSeq.map(tableOperator.getDataLen).sum
           val targetSizeWrapper = new AutoCloseableTargetSize(targetBatchByteSize,
             minSplitSizeForRetry, dataSize)
-          val wrapper = CloseableTableSeqWithTargetSize(tablesSeq, targetSizeWrapper)
+          val wrapper = new CloseableTableSeqWithTargetSize(tablesSeq, targetSizeWrapper)
           val wrapperIter = Iterator(wrapper)
           inputIter = Some(wrapperIter)
           val resultIter = withRetry(wrapperIter, policy) { wrappedSeq =>

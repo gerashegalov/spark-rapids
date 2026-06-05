@@ -27,10 +27,10 @@ import com.nvidia.spark.rapids.format.TableMeta
 import com.nvidia.spark.rapids.jni.RmmSpark
 
 
-case class ConsumedBatchFromBounceBuffer(
-    contigBuffer: DeviceMemoryBuffer,
-    meta: TableMeta,
-    handler: RapidsShuffleFetchHandler)
+class ConsumedBatchFromBounceBuffer(
+    val contigBuffer: DeviceMemoryBuffer,
+    val meta: TableMeta,
+    val handler: RapidsShuffleFetchHandler) extends Serializable
 
 /**
  * A helper case class to maintain the state associated with a transfer request to a peer.
@@ -236,7 +236,7 @@ class BufferReceiveState(
           }
 
           if (contigBuffer != null) {
-            Some(ConsumedBatchFromBounceBuffer(
+            Some(new ConsumedBatchFromBounceBuffer(
               contigBuffer, pendingTransferRequest.tableMeta, pendingTransferRequest.handler))
           } else {
             None

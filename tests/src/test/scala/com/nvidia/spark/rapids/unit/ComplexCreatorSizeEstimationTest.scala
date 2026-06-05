@@ -52,7 +52,7 @@ class ComplexCreatorSizeEstimationTest extends GpuUnitTests {
         GpuColumnVector.getTotalDeviceMemoryUsed(proCb)
       }
       val estimatedSize = PreProjectSplitIterator.calcMinOutputSize(inCb,
-        GpuTieredProject(Seq(boundList)))
+        new GpuTieredProject(Seq(boundList)))
       assertResult(actualSize)(estimatedSize)
     }
   }

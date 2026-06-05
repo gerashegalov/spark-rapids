@@ -180,10 +180,10 @@ class UCXShuffleTransport(shuffleServerId: BlockManagerId, rapidsConf: RapidsCon
       val hostBuffer = tryAcquireBounceBuffers(hostSendBuffMgr, numBuffs)
       if (hostBuffer.nonEmpty) {
         deviceBuffer.zip(hostBuffer).map { case (d, h) =>
-          SendBounceBuffers(d, Some(h))
+          new SendBounceBuffers(d, Some(h))
         }
       } else {
-        deviceBuffer.map(d => SendBounceBuffers(d, None))
+        deviceBuffer.map(d => new SendBounceBuffers(d, None))
       }
     } else {
       Seq.empty

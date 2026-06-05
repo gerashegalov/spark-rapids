@@ -52,9 +52,9 @@ abstract class BounceBuffer(val buffer: MemoryBuffer) extends AutoCloseable {
  * @param deviceBounceBuffer - device buffer to use for sends
  * @param hostBounceBuffer - optional host buffer to use for sends
  */
-case class SendBounceBuffers(
-    deviceBounceBuffer: BounceBuffer,
-    hostBounceBuffer: Option[BounceBuffer]) extends AutoCloseable {
+class SendBounceBuffers(
+    val deviceBounceBuffer: BounceBuffer,
+    val hostBounceBuffer: Option[BounceBuffer]) extends AutoCloseable with Serializable {
 
   def bounceBufferSize: Long = {
     deviceBounceBuffer.buffer.getLength

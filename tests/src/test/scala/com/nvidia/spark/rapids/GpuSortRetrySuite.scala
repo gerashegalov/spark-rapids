@@ -176,10 +176,14 @@ class GpuSortRetrySuite extends RmmSparkRetrySuiteBase with MockitoSugar {
   }
 
   test("GPU each batch sort with GpuRetryOOM") {
-    val eachBatchIter = GpuSortEachBatchIterator(
+    val eachBatchIter = new GpuSortEachBatchIterator(
       batchIter(2),
       gpuSorter,
-      singleBatch = false)
+      singleBatch = false,
+      opTime = NoopMetric,
+      sortTime = NoopMetric,
+      outputBatches = NoopMetric,
+      outputRows = NoopMetric)
     RmmSpark.forceRetryOOM(RmmSpark.getCurrentThreadId, 2,
       RmmSpark.OomInjectionType.GPU.ordinal, 0)
     while (eachBatchIter.hasNext) {
@@ -201,10 +205,14 @@ class GpuSortRetrySuite extends RmmSparkRetrySuiteBase with MockitoSugar {
   test("GPU each batch sort throws GpuSplitAndRetryOOM") {
     val inputIter = batchIter(2)
     try {
-      val eachBatchIter = GpuSortEachBatchIterator(
+      val eachBatchIter = new GpuSortEachBatchIterator(
         inputIter,
         gpuSorter,
-        singleBatch = false)
+        singleBatch = false,
+        opTime = NoopMetric,
+        sortTime = NoopMetric,
+        outputBatches = NoopMetric,
+        outputRows = NoopMetric)
       RmmSpark.forceSplitAndRetryOOM(RmmSpark.getCurrentThreadId, 1,
         RmmSpark.OomInjectionType.GPU.ordinal, 0)
       assertThrows[GpuSplitAndRetryOOM] {

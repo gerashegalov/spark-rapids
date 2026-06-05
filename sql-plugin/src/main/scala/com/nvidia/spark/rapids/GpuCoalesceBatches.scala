@@ -519,7 +519,7 @@ abstract class AbstractGpuCoalesceIterator(
                 case RequireSingleBatchWithFilter(filterExpression) =>
                   if (inputFilterTier.isEmpty) {
                     // We are going to enter the null-filtering mode
-                    val filterTier = GpuTieredProject(Seq(Seq(filterExpression)))
+                    val filterTier = new GpuTieredProject(Seq(Seq(filterExpression)))
                     // 1) Filter what we had already stored, and the rows number should
                     //    be within the limit.
                     // Re-calculate the filtered rows number and size.

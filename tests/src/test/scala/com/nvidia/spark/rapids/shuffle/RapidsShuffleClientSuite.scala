@@ -33,7 +33,7 @@ class RapidsShuffleClientSuite extends RapidsShuffleTestHelper {
   def prepareBufferReceiveState(
       tableMeta: TableMeta,
       bounceBuffer: BounceBuffer): BufferReceiveState = {
-    val ptr = PendingTransferRequest(client, tableMeta, mockHandler)
+    val ptr = new PendingTransferRequest(client, tableMeta, mockHandler)
     spy(new BufferReceiveState(123L, bounceBuffer, Seq(ptr), () => {}))
   }
 
@@ -42,7 +42,7 @@ class RapidsShuffleClientSuite extends RapidsShuffleTestHelper {
       bounceBuffer: BounceBuffer): BufferReceiveState = {
 
     val ptrs = tableMetas.map { tm =>
-      PendingTransferRequest(client, tm, mockHandler)
+      new PendingTransferRequest(client, tm, mockHandler)
     }
 
     spy(new BufferReceiveState(123L, bounceBuffer, ptrs, () => {}))

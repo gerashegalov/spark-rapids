@@ -178,9 +178,9 @@ object GpuBindReferences {
                 }.mkString("\n")
           }.mkString("\n"))
       }
-      GpuTieredProject(tiered)
+      new GpuTieredProject(tiered)
     } else {
-      GpuTieredProject(Seq(GpuBindReferences.bindGpuReferencesNoMetrics(expressions, input)))
+      new GpuTieredProject(Seq(GpuBindReferences.bindGpuReferencesNoMetrics(expressions, input)))
     }
   }
 

@@ -2201,7 +2201,7 @@ class DynamicGpuPartialAggregateIterator(
       inputIter
     } else {
       val sorter = new GpuSorter(ordering, inputAttrs, allMetrics)
-      GpuOutOfCoreSortIterator(inputIter,
+      new GpuOutOfCoreSortIterator(inputIter,
         sorter,
         configuredTargetBatchSize,
         opTime = metrics.opTime,

@@ -69,9 +69,9 @@ trait RapidsShuffleFetchHandler {
  * @param tableMeta shuffle metadata describing the table
  * @param handler a specific handler that is waiting for this batch
  */
-case class PendingTransferRequest(client: RapidsShuffleClient,
-                                  tableMeta: TableMeta,
-                                  handler: RapidsShuffleFetchHandler) {
+class PendingTransferRequest(val client: RapidsShuffleClient,
+                             val tableMeta: TableMeta,
+                             val handler: RapidsShuffleFetchHandler) extends Serializable {
   val getLength: Long = tableMeta.bufferMeta.size()
 }
 
@@ -358,7 +358,7 @@ class RapidsShuffleClient(
       // We check the uncompressedSize to make sure we don't request a 0-sized buffer
       // from a peer. We treat such a corner case as a degenerate batch
       if (tableMeta.bufferMeta() != null && tableMeta.bufferMeta().uncompressedSize() > 0) {
-        ptrs += PendingTransferRequest(
+        ptrs += new PendingTransferRequest(
           this,
           tableMeta,
           handler)

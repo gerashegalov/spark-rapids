@@ -141,12 +141,12 @@ case class GpuSortExec(
         tcs.map(_.newTaskInstance().asInstanceOf[GpuWriteTaskStatsTracker])
       }
       val finalIter = if (outOfCore) {
-        val iter = GpuOutOfCoreSortIterator(cbIter, sorter,
+        val iter = new GpuOutOfCoreSortIterator(cbIter, sorter,
           targetSize, opTime, sortTime, outputBatch, outputRows)
         onTaskCompletion(iter.close())
         iter
       } else {
-        GpuSortEachBatchIterator(cbIter, sorter, singleBatch,
+        new GpuSortEachBatchIterator(cbIter, sorter, singleBatch,
           opTime, sortTime, outputBatch, outputRows)
       }
       if (taskTrackers.exists(_.nonEmpty)) {
@@ -165,14 +165,14 @@ case class GpuSortExec(
   }
 }
 
-case class GpuSortEachBatchIterator(
-    iter: Iterator[ColumnarBatch],
-    sorter: GpuSorter,
-    singleBatch: Boolean,
-    opTime: GpuMetric = NoopMetric,
-    sortTime: GpuMetric = NoopMetric,
-    outputBatches: GpuMetric = NoopMetric,
-    outputRows: GpuMetric = NoopMetric) extends Iterator[ColumnarBatch] {
+class GpuSortEachBatchIterator(
+    val iter: Iterator[ColumnarBatch],
+    val sorter: GpuSorter,
+    val singleBatch: Boolean,
+    val opTime: GpuMetric,
+    val sortTime: GpuMetric,
+    val outputBatches: GpuMetric,
+    val outputRows: GpuMetric) extends Iterator[ColumnarBatch] with Serializable {
   override def hasNext: Boolean = iter.hasNext
 
   override def next(): ColumnarBatch = {
@@ -295,15 +295,15 @@ class Pending(cpuOrd: LazilyGeneratedOrdering) extends AutoCloseable {
  * the merged data is split and put back into a pending queue.  The process repeats until we have
  * enough data to output.
  */
-case class GpuOutOfCoreSortIterator(
-    iter: Iterator[ColumnarBatch],
-    sorter: GpuSorter,
-    targetSize: Long,
-    opTime: GpuMetric,
-    sortTime: GpuMetric,
-    outputBatches: GpuMetric,
-    outputRows: GpuMetric) extends Iterator[ColumnarBatch]
-    with AutoCloseable {
+class GpuOutOfCoreSortIterator(
+    val iter: Iterator[ColumnarBatch],
+    val sorter: GpuSorter,
+    val targetSize: Long,
+    val opTime: GpuMetric,
+    val sortTime: GpuMetric,
+    val outputBatches: GpuMetric,
+    val outputRows: GpuMetric) extends Iterator[ColumnarBatch]
+    with AutoCloseable with Serializable {
 
   /**
    * This has already sorted the data, and it still has the projected columns in it that need to

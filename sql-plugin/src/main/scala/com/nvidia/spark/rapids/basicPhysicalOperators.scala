@@ -1011,7 +1011,7 @@ case class GpuProjectAstExec(
  *   Input columns for tier 3: a, c, e, f, ref2, ref3
  *   Tier 3: (ref2 * e), (ref3 * f), (a + e), (c + f)
  */
- case class GpuTieredProject(exprTiers: Seq[Seq[GpuExpression]]) {
+ class GpuTieredProject(val exprTiers: Seq[Seq[GpuExpression]]) extends Serializable {
 
   /**
    * Inject metrics into all expressions across all tiers.
