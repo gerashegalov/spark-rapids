@@ -1097,7 +1097,6 @@ org/apache/spark/sql/rapids/aggregate/GpuToCpuPercentileBufferConverter.class
 org/apache/spark/sql/rapids/aggregate/GpuToCpuPercentileBufferTransition$.class
 org/apache/spark/sql/rapids/aggregate/GpuToCpuPercentileBufferTransition.class
 org/apache/spark/sql/rapids/catalyst/expressions/GpuExpressionCombiner.class
-org/apache/spark/sql/rapids/catalyst/expressions/GpuExpressionEquals$.class
 org/apache/spark/sql/rapids/catalyst/expressions/GpuExpressionEquals.class
 org/apache/spark/sql/rapids/catalyst/expressions/GpuExpressionStats.class
 org/apache/spark/sql/rapids/delta/DeltaShufflePartitionsUtil$.class
@@ -2938,7 +2937,6 @@ com/nvidia/spark/rapids/Explain.class
 com/nvidia/spark/rapids/ExplainPlanImpl.class
 com/nvidia/spark/rapids/ExprChecks$.class
 com/nvidia/spark/rapids/ExprChecks.class
-com/nvidia/spark/rapids/ExprChecksImpl$.class
 com/nvidia/spark/rapids/ExprChecksImpl.class
 com/nvidia/spark/rapids/ExprMeta.class
 com/nvidia/spark/rapids/ExprRule.class

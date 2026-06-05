@@ -41,7 +41,7 @@ object BloomFilterShims {
         }),
       GpuOverrides.expr[BloomFilterAggregate](
         "Bloom filter build",
-        ExprChecksImpl(Map(
+        new ExprChecksImpl(Map(
           (ReductionAggExprContext,
             new ContextChecks(TypeSig.BINARY, TypeSig.BINARY,
               Seq(new ParamCheck("child", TypeSig.LONG, TypeSig.LONG),

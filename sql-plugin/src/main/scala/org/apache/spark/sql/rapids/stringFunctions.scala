@@ -496,7 +496,7 @@ class ContainsCombiner(private val exp: GpuContains) extends GpuExpressionCombin
   override def addExpression(e: Expression): Unit = {
     val localOutputLocation = outputLocation
     outputLocation += 1
-    val key = GpuExpressionEquals(e)
+    val key = new GpuExpressionEquals(e)
     if (!toCombine.contains(key)) {
       toCombine.put(key, localOutputLocation)
     }
@@ -530,7 +530,7 @@ class ContainsCombiner(private val exp: GpuContains) extends GpuExpressionCombin
   }
 
   override def getReplacementExpression(e: Expression): Option[Expression] = {
-    toCombine.get(GpuExpressionEquals(e)).map { localId =>
+    toCombine.get(new GpuExpressionEquals(e)).map { localId =>
       GpuGetStructField(multiContains, localId, Some(fieldName(localId)))
     }
   }

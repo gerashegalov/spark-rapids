@@ -1469,7 +1469,7 @@ abstract class BaseExprMeta[INPUT <: Expression](
     val inputMapping = scala.collection.mutable.Map[Int, Int]()
     
     gpuInputsWithIndex.foreach { case (gpuExpr, originalIndex) =>
-      val exprWrapper = GpuExpressionEquals(gpuExpr)
+      val exprWrapper = new GpuExpressionEquals(gpuExpr)
       seenExpressions.get(exprWrapper) match {
         case Some(existingIndex) =>
           // This expression is a duplicate - map to existing index

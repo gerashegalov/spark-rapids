@@ -2415,7 +2415,7 @@ object GpuOverrides {
       }),
     expr[Max](
       "Max aggregate operator",
-      ExprChecksImpl(
+      new ExprChecksImpl(
         ExprChecks.reductionAndGroupByAgg(
           (TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL + TypeSig.STRUCT +
             TypeSig.ARRAY).nested(),
@@ -2440,7 +2440,7 @@ object GpuOverrides {
       }),
     expr[Min](
       "Min aggregate operator",
-      ExprChecksImpl(
+      new ExprChecksImpl(
         ExprChecks.reductionAndGroupByAgg(
           (TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL + TypeSig.STRUCT +
               TypeSig.ARRAY).nested(),

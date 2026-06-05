@@ -1023,7 +1023,7 @@ abstract class ExprChecks extends TypeChecks[Map[ExpressionContext, Map[String, 
   def tagAst(meta: BaseExprMeta[_]): Unit
 }
 
-case class ExprChecksImpl(contexts: Map[ExpressionContext, ContextChecks])
+class ExprChecksImpl(val contexts: Map[ExpressionContext, ContextChecks])
     extends ExprChecks {
   override def tag(meta: RapidsMeta[_, _, _]): Unit = {
     val exprMeta = meta.asInstanceOf[BaseExprMeta[_]]
@@ -1502,7 +1502,7 @@ object ExprChecks {
       sparkOutputSig: TypeSig,
       paramCheck: Seq[ParamCheck] = Seq.empty,
       repeatingParamCheck: Option[RepeatingParamCheck] = None): ExprChecks =
-    ExprChecksImpl(Map(
+    new ExprChecksImpl(Map(
       (ProjectExprContext,
           new ContextChecks(outputCheck, sparkOutputSig, paramCheck, repeatingParamCheck))))
 
@@ -1522,7 +1522,7 @@ object ExprChecks {
     val astRepeatingParamCheck = repeatingParamCheck.map { rpc =>
       new RepeatingParamCheck(rpc.name, rpc.cudf.intersect(allowedAstTypes), rpc.spark)
     }
-    ExprChecksImpl(Map(
+    new ExprChecksImpl(Map(
       ProjectExprContext ->
           new ContextChecks(outputCheck, sparkOutputSig, paramCheck, repeatingParamCheck),
       AstExprContext ->
@@ -1615,7 +1615,7 @@ object ExprChecks {
       sparkOutputSig: TypeSig,
       paramCheck: Seq[ParamCheck] = Seq.empty,
       repeatingParamCheck: Option[RepeatingParamCheck] = None): ExprChecks =
-    ExprChecksImpl(Map(
+    new ExprChecksImpl(Map(
       (GroupByAggExprContext,
           new ContextChecks(outputCheck, sparkOutputSig, paramCheck, repeatingParamCheck)),
       (ReductionAggExprContext,
@@ -1629,7 +1629,7 @@ object ExprChecks {
       sparkOutputSig: TypeSig,
       paramCheck: Seq[ParamCheck] = Seq.empty,
       repeatingParamCheck: Option[RepeatingParamCheck] = None): ExprChecks =
-    ExprChecksImpl(Map(
+    new ExprChecksImpl(Map(
       (GroupByAggExprContext,
           new ContextChecks(outputCheck, sparkOutputSig, paramCheck, repeatingParamCheck)),
       (ReductionAggExprContext,
@@ -1646,7 +1646,7 @@ object ExprChecks {
       sparkOutputSig: TypeSig,
       paramCheck: Seq[ParamCheck] = Seq.empty,
       repeatingParamCheck: Option[RepeatingParamCheck] = None): ExprChecks =
-    ExprChecksImpl(Map(
+    new ExprChecksImpl(Map(
       (GroupByAggExprContext,
           new ContextChecks(outputCheck, sparkOutputSig, paramCheck, repeatingParamCheck)),
       (ReductionAggExprContext,
@@ -1671,7 +1671,7 @@ object ExprChecks {
     val windowRepeat = repeatingParamCheck.map { pc =>
       new RepeatingParamCheck(pc.name, TypeSig.none, pc.spark)
     }
-    ExprChecksImpl(Map(
+    new ExprChecksImpl(Map(
       (GroupByAggExprContext,
           new ContextChecks(outputCheck, sparkOutputSig, paramCheck, repeatingParamCheck)),
       (ReductionAggExprContext,
@@ -1689,7 +1689,7 @@ object ExprChecks {
       sparkOutputSig: TypeSig,
       paramCheck: Seq[ParamCheck] = Seq.empty,
       repeatingParamCheck: Option[RepeatingParamCheck] = None): ExprChecks =
-    ExprChecksImpl(Map(
+    new ExprChecksImpl(Map(
       (WindowAggExprContext,
           new ContextChecks(outputCheck, sparkOutputSig, paramCheck, repeatingParamCheck))))
 
@@ -1709,7 +1709,7 @@ object ExprChecks {
     val noneRepeatCheck = repeatingParamCheck.map { pc =>
       new RepeatingParamCheck(pc.name, TypeSig.none, pc.spark)
     }
-    ExprChecksImpl(Map(
+    new ExprChecksImpl(Map(
       (ReductionAggExprContext,
         new ContextChecks(TypeSig.none, sparkOutputSig, noneParamCheck, noneRepeatCheck)),
       (GroupByAggExprContext,
@@ -1733,7 +1733,7 @@ object ExprChecks {
     val noneRepeatCheck = repeatingParamCheck.map { pc =>
       new RepeatingParamCheck(pc.name, TypeSig.none, pc.spark)
     }
-    ExprChecksImpl(Map(
+    new ExprChecksImpl(Map(
       (ReductionAggExprContext,
           new ContextChecks(TypeSig.none, sparkOutputSig, noneParamCheck, noneRepeatCheck)),
       (GroupByAggExprContext,
