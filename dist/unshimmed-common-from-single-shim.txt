@@ -584,13 +584,9 @@ org/apache/spark/sql/catalyst/util/rapids/LegacyDateFormatter.class
 org/apache/spark/sql/catalyst/util/rapids/LegacyFastDateFormatter.class
 org/apache/spark/sql/catalyst/util/rapids/LegacySimpleDateFormatter.class
 org/apache/spark/sql/rapids/AvroDataBlock.class
-org/apache/spark/sql/rapids/AvroDataBlock$.class
 org/apache/spark/sql/rapids/AvroExtraInfo.class
-org/apache/spark/sql/rapids/AvroExtraInfo$.class
 org/apache/spark/sql/rapids/AvroSchemaWrapper.class
-org/apache/spark/sql/rapids/AvroSchemaWrapper$.class
 org/apache/spark/sql/rapids/AvroSingleDataBlockInfo.class
-org/apache/spark/sql/rapids/AvroSingleDataBlockInfo$.class
 com/nvidia/spark/rapids/shuffle/BlockRange.class
 com/nvidia/spark/rapids/shuffle/BlockWithSize.class
 com/nvidia/spark/rapids/shuffle/MessageType.class

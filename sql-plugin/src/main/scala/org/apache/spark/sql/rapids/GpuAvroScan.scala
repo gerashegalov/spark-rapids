@@ -288,13 +288,13 @@ case class GpuAvroMultiFilePartitionReaderFactory(
           }
           val fPath = new Path(new URI(file.filePath.toString()))
           clippedBlocks ++= singleFileInfo.blocks.map(block =>
-            AvroSingleDataBlockInfo(
+            new AvroSingleDataBlockInfo(
               fPath,
-              AvroDataBlock(block),
+              new AvroDataBlock(block),
               file.partitionValues,
-              AvroSchemaWrapper(SchemaConverters.toAvroType(readDataSchema)),
+              new AvroSchemaWrapper(SchemaConverters.toAvroType(readDataSchema)),
               readDataSchema,
-              AvroExtraInfo()))
+              new AvroExtraInfo()))
           if (singleFileInfo.blocks.nonEmpty) {
             // No need to check the header since it can not be null when blocks is not empty here.
             mapPathHeader.put(fPath, singleFileInfo.header)
@@ -1044,7 +1044,7 @@ class GpuMultiFileAvroPartitionReader(
     blocks.map(toBlockInfo(_))
 
   implicit def toBlockBases(blocks: Seq[BlockInfo]): Seq[DataBlockBase] =
-    blocks.map(AvroDataBlock(_))
+    blocks.map(new AvroDataBlock(_))
 
   implicit def toAvroExtraInfo(in: ExtraInfo): AvroExtraInfo =
     in.asInstanceOf[AvroExtraInfo]
@@ -1096,27 +1096,27 @@ case class AvroBlockMeta(header: Header, headerSize: Long, blocks: Seq[BlockInfo
 private class CopyRange(val offset: Long, val length: Long)
 
 /** Extra information */
-case class AvroExtraInfo() extends ExtraInfo
+class AvroExtraInfo extends ExtraInfo with Serializable
 
 /** avro schema wrapper */
-case class AvroSchemaWrapper(schema: Schema) extends SchemaBase {
+class AvroSchemaWrapper(val schema: Schema) extends SchemaBase with Serializable {
   override def isEmpty: Boolean = schema.getFields.isEmpty
 }
 
 /** avro BlockInfo wrapper */
-case class AvroDataBlock(blockInfo: BlockInfo) extends DataBlockBase {
+class AvroDataBlock(val blockInfo: BlockInfo) extends DataBlockBase with Serializable {
   override def getRowCount: Long = blockInfo.count
   override def getReadDataSize: Long = blockInfo.dataSize
   override def getBlockSize: Long = blockInfo.blockSize
 }
 
-case class AvroSingleDataBlockInfo(
-  filePath: Path,
-  dataBlock: AvroDataBlock,
-  partitionValues: InternalRow,
-  schema: AvroSchemaWrapper,
-  readSchema: StructType,
-  extraInfo: AvroExtraInfo) extends SingleDataBlockInfo
+class AvroSingleDataBlockInfo(
+  val filePath: Path,
+  val dataBlock: AvroDataBlock,
+  val partitionValues: InternalRow,
+  val schema: AvroSchemaWrapper,
+  val readSchema: StructType,
+  val extraInfo: AvroExtraInfo) extends SingleDataBlockInfo with Serializable
 
 case class AvroBatchContext(
   override val origChunkedBlocks: LinkedHashMap[Path, ArrayBuffer[DataBlockBase]],
