@@ -372,8 +372,8 @@ class KudoTableOperator(kudo: Option[KudoSerializer], readOption: CoalesceReadOp
     val dumpPrefix = readOption.kudoDebugDumpPrefix
     if (dumpOption != DumpOption.Never && dumpPrefix.isDefined) {
       val updatedPrefix = s"${dumpPrefix.get}_${taskIdentifier}"
-      lazy val (out, path) = createTempFile(new Configuration(), updatedPrefix, ".bin")
-      new MergeOptions(dumpOption, () => out, path.toString)
+      lazy val tempFile = createTempFile(new Configuration(), updatedPrefix, ".bin")
+      new MergeOptions(dumpOption, () => tempFile.getOutputStream, tempFile.getPath.toString)
     } else {
       new MergeOptions(dumpOption, null, null)
     }

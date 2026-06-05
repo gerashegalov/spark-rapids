@@ -52,7 +52,7 @@ com/nvidia/spark/rapids/Errored$.class
 com/nvidia/spark/rapids/EmptyGpuDataProducer.class
 com/nvidia/spark/rapids/ExtraInfo.class
 com/nvidia/spark/rapids/FileUtils.class
-com/nvidia/spark/rapids/FileUtils$.class
+com/nvidia/spark/rapids/FileUtils$TempFile.class
 com/nvidia/spark/rapids/FileFormatOp.class
 com/nvidia/spark/rapids/FileFormatType.class
 com/nvidia/spark/rapids/FullSortSingleBatch.class

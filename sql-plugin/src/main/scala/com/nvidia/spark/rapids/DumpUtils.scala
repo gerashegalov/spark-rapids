@@ -56,7 +56,8 @@ object DumpUtils {
       prefix: String,
       suffix: String): String = {
     try {
-      val (out, path) = FileUtils.createTempFile(conf, prefix, suffix)
+      val tempFile = FileUtils.createTempFile(conf, prefix, suffix)
+      val out = tempFile.getOutputStream
       withResource(out) { _ =>
         withResource(data.slice(offset, len)) { hmb =>
           withResource(new HostMemoryInputStream(hmb, hmb.getLength)) { in =>
@@ -64,7 +65,7 @@ object DumpUtils {
           }
         }
       }
-      path.toString
+      tempFile.getPath.toString
     } catch {
       case e: Exception =>
         log.error(s"Error attempting to dump data", e)
@@ -78,7 +79,8 @@ object DumpUtils {
       prefix: String,
       suffix: String): String = {
     try {
-      val (out, path) = FileUtils.createTempFile(conf, prefix, suffix)
+      val tempFile = FileUtils.createTempFile(conf, prefix, suffix)
+      val out = tempFile.getOutputStream
       withResource(out) { _ =>
         data.foreach { hmb =>
           withResource(new HostMemoryInputStream(hmb, hmb.getLength)) { in =>
@@ -86,7 +88,7 @@ object DumpUtils {
           }
         }
       }
-      path.toString
+      tempFile.getPath.toString
     } catch {
       case e: Exception =>
         log.error(s"Error attempting to dump data", e)
