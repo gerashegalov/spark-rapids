@@ -1356,11 +1356,11 @@ abstract class AbstractGpuParquetMultiFilePartitionReaderFactory(
         metaAndFilesArr.foreach { metaAndFile =>
           val singleFileInfo = metaAndFile.meta
           clippedBlocks ++= singleFileInfo.blocks.map(block =>
-            ParquetSingleDataBlockMeta(
+            new ParquetSingleDataBlockMeta(
               singleFileInfo.filePath,
-              ParquetDataBlock(block, compressCfg),
+              new ParquetDataBlock(block, compressCfg),
               metaAndFile.file.partitionValues,
-              ParquetSchemaWrapper(singleFileInfo.schema),
+              new ParquetSchemaWrapper(singleFileInfo.schema),
               singleFileInfo.readSchema,
               new ParquetExtraInfo(singleFileInfo.dateRebaseMode,
                 singleFileInfo.timestampRebaseMode,
@@ -2253,21 +2253,21 @@ trait ParquetPartitionReaderBase extends RapidsLocalLog with ScanWithMetrics
     block.asInstanceOf[ParquetDataBlock].dataBlock
 
   implicit def toDataBlockBase(blocks: Seq[BlockMetaData]): Seq[DataBlockBase] =
-    blocks.map(b => ParquetDataBlock(b, compressCfg))
+    blocks.map(b => new ParquetDataBlock(b, compressCfg))
 
   implicit def toBlockMetaDataSeq(blocks: Seq[DataBlockBase]): Seq[BlockMetaData] =
     blocks.map(_.asInstanceOf[ParquetDataBlock].dataBlock)
 }
 
 // Parquet schema wrapper
-case class ParquetSchemaWrapper(schema: MessageType) extends SchemaBase {
+class ParquetSchemaWrapper(val schema: MessageType) extends SchemaBase with Serializable {
   override def isEmpty: Boolean = schema.getFields.isEmpty
 }
 
 // Parquet BlockMetaData wrapper
-case class ParquetDataBlock(
-    dataBlock: BlockMetaData,
-    compressCfg: CpuCompressionConfig) extends DataBlockBase {
+class ParquetDataBlock(
+    val dataBlock: BlockMetaData,
+    val compressCfg: CpuCompressionConfig) extends DataBlockBase with Serializable {
   override def getRowCount: Long = dataBlock.getRowCount
   override def getReadDataSize: Long = dataBlock.getTotalByteSize
   override def getBlockSize: Long = {
@@ -2281,13 +2281,13 @@ class ParquetExtraInfo(val dateRebaseMode: DateTimeRebaseMode,
     val hasInt96Timestamps: Boolean) extends ExtraInfo
 
 // contains meta about a single block in a file
-case class ParquetSingleDataBlockMeta(
-  filePath: Path,
-  dataBlock: ParquetDataBlock,
-  partitionValues: InternalRow,
-  schema: ParquetSchemaWrapper,
-  readSchema: StructType,
-  extraInfo: ParquetExtraInfo) extends SingleDataBlockInfo
+class ParquetSingleDataBlockMeta(
+  val filePath: Path,
+  val dataBlock: ParquetDataBlock,
+  val partitionValues: InternalRow,
+  val schema: ParquetSchemaWrapper,
+  val readSchema: StructType,
+  val extraInfo: ParquetExtraInfo) extends SingleDataBlockInfo with Serializable
 
 /**
  * Abstract base class for coalescing Parquet partition readers.
@@ -2675,8 +2675,8 @@ abstract class AbstractMultiFileCloudParquetPartitionReader(
       next.dateRebaseMode,
       current.timestampRebaseMode,
       next.timestampRebaseMode,
-      ParquetSchemaWrapper(current.clippedSchema),
-      ParquetSchemaWrapper(next.clippedSchema),
+      new ParquetSchemaWrapper(current.clippedSchema),
+      new ParquetSchemaWrapper(next.clippedSchema),
       current.partitionedFile.filePath.toString(),
       next.partitionedFile.filePath.toString()
     )

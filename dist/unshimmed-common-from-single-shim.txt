@@ -358,7 +358,6 @@ com/nvidia/spark/rapids/parquet/ParquetChunkedReader$.class
 com/nvidia/spark/rapids/parquet/ParquetOutputFileFormat.class
 com/nvidia/spark/rapids/parquet/ParquetOutputFileFormat$.class
 com/nvidia/spark/rapids/parquet/ParquetSchemaWrapper.class
-com/nvidia/spark/rapids/parquet/ParquetSchemaWrapper$.class
 com/nvidia/spark/rapids/GpuBuildLeft.class
 com/nvidia/spark/rapids/GpuBuildLeft$.class
 com/nvidia/spark/rapids/GpuBuildRight.class
