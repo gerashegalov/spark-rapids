@@ -74,9 +74,9 @@ function print_usage() {
   echo "   --scala213"
   echo "        build 2.13 shims"
   echo "   --unshim-fast"
-  echo "        skip Maven checks/docs, build metadata, coverage, enforcer, and snapshot refresh for repeated unshim/dist iteration"
+  echo "        skip Maven checks/docs, tests, build metadata, coverage, enforcer, and snapshot refresh for repeated unshim/dist iteration"
   echo "   --parallel-world-only, --unshim-parallel-world-only"
-  echo "        stop after dist generate-resources, leaving parallel-world output for dependency analysis"
+  echo "        build analyzer-only parallel-world output without the final Maven dist invocation"
 }
 
 function bloopInstall() {
@@ -213,7 +213,7 @@ MVN=${MVN:-"mvn"}
 export MVN="$MVN -Dmaven.wagon.http.retryHandler.count=3 ${MVN_OPT}"
 if [[ "$UNSHIM_FAST" == "1" ]]; then
   export MAVEN_REFRESH_OPT="--no-snapshot-updates"
-  export MVN_FAST_SKIP_OPTS="-Drat.skip=true -Dmaven.scalastyle.skip=true -Dmaven.scaladoc.skip=true -Dmaven.javadoc.skip=true -Ddist.jar.compress=false -Djacoco.skip=true -Denforcer.skip=true -Drapids.build.info.skip=true"
+  export MVN_FAST_SKIP_OPTS="-Dmaven.test.skip=true -Drat.skip=true -Dmaven.scalastyle.skip=true -Dmaven.scaladoc.skip=true -Dmaven.javadoc.skip=true -Ddist.jar.compress=false -Djacoco.skip=true -Denforcer.skip=true -Drapids.build.info.skip=true"
 else
   export MAVEN_REFRESH_OPT="-U"
   export MVN_FAST_SKIP_OPTS=""
@@ -275,7 +275,7 @@ else
 fi
 
 if [[ "$UNSHIM_PARALLEL_WORLD_ONLY" == "1" ]]; then
-  echo "Unshim parallel-world-only: stopping at generate-resources and skipping JNI unpack, shimplify, and jar packaging"
+  echo "Unshim parallel-world-only: preparing analyzer-only output and skipping JNI unpack, shimplify, and reduced POM generation"
   MVN_FAST_SKIP_OPTS="$MVN_FAST_SKIP_OPTS -Drapids.jni.unpack.skip=true -Drapids.shimplify.skip=true -Drapids.parallel.world.skip.reduced.pom=true"
 elif [[ "$UNSHIM_FAST" == "1" && -d "$MVN_BASE_DIR/dist/target/jni-deps" ]]; then
   echo "Unshim fast: reusing existing JNI deps from $MVN_BASE_DIR/dist/target/jni-deps"
@@ -428,9 +428,20 @@ time (
   joinShimBuildFrom="aggregator"
   INCLUDED_BUILDVERS_OPT=-Dincluded_buildvers=$(join_by , "${SPARK_SHIM_VERSIONS[@]}")
   if [[ "$UNSHIM_FAST" == "1" && "$MODULE" == "dist" ]]; then
-    echo "Resuming at dist only using $BASE_VER"
-    FINAL_RESUME_OPT=""
-    FINAL_MODULE_OPT="--projects dist"
+    if [[ "$UNSHIM_PARALLEL_WORLD_ONLY" == "1" ]]; then
+      echo "Unshim fast: assembling parallel-world directly without final Maven dist invocation"
+      python3 "$SOURCE_DIR/dist/scripts/build-unshim-parallel-world.py" \
+        --mvn-base-dir "$MVN_BASE_DIR" \
+        --source-dir "$SOURCE_DIR" \
+        --project-version "$RAPIDS_PROJECT_VERSION" \
+        --scala-binary-version "$RAPIDS_SCALA_BINARY_VERSION" \
+        --buildvers "$(join_by , "${SPARK_SHIM_VERSIONS[@]}")"
+      exit 0
+    else
+      echo "Resuming at dist only using $BASE_VER"
+      FINAL_RESUME_OPT=""
+      FINAL_MODULE_OPT="--projects dist"
+    fi
   else
     echo "Resuming from $joinShimBuildFrom build only using $BASE_VER"
     FINAL_RESUME_OPT="-rf $joinShimBuildFrom"
