@@ -23,7 +23,7 @@ import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;
 
-/** Bridges SQL-plugin PerfIO state into the Java-only Hadoop file I/O module. */
+/** Hadoop input factory that routes S3 paths through the registered PerfIO bridge. */
 public final class PerfIOHadoopInputFileFactory implements HadoopInputFileFactory {
     public static final PerfIOHadoopInputFileFactory INSTANCE = new PerfIOHadoopInputFileFactory();
 
