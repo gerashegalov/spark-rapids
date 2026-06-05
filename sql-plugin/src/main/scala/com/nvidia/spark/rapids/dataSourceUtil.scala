@@ -40,18 +40,6 @@ class PartitionIterator[T](reader: PartitionReader[T]) extends Iterator[T] {
   }
 }
 
-class MetricsBatchIterator(iter: Iterator[ColumnarBatch]) extends Iterator[ColumnarBatch] {
-  private[this] val inputMetrics = TaskContext.get().taskMetrics().inputMetrics
-
-  override def hasNext: Boolean = iter.hasNext
-
-  override def next(): ColumnarBatch = {
-    val batch = iter.next()
-    TrampolineUtil.incInputRecordsRows(inputMetrics, batch.numRows())
-    batch
-  }
-}
-
 /** Wraps a columnar PartitionReader to update bytes read metric based on filesystem statistics. */
 class PartitionReaderWithBytesRead(reader: PartitionReader[ColumnarBatch])
     extends PartitionReader[ColumnarBatch] {
