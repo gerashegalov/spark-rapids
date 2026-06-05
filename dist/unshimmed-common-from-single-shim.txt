@@ -88,7 +88,6 @@ com/nvidia/spark/rapids/HiveDelimitedTextFormatType$.class
 com/nvidia/spark/rapids/HiveMode.class
 com/nvidia/spark/rapids/HiveMode$.class
 com/nvidia/spark/rapids/HostAllocResult.class
-com/nvidia/spark/rapids/HostAllocResult$.class
 com/nvidia/spark/rapids/HostMemoryInputStream.class
 com/nvidia/spark/rapids/HostMemoryInputStreamMixIn.class
 com/nvidia/spark/rapids/HostMemoryOutputStream.class

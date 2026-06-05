@@ -30,7 +30,6 @@ import com.nvidia.spark.rapids.spill.SpillFramework
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.rapids.GpuTaskMetrics
 
-case class HostAllocResult(buffer: HostMemoryBuffer, isPinned: Boolean)
 
 private class HostAlloc(nonPinnedLimit: Long) extends HostMemoryAllocator {
   private def logTrace(msg: => String): Unit = {
@@ -216,14 +215,14 @@ private class HostAlloc(nonPinnedLimit: Long) extends HostMemoryAllocator {
       do {
         ret = (
           if (preferPinned) {
-            tryAllocPinned(amount).map(HostAllocResult(_, isPinned = true))
+            tryAllocPinned(amount).map(buffer => new HostAllocResult(buffer, true))
           } else {
-            tryAllocNonPinned(amount).map(HostAllocResult(_, isPinned = false))
+            tryAllocNonPinned(amount).map(buffer => new HostAllocResult(buffer, false))
           }).orElse {
           if (preferPinned) {
-            tryAllocNonPinned(amount).map(HostAllocResult(_, isPinned = false))
+            tryAllocNonPinned(amount).map(buffer => new HostAllocResult(buffer, false))
           } else {
-            tryAllocPinned(amount).map(HostAllocResult(_, isPinned = true))
+            tryAllocPinned(amount).map(buffer => new HostAllocResult(buffer, true))
           }
         }
         if (ret.isEmpty) {
@@ -237,7 +236,9 @@ private class HostAlloc(nonPinnedLimit: Long) extends HostMemoryAllocator {
       allocAttemptFinishedWithoutException = true
     } finally {
       ret match {
-        case Some(HostAllocResult(buffer: HostMemoryBuffer, isPinned: Boolean)) =>
+        case Some(result) =>
+          val buffer = result.buffer
+          val isPinned = result.isPinned
           val metrics = GpuTaskMetrics.get
           metrics.incHostBytesAllocated(amount, isPinned)
           if (BOOKKEEP_MEMORY) {
