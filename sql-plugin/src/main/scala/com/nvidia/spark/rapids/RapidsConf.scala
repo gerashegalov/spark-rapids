@@ -3026,7 +3026,7 @@ val SHUFFLE_COMPRESSION_LZ4_CHUNK_SIZE = conf("spark.rapids.shuffle.compression.
       .createWithDefault(-1)
 
   // default value for the OOM injection logic (no injection, for regular operation)
-  private val noInjection = OomInjectionConf(
+  private val noInjection = new OomInjectionConf(
     numOoms = 0,
     skipCount = 0,
     oomInjectionFilter = OomInjectionType.CPU_OR_GPU,
@@ -3075,7 +3075,7 @@ val SHUFFLE_COMPRESSION_LZ4_CHUNK_SIZE = conf("spark.rapids.shuffle.compression.
       TEST_RETRY_OOM_INJECTION_MODE.get(SQLConf.get).toLowerCase match {
         case "false" => noInjection
         case "true" =>
-          OomInjectionConf(numOoms = 1, skipCount = 0,
+          new OomInjectionConf(numOoms = 1, skipCount = 0,
             oomInjectionFilter = OomInjectionType.CPU_OR_GPU, withSplit = false)
         case injectConfStr =>
           val injectConfMap = injectConfStr.split(',').map(_.split('=')).collect {
@@ -3088,7 +3088,7 @@ val SHUFFLE_COMPRESSION_LZ4_CHUNK_SIZE = conf("spark.rapids.shuffle.compression.
             .toUpperCase()
           val oomFilter = OomInjectionType.valueOf(oomFilterStr)
           val withSplit = injectConfMap.getOrElse("split", false.toString)
-          val ret = OomInjectionConf(
+          val ret = new OomInjectionConf(
             numOoms = numOoms.toInt,
             skipCount = skipCount.toInt,
             oomInjectionFilter = oomFilter,
@@ -4145,9 +4145,12 @@ class RapidsConf(conf: Map[String, String]) {
   }
 }
 
-case class OomInjectionConf(
-  numOoms: Int,
-  skipCount: Int,
-  withSplit: Boolean,
-  oomInjectionFilter: OomInjectionType
-)
+class OomInjectionConf(
+    val numOoms: Int,
+    val skipCount: Int,
+    val withSplit: Boolean,
+    val oomInjectionFilter: OomInjectionType) extends Serializable {
+  override def toString: String =
+    "OomInjectionConf(" + numOoms + "," + skipCount + "," + withSplit + "," +
+        oomInjectionFilter + ")"
+}
