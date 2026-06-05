@@ -28,6 +28,7 @@ import com.nvidia.spark.rapids.shims.ShimExpression
 import org.apache.spark.sql.catalyst.analysis.TypeCoercion
 import org.apache.spark.sql.catalyst.expressions.{Add, And, ArrayAggregate, Attribute, AttributeReference, AttributeSeq, CaseWhen, Cast, Expression, ExprId, Greatest, If, LambdaFunction, Least, Literal, Multiply, NamedExpression, NamedLambdaVariable, Or}
 import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.rapids.GpuMapDedupPolicy
 import org.apache.spark.sql.types.{ArrayType, BooleanType, ByteType, DataType, Decimal, DecimalType, DoubleType, FloatType, IntegerType, LongType, MapType, Metadata, NumericType, ShortType, StructField, StructType}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
@@ -527,8 +528,7 @@ case class GpuTransformKeys(
   override def prettyName: String = "transform_keys"
 
   // Spark 4.1+ returns an enum value instead of String, so use toString first
-  private def exceptionOnDupKeys =
-    SQLConf.get.getConf(SQLConf.MAP_KEY_DEDUP_POLICY).toString.toUpperCase == "EXCEPTION"
+  private def exceptionOnDupKeys = GpuMapDedupPolicy.isException
 
   override lazy val hasSideEffects: Boolean =
     function.nullable || exceptionOnDupKeys || super.hasSideEffects

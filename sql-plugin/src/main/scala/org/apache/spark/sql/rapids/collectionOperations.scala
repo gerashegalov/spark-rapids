@@ -40,7 +40,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.unsafe.array.ByteArrayMethods.MAX_ROUNDED_ARRAY_LENGTH
 
-private[rapids] object GpuMapDedupPolicy {
+object GpuMapDedupPolicy {
   private val confEntry = SQLConf.MAP_KEY_DEDUP_POLICY.asInstanceOf[ConfigEntry[AnyRef]]
 
   def current: String = SQLConf.get.getConf(confEntry).toString
