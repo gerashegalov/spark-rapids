@@ -146,7 +146,7 @@ class CostBasedOptimizer extends Optimizer {
         // transition and reset the GPU cost
         if (operatorGpuCost + transitionCost > operatorCpuCost && !isExchangeOp(plan)) {
           // avoid transition and keep this operator on CPU
-          optimizations.append(AvoidTransition(plan))
+          optimizations.append(new AvoidTransition(plan))
           plan.costPreventsRunningOnGpu()
           // reset GPU cost
           totalGpuCost = totalCpuCost
@@ -168,7 +168,7 @@ class CostBasedOptimizer extends Optimizer {
             if (canRunOnGpu(child) && !isExchangeOp(child)
                 && childGpuTotal > childCpuCost) {
               // force this child plan back onto CPU
-              optimizations.append(ReplaceSection(
+              optimizations.append(new ReplaceSection(
                 child, totalCpuCost, totalGpuCost))
               child.recursiveCostPreventsRunningOnGpu()
             }
@@ -198,7 +198,7 @@ class CostBasedOptimizer extends Optimizer {
       if (canRunOnGpu(plan) && !isExchangeOp(plan)) {
         // this plan would have been on GPU so we move it and onto CPU and recurse down
         // until we reach a part of the plan that is already on CPU and then stop
-        optimizations.append(ReplaceSection(plan, totalCpuCost, totalGpuCost))
+        optimizations.append(new ReplaceSection(plan, totalCpuCost, totalGpuCost))
         plan.recursiveCostPreventsRunningOnGpu()
         // reset the costs because this section of the plan was not moved to GPU
         totalGpuCost = totalCpuCost
@@ -497,15 +497,15 @@ object RowCountPlanVisitor {
 
 sealed abstract class Optimization
 
-case class AvoidTransition[INPUT <: SparkPlan](plan: SparkPlanMeta[INPUT]) extends Optimization {
+class AvoidTransition[INPUT <: SparkPlan](val plan: SparkPlanMeta[INPUT]) extends Optimization {
   override def toString: String = s"It is not worth moving to GPU for operator: " +
       s"${Explain.format(plan)}"
 }
 
-case class ReplaceSection[INPUT <: SparkPlan](
-    plan: SparkPlanMeta[INPUT],
-    totalCpuCost: Double,
-    totalGpuCost: Double) extends Optimization {
+class ReplaceSection[INPUT <: SparkPlan](
+    val plan: SparkPlanMeta[INPUT],
+    val totalCpuCost: Double,
+    val totalGpuCost: Double) extends Optimization {
   override def toString: String = s"It is not worth keeping this section on GPU; " +
       s"gpuCost=$totalGpuCost, cpuCost=$totalCpuCost:\n${Explain.format(plan)}"
 }

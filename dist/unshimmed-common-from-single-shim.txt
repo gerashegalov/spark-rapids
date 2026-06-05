@@ -347,7 +347,6 @@ com/nvidia/spark/rapids/parquet/ByteArrayOutputFile$$anon$2.class
 com/nvidia/spark/rapids/parquet/ChunkedReader.class
 com/nvidia/spark/rapids/parquet/CloseableColumnBatchIterator.class
 com/nvidia/spark/rapids/parquet/ParquetChunkedReader.class
-com/nvidia/spark/rapids/parquet/ParquetChunkedReader$.class
 com/nvidia/spark/rapids/parquet/ParquetOutputFileFormat.class
 com/nvidia/spark/rapids/parquet/ParquetOutputFileFormat$.class
 com/nvidia/spark/rapids/parquet/ParquetSchemaWrapper.class
@@ -2081,7 +2080,6 @@ com/nvidia/spark/rapids/parquet/ParquetCachedBatchSerializer$UnsupportedRowTrans
 com/nvidia/spark/rapids/window/AggResultBatchConventions$.class
 com/nvidia/spark/rapids/window/AggResultBatchConventions.class
 com/nvidia/spark/rapids/window/BasicWindowCalc.class
-com/nvidia/spark/rapids/window/BatchedOps$.class
 com/nvidia/spark/rapids/window/BatchedOps.class
 com/nvidia/spark/rapids/window/BatchedRunningWindowBinaryFixer.class
 com/nvidia/spark/rapids/window/BatchedUnboundedToUnboundedBinaryFixer.class
@@ -2843,7 +2841,6 @@ com/nvidia/spark/rapids/AsyncProfilerOnExecutor$.class
 com/nvidia/spark/rapids/AsyncProfilerOnExecutor.class
 com/nvidia/spark/rapids/AtomicCreateTableAsSelectExecMeta.class
 com/nvidia/spark/rapids/AtomicReplaceTableAsSelectExecMeta.class
-com/nvidia/spark/rapids/AvoidTransition$.class
 com/nvidia/spark/rapids/AvoidTransition.class
 com/nvidia/spark/rapids/AvroDataFileReader.class
 com/nvidia/spark/rapids/AvroFileReader$.class
@@ -2875,7 +2872,6 @@ com/nvidia/spark/rapids/BinaryAstExprMeta.class
 com/nvidia/spark/rapids/BinaryExprMeta.class
 com/nvidia/spark/rapids/BoolUtils$.class
 com/nvidia/spark/rapids/BoolUtils.class
-com/nvidia/spark/rapids/BoundExpressionsModeAggregates$.class
 com/nvidia/spark/rapids/BoundExpressionsModeAggregates.class
 com/nvidia/spark/rapids/BucketJoinTwoSidesPrefetch$$anonfun$1.class
 com/nvidia/spark/rapids/BucketJoinTwoSidesPrefetch$.class
@@ -3871,7 +3867,6 @@ com/nvidia/spark/rapids/RegexRewrite$.class
 com/nvidia/spark/rapids/RegexRewrite.class
 com/nvidia/spark/rapids/RepeatingParamCheck$.class
 com/nvidia/spark/rapids/RepeatingParamCheck.class
-com/nvidia/spark/rapids/ReplaceSection$.class
 com/nvidia/spark/rapids/ReplaceSection.class
 com/nvidia/spark/rapids/ReplacementRule.class
 com/nvidia/spark/rapids/ReplicateRowsExprMeta.class

@@ -3413,7 +3413,7 @@ trait ChunkedReader extends AutoCloseable {
 /**
  * A simple wrapper to adapt the JniParquetChunkedReader to the ChunkedReader interface.
  */
-case class ParquetChunkedReader(delegate: JniParquetChunkedReader) extends ChunkedReader {
+class ParquetChunkedReader(val delegate: JniParquetChunkedReader) extends ChunkedReader {
   override def hasNext: Boolean = delegate.hasNext
   override def next: Table = delegate.readChunk()
   override def close(): Unit = delegate.close()
@@ -3507,7 +3507,7 @@ case class ParquetTableReader(
   opts, buffers, metrics, dateRebaseMode, timestampRebaseMode, isSchemaCaseSensitive, useFieldId,
   readDataSchema, clippedParquetSchema, splits, debugDumpPrefix, debugDumpAlways) {
 
-  override protected val reader: ChunkedReader = ParquetChunkedReader(
+  override protected val reader: ChunkedReader = new ParquetChunkedReader(
     new JniParquetChunkedReader(chunkSizeByteLimit, maxChunkedReaderMemoryUsageSizeBytes,
       opts, buffers:_*)
   )

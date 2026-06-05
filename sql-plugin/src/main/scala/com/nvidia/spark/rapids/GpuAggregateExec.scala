@@ -741,9 +741,9 @@ object GpuAggFirstPassIterator {
 //  * boundFinalProjections: on merged batches, finalize aggregates
 //     (GpuAverage => CudfSum/CudfCount)
 //  * boundResultReferences: project the result expressions Spark expects in the output.
-case class BoundExpressionsModeAggregates(
-    boundFinalProjections: Option[Seq[GpuExpression]],
-    boundResultReferences: Seq[Expression])
+class BoundExpressionsModeAggregates(
+    val boundFinalProjections: Option[Seq[GpuExpression]],
+    val boundResultReferences: Seq[Expression])
 
 object GpuAggFinalPassIterator {
 
@@ -793,7 +793,7 @@ object GpuAggFinalPassIterator {
     } else {
       GpuBindReferences.bindGpuReferences(resultExpressions, groupingAttributes, metrics)
     }
-    BoundExpressionsModeAggregates(
+    new BoundExpressionsModeAggregates(
       boundFinalProjections,
       boundResultReferences)
   }
