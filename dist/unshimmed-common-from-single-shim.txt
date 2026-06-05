@@ -1483,4 +1483,9 @@ org/apache/spark/sql/hive/rapids/shims/GpuRowBasedHiveGenericUDFShim.class
 org/apache/spark/sql/hive/rapids/shims/HiveProviderCmdShims.class
 com/nvidia/shaded/spark/org/roaringbitmap/*
 com/nvidia/shaded/spark/com/google/flatbuffers/*
+com/nvidia/spark/rapids/iceberg/data/*
+com/nvidia/spark/rapids/iceberg/iceberg16x/*
+com/nvidia/spark/rapids/iceberg/parquet/*
+com/nvidia/spark/rapids/iceberg/testutils/*
+com/nvidia/spark/rapids/iceberg/utils/*
 rapids/*.py
