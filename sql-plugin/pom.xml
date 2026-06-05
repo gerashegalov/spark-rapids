@@ -68,6 +68,12 @@
         </dependency>
         <dependency>
             <groupId>com.nvidia</groupId>
+            <artifactId>rapids-4-spark-sql-plugin-columnar_${scala.binary.version}</artifactId>
+            <version>${project.version}</version>
+            <classifier>${spark.version.classifier}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>com.nvidia</groupId>
             <artifactId>rapids-4-spark-sql-plugin-api_${scala.binary.version}</artifactId>
             <version>${project.version}</version>
             <classifier>${spark.version.classifier}</classifier>
