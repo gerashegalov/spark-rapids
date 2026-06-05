@@ -451,7 +451,7 @@ trait GpuAvroReaderBase extends RapidsLocalLog { self: FilePartitionReaderBase =
       withResource(partFilePath.getFileSystem(conf).open(partFilePath)) { in =>
         closeOnExcept(HostMemoryBuffer.allocate(estOutSize)) { hmb =>
           withResource(new HostMemoryOutputStream(hmb)) { out =>
-            val headerAndBlocks = BlockInfo(0, headerSize, 0, 0) +: blocks
+            val headerAndBlocks = new BlockInfo(0, headerSize, 0, 0) +: blocks
             copyBlocksData(headerAndBlocks, in, out)
             // check we didn't go over memory
             if (out.getPos > estOutSize) {

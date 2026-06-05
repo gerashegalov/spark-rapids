@@ -19,7 +19,6 @@ com/nvidia/spark/rapids/AllocationKind$.class
 com/nvidia/spark/rapids/AutoClosableArrayBuffer.class
 com/nvidia/spark/rapids/AutoCloseableTargetSize.class
 com/nvidia/spark/rapids/BlockInfo.class
-com/nvidia/spark/rapids/BlockInfo$.class
 com/nvidia/spark/rapids/CloseableHolder.class
 com/nvidia/spark/rapids/ColumnIndex.class
 com/nvidia/spark/rapids/ColumnarCopyHelper.class
@@ -105,7 +104,6 @@ com/nvidia/spark/rapids/MemoryState.class
 com/nvidia/spark/rapids/MultiFileReaderFunctions.class
 com/nvidia/spark/rapids/MemoryBoundedPoolConf.class
 com/nvidia/spark/rapids/MutableBlockInfo.class
-com/nvidia/spark/rapids/MutableBlockInfo$.class
 com/nvidia/spark/rapids/Murmur3Mode.class
 com/nvidia/spark/rapids/Murmur3Mode$.class
 com/nvidia/spark/rapids/NotApplicable.class
