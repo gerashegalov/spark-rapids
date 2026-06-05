@@ -101,22 +101,22 @@ private object GpuExternalRowToColumnConverter {
       // NOT SUPPORTED YET
       // case CalendarIntervalType => CalendarConverter
       case (at: ArrayType, true) =>
-        ArrayConverter(getConverterForType(at.elementType, at.containsNull))
+        new ArrayConverter(getConverterForType(at.elementType, at.containsNull))
       case (at: ArrayType, false) =>
-        NotNullArrayConverter(getConverterForType(at.elementType, at.containsNull))
+        new NotNullArrayConverter(getConverterForType(at.elementType, at.containsNull))
       case (st: StructType, true) =>
-        StructConverter(st.fields.map(getConverterFor))
+        new StructConverter(st.fields.map(getConverterFor))
       case (st: StructType, false) =>
-        NotNullStructConverter(st.fields.map(getConverterFor))
+        new NotNullStructConverter(st.fields.map(getConverterFor))
       case (dt: DecimalType, true) =>
         new DecimalConverter(dt.precision, dt.scale)
       case (dt: DecimalType, false) =>
         new NotNullDecimalConverter(dt.precision, dt.scale)
       case (MapType(k, v, vcn), true) =>
-        MapConverter(getConverterForType(k, nullable = false),
+        new MapConverter(getConverterForType(k, nullable = false),
           getConverterForType(v, vcn))
       case (MapType(k, v, vcn), false) =>
-        NotNullMapConverter(getConverterForType(k, nullable = false),
+        new NotNullMapConverter(getConverterForType(k, nullable = false),
           getConverterForType(v, vcn))
       case (NullType, true) =>
         NullConverter
@@ -393,7 +393,7 @@ private object GpuExternalRowToColumnConverter {
     ret + OFFSET
   }
 
-  private case class MapConverter(
+  private class MapConverter(
     keyConverter: TypeConverter,
     valueConverter: TypeConverter) extends TypeConverter {
     override def append(row: Row,
@@ -409,7 +409,7 @@ private object GpuExternalRowToColumnConverter {
     override def getNullSize: Double = VALIDITY_N_OFFSET
   }
 
-  private case class NotNullMapConverter(
+  private class NotNullMapConverter(
     keyConverter: TypeConverter,
     valueConverter: TypeConverter) extends TypeConverter {
     override def append(row: Row,
@@ -452,7 +452,7 @@ private object GpuExternalRowToColumnConverter {
     ret + OFFSET
   }
 
-  private case class ArrayConverter(childConverter: TypeConverter)
+  private class ArrayConverter(childConverter: TypeConverter)
     extends TypeConverter {
     override def append(row: Row,
       column: Int, builder: RapidsHostColumnBuilder): Double = {
@@ -467,7 +467,7 @@ private object GpuExternalRowToColumnConverter {
     override def getNullSize: Double = VALIDITY_N_OFFSET
   }
 
-  private case class NotNullArrayConverter(childConverter: TypeConverter)
+  private class NotNullArrayConverter(childConverter: TypeConverter)
     extends TypeConverter {
     override def append(row: Row,
       column: Int, builder: RapidsHostColumnBuilder): Double = {
@@ -491,7 +491,7 @@ private object GpuExternalRowToColumnConverter {
     ret
   }
 
-  private case class StructConverter(
+  private class StructConverter(
     childConverters: Array[TypeConverter]) extends TypeConverter {
     override def append(row: Row,
       column: Int,
@@ -508,7 +508,7 @@ private object GpuExternalRowToColumnConverter {
     override def getNullSize: Double = childConverters.map(_.getNullSize).sum + VALIDITY
   }
 
-  private case class NotNullStructConverter(
+  private class NotNullStructConverter(
     childConverters: Array[TypeConverter]) extends TypeConverter {
     override def append(row: Row,
       column: Int,
