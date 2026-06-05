@@ -35,14 +35,6 @@ public final class GpuCompressedColumnVector extends GpuColumnVectorBase
   private final DeviceMemoryBuffer buffer;
   private final TableMeta tableMeta;
 
-  /**
-   * Build a columnar batch from a compressed table.
-   * NOTE: The data remains compressed and cannot be accessed directly from the columnar batch.
-   */
-  public static ColumnarBatch from(CompressedTable compressedTable) {
-    return from(compressedTable.buffer(), compressedTable.meta());
-  }
-
   public static boolean isBatchCompressed(ColumnarBatch batch) {
     return batch.numCols() == 1 && batch.column(0) instanceof GpuCompressedColumnVector;
   }
