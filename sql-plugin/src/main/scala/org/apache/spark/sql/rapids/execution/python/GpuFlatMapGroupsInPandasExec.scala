@@ -119,8 +119,10 @@ case class GpuFlatMapGroupsInPandasExec(
         StructField("out_struct", DataTypeUtilsShim.fromAttributes(localOutput)) :: Nil)
 
     // Resolve the argument offsets and related attributes.
-    val GroupArgs(dedupAttrs, argOffsets, groupingOffsets) =
-        resolveArgOffsets(child, groupingAttributes)
+    val groupArgs = resolveArgOffsets(child, groupingAttributes)
+    val dedupAttrs = groupArgs.dedupAttrs
+    val argOffsets = groupArgs.argOffsets
+    val groupingOffsets = groupArgs.groupingOffsets
 
     val runnerFactory = GpuGroupedPythonRunnerFactory(conf, chainedFunc, Array(argOffsets),
         DataTypeUtilsShim.fromAttributes(dedupAttrs), pythonOutputSchema,

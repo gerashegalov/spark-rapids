@@ -1318,7 +1318,7 @@ object GpuFilter {
   }
 }
 
-case class GpuFilterExecMeta(
+class GpuFilterExecMeta(
   filter: FilterExec,
   override val conf: RapidsConf,
   parentMetaOpt: Option[RapidsMeta[_, _, _]],

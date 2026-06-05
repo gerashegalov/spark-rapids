@@ -177,7 +177,7 @@ object GpuMapUtils {
 
 }
 
-case class GpuMapFromArraysMeta(expr: MapFromArrays,
+class GpuMapFromArraysMeta(expr: MapFromArrays,
                                 override val conf: RapidsConf,
                                 override val parent: Option[RapidsMeta[_, _, _]],
                                 rule: DataFromReplacementRule)

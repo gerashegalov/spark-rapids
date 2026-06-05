@@ -1133,7 +1133,6 @@ org/apache/spark/sql/rapids/execution/ShuffledBatchRDDPartition$.class
 org/apache/spark/sql/rapids/execution/ShuffledBatchRDDPartition.class
 org/apache/spark/sql/rapids/execution/python/BatchProducer$.class
 org/apache/spark/sql/rapids/execution/python/GpuPythonFunction$.class
-org/apache/spark/sql/rapids/execution/python/GroupArgs$.class
 org/apache/spark/sql/rapids/execution/python/GroupArgs.class
 org/apache/spark/sql/rapids/execution/python/StreamToBufferProvider.class
 org/apache/spark/sql/rapids/isTimestampNTZ$.class
@@ -3012,7 +3011,6 @@ com/nvidia/spark/rapids/GpuAppendDataExecV1$.class
 com/nvidia/spark/rapids/GpuArrayAggregate$.class
 com/nvidia/spark/rapids/GpuArrayAggregate.class
 com/nvidia/spark/rapids/GpuArrayAggregateMeta.class
-com/nvidia/spark/rapids/GpuArrayDistinctMeta$.class
 com/nvidia/spark/rapids/GpuArrayDistinctMeta.class
 com/nvidia/spark/rapids/GpuArrayElementWiseTransform.class
 com/nvidia/spark/rapids/GpuArrayExists$.class
@@ -3145,7 +3143,6 @@ com/nvidia/spark/rapids/GpuFastSampleExec.class
 com/nvidia/spark/rapids/GpuFilter$.class
 com/nvidia/spark/rapids/GpuFilter.class
 com/nvidia/spark/rapids/GpuFilterExec$.class
-com/nvidia/spark/rapids/GpuFilterExecMeta$.class
 com/nvidia/spark/rapids/GpuFilterExecMeta.class
 com/nvidia/spark/rapids/GpuGenerateExec$.class
 com/nvidia/spark/rapids/GpuGenerateExec.class
@@ -3205,7 +3202,6 @@ com/nvidia/spark/rapids/GpuMakeDecimal$.class
 com/nvidia/spark/rapids/GpuMakeDecimal.class
 com/nvidia/spark/rapids/GpuMapFilter$.class
 com/nvidia/spark/rapids/GpuMapFilter.class
-com/nvidia/spark/rapids/GpuMapFromArraysMeta$.class
 com/nvidia/spark/rapids/GpuMapFromArraysMeta.class
 com/nvidia/spark/rapids/GpuMapSimpleHigherOrderFunction.class
 com/nvidia/spark/rapids/GpuMapTwoArgumentHigherOrderFunction.class
@@ -3622,7 +3618,6 @@ com/nvidia/spark/rapids/GpuSortExec$.class
 com/nvidia/spark/rapids/GpuSortExec.class
 com/nvidia/spark/rapids/GpuSortMergeJoinMeta.class
 com/nvidia/spark/rapids/GpuSortMeta.class
-com/nvidia/spark/rapids/GpuSortOrderMeta$.class
 com/nvidia/spark/rapids/GpuSortOrderMeta.class
 com/nvidia/spark/rapids/GpuSorter.class
 com/nvidia/spark/rapids/GpuSparkPartitionID$.class
@@ -3632,7 +3627,6 @@ com/nvidia/spark/rapids/GpuSpillableProjectedSortEachBatchIterator.class
 com/nvidia/spark/rapids/GpuSplitInstructionMeta.class
 com/nvidia/spark/rapids/GpuStackMeta.class
 com/nvidia/spark/rapids/GpuString2TrimExpression.class
-com/nvidia/spark/rapids/GpuTakeOrderedAndProjectExecMeta$.class
 com/nvidia/spark/rapids/GpuTakeOrderedAndProjectExecMeta.class
 com/nvidia/spark/rapids/GpuTernaryExpression.class
 com/nvidia/spark/rapids/GpuTernaryExpressionArgsAnyScalarScalar.class
@@ -4269,7 +4263,6 @@ org/apache/spark/sql/rapids/shims/GpuTimestampAddInterval$.class
 org/apache/spark/sql/rapids/shims/GpuTimestampAddInterval.class
 org/apache/spark/sql/rapids/shims/IntervalUtils$.class
 org/apache/spark/sql/rapids/shims/IntervalUtils.class
-org/apache/spark/sql/rapids/shims/InvokeExprMeta$.class
 org/apache/spark/sql/rapids/shims/InvokeExprMeta$SupportedTargetEnum$.class
 org/apache/spark/sql/rapids/shims/InvokeExprMeta.class
 org/apache/spark/sql/rapids/shims/OriginContextShim.class

@@ -413,7 +413,7 @@ class GpuSorter(
   }
 }
 
-case class GpuSortOrderMeta(
+class GpuSortOrderMeta(
    sortOrder: SortOrder,
    override val conf: RapidsConf,
    parentOpt: Option[RapidsMeta[_, _, _]],

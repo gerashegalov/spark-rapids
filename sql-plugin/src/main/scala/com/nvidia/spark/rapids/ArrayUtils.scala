@@ -19,7 +19,7 @@ package com.nvidia.spark.rapids
 import org.apache.spark.sql.catalyst.expressions.{ArrayDistinct, Expression}
 import org.apache.spark.sql.rapids.GpuArrayDistinct
 
-case class GpuArrayDistinctMeta(
+class GpuArrayDistinctMeta(
   expr: ArrayDistinct,
   override val conf: RapidsConf,
   parentMetaOpt: Option[RapidsMeta[_, _, _]],

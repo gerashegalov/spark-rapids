@@ -2364,7 +2364,7 @@ object GpuOverrides {
           pluginSupportedOrderableSig + TypeSig.ARRAY.nested(gpuCommonTypes)
              .withPsNote(TypeEnum.ARRAY, "STRUCT is not supported as a child type for ARRAY"),
           TypeSig.orderable))),
-      GpuSortOrderMeta),
+      (sortOrder, conf, p, r) => new GpuSortOrderMeta(sortOrder, conf, p, r)),
     expr[PivotFirst](
       "PivotFirst operator",
       ExprChecks.reductionAndGroupByAgg(
@@ -3024,7 +3024,7 @@ object GpuOverrides {
         TypeSig.ARRAY.nested(TypeSig.orderable),
         TypeSig.ARRAY.nested(TypeSig.orderable),
         TypeSig.ARRAY.nested(TypeSig.orderable)),
-      GpuArrayDistinctMeta),
+      (expr, conf, p, r) => new GpuArrayDistinctMeta(expr, conf, p, r)),
     expr[Flatten](
       "Creates a single array from an array of arrays",
       ExprChecks.unaryProject(
@@ -3297,7 +3297,7 @@ object GpuOverrides {
           TypeSig.ARRAY.nested(TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 +
             TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP),
           TypeSig.ARRAY.nested(TypeSig.all))),
-      GpuMapFromArraysMeta
+      (expr, conf, p, r) => new GpuMapFromArraysMeta(expr, conf, p, r)
     ),
     expr[TransformKeys](
       "Transform keys in a map using a transform function",
@@ -4670,7 +4670,7 @@ object GpuOverrides {
       // The types below are allowed as inputs and outputs.
       ExecChecks((pluginSupportedOrderableSig +
           TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP).nested(), TypeSig.all),
-      GpuTakeOrderedAndProjectExecMeta),
+      (exec, conf, p, r) => new GpuTakeOrderedAndProjectExecMeta(exec, conf, p, r)),
     exec[LocalLimitExec](
       "Per-partition limiting of results",
       ExecChecks((TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL +
@@ -4705,7 +4705,7 @@ object GpuOverrides {
       ExecChecks((TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.STRUCT + TypeSig.MAP +
           TypeSig.ARRAY + TypeSig.DECIMAL_128 + TypeSig.BINARY +
           GpuTypeShims.additionalCommonOperatorSupportedTypes).nested(), TypeSig.all),
-      GpuFilterExecMeta),
+      (exec, conf, p, r) => new GpuFilterExecMeta(exec, conf, p, r)),
     exec[ShuffleExchangeExec](
       "The backend for most data being exchanged between processes",
       ExecChecks((TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128 + TypeSig.BINARY +

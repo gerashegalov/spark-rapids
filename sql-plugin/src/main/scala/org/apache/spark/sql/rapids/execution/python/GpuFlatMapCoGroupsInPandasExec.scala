@@ -138,10 +138,14 @@ case class GpuFlatMapCoGroupsInPandasExec(
       StructField("out_struct", DataTypeUtilsShim.fromAttributes(output)) :: Nil)
 
     // Resolve the argument offsets and related attributes.
-    val GroupArgs(leftDedupAttrs, leftArgOffsets, leftGroupingOffsets) =
-      resolveArgOffsets(left, leftGroup)
-    val GroupArgs(rightDedupAttrs, rightArgOffsets, rightGroupingOffsets) =
-      resolveArgOffsets(right, rightGroup)
+    val leftGroupArgs = resolveArgOffsets(left, leftGroup)
+    val leftDedupAttrs = leftGroupArgs.dedupAttrs
+    val leftArgOffsets = leftGroupArgs.argOffsets
+    val leftGroupingOffsets = leftGroupArgs.groupingOffsets
+    val rightGroupArgs = resolveArgOffsets(right, rightGroup)
+    val rightDedupAttrs = rightGroupArgs.dedupAttrs
+    val rightArgOffsets = rightGroupArgs.argOffsets
+    val rightGroupingOffsets = rightGroupArgs.groupingOffsets
 
     left.executeColumnar().zipPartitions(right.executeColumnar())  { (leftIter, rightIter) =>
       if (isPythonOnGpuEnabled) {
