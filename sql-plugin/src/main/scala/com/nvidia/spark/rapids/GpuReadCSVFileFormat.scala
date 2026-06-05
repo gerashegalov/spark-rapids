@@ -55,7 +55,7 @@ class GpuReadCSVFileFormat extends CSVFileFormat with GpuReadFileFormatWithMetri
       sqlConf.sessionLocalTimeZone,
       sqlConf.columnNameOfCorruptRecord)
     val rapidsConf = new RapidsConf(sqlConf)
-    val factory = GpuCSVPartitionReaderFactory(
+    val factory = new GpuCSVPartitionReaderFactory(
       sqlConf,
       broadcastedHadoopConf,
       dataSchema,

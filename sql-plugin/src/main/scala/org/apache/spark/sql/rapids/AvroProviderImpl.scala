@@ -61,7 +61,7 @@ class AvroProviderImpl extends AvroProvider {
       pushedFilters: Array[Filter],
       fileScan: GpuFileSourceScanExec): PartitionReaderFactory = {
     val poolConfBuilder = ThreadPoolConfBuilder(fileScan.rapidsConf)
-    GpuAvroMultiFilePartitionReaderFactory(
+    new GpuAvroMultiFilePartitionReaderFactory(
       fileScan.relation.sparkSession.sessionState.conf,
       fileScan.rapidsConf,
       broadcastedConf,

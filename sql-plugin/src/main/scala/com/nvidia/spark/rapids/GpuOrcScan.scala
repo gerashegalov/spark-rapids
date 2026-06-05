@@ -101,12 +101,12 @@ case class GpuOrcScan(
 
     if (rapidsConf.isOrcPerFileReadEnabled) {
       logInfo("Using the original per file orc reader")
-      GpuOrcPartitionReaderFactory(sparkSession.sessionState.conf, broadcastedConf,
+      new GpuOrcPartitionReaderFactory(sparkSession.sessionState.conf, broadcastedConf,
         dataSchema, readDataSchema, readPartitionSchema, pushedFilters, rapidsConf, metrics,
         options.asScala.toMap)
     } else {
       val poolConfBuilder = ThreadPoolConfBuilder(rapidsConf)
-      GpuOrcMultiFilePartitionReaderFactory(sparkSession.sessionState.conf, broadcastedConf,
+      new GpuOrcMultiFilePartitionReaderFactory(sparkSession.sessionState.conf, broadcastedConf,
         dataSchema, readDataSchema, readPartitionSchema, pushedFilters, rapidsConf,
         poolConfBuilder,
         metrics, queryUsesInputFile)
@@ -578,7 +578,7 @@ object GpuOrcScan {
  *                            off in GpuTransitionOverrides if InputFileName,
  *                            InputFileBlockStart, or InputFileBlockLength are used
  */
-case class GpuOrcMultiFilePartitionReaderFactory(
+class GpuOrcMultiFilePartitionReaderFactory(
     @transient sqlConf: SQLConf,
     broadcastedConf: Broadcast[SerializableConfiguration],
     dataSchema: StructType,
@@ -589,7 +589,8 @@ case class GpuOrcMultiFilePartitionReaderFactory(
     poolConfBuilder: ThreadPoolConfBuilder,
     metrics: Map[String, GpuMetric],
     queryUsesInputFile: Boolean)
-  extends MultiFilePartitionReaderFactoryBase(sqlConf, broadcastedConf, rapidsConf) {
+  extends MultiFilePartitionReaderFactoryBase(sqlConf, broadcastedConf, rapidsConf)
+      with Serializable {
 
   private val debugDumpPrefix = rapidsConf.orcDebugDumpPrefix
   private val debugDumpAlways = rapidsConf.orcDebugDumpAlways
@@ -687,7 +688,7 @@ case class GpuOrcMultiFilePartitionReaderFactory(
   override final def getFileFormatShortName: String = "ORC"
 }
 
-case class GpuOrcPartitionReaderFactory(
+class GpuOrcPartitionReaderFactory(
     @transient sqlConf: SQLConf,
     broadcastedConf: Broadcast[SerializableConfiguration],
     dataSchema: StructType,
@@ -697,7 +698,7 @@ case class GpuOrcPartitionReaderFactory(
     @transient rapidsConf: RapidsConf,
     metrics : Map[String, GpuMetric],
     @transient params: Map[String, String])
-  extends ShimFilePartitionReaderFactory(params) {
+  extends ShimFilePartitionReaderFactory(params) with Serializable {
 
   private val isCaseSensitive = sqlConf.caseSensitiveAnalysis
   private val debugDumpPrefix = rapidsConf.orcDebugDumpPrefix

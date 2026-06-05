@@ -118,12 +118,12 @@ case class GpuAvroScan(
     // The partition values are already truncated in `FileScan.partitions`.
     // We should use `readPartitionSchema` as the partition schema here.
     if (rapidsConf.isAvroPerFileReadEnabled) {
-      GpuAvroPartitionReaderFactory(sparkSession.sessionState.conf, rapidsConf, broadcastedConf,
+      new GpuAvroPartitionReaderFactory(sparkSession.sessionState.conf, rapidsConf, broadcastedConf,
         dataSchema, readDataSchema, readPartitionSchema, parsedOptions, metrics,
         options.asScala.toMap)
     } else {
       val poolConfBuilder = ThreadPoolConfBuilder(rapidsConf)
-      GpuAvroMultiFilePartitionReaderFactory(sparkSession.sessionState.conf,
+      new GpuAvroMultiFilePartitionReaderFactory(sparkSession.sessionState.conf,
         rapidsConf, broadcastedConf, dataSchema, readDataSchema, readPartitionSchema,
         parsedOptions, metrics, pushedFilters, poolConfBuilder, queryUsesInputFile)
     }
@@ -151,7 +151,7 @@ case class GpuAvroScan(
 }
 
 /** Avro partition reader factory to build columnar reader */
-case class GpuAvroPartitionReaderFactory(
+class GpuAvroPartitionReaderFactory(
     @transient sqlConf: SQLConf,
     @transient rapidsConf: RapidsConf,
     broadcastedConf: Broadcast[SerializableConfiguration],
@@ -161,7 +161,7 @@ case class GpuAvroPartitionReaderFactory(
     avroOptions: AvroOptions,
     metrics: Map[String, GpuMetric],
     @transient params: Map[String, String])
-  extends ShimFilePartitionReaderFactory(params) with RapidsLocalLog {
+  extends ShimFilePartitionReaderFactory(params) with RapidsLocalLog with Serializable {
 
   private val debugDumpPrefix = rapidsConf.avroDebugDumpPrefix
   private val debugDumpAlways = rapidsConf.avroDebugDumpAlways
@@ -178,7 +178,7 @@ case class GpuAvroPartitionReaderFactory(
   override def buildColumnarReader(partFile: PartitionedFile): PartitionReader[ColumnarBatch] = {
     val conf = broadcastedConf.value.value
     val startTime = System.nanoTime()
-    val blockMeta = AvroFileFilterHandler(conf, avroOptions).filterBlocks(partFile)
+    val blockMeta = new AvroFileFilterHandler(conf, avroOptions).filterBlocks(partFile)
     metrics.get(FILTER_TIME).foreach {
       _ += (System.nanoTime() - startTime)
     }
@@ -193,7 +193,7 @@ case class GpuAvroPartitionReaderFactory(
 /**
  * The multi-file partition reader factory for cloud or coalescing reading of avro file format.
  */
-case class GpuAvroMultiFilePartitionReaderFactory(
+class GpuAvroMultiFilePartitionReaderFactory(
     @transient sqlConf: SQLConf,
     @transient rapidsConf: RapidsConf,
     broadcastedConf: Broadcast[SerializableConfiguration],
@@ -205,7 +205,8 @@ case class GpuAvroMultiFilePartitionReaderFactory(
     filters: Array[Filter],
     poolConfBuilder: ThreadPoolConfBuilder,
     queryUsesInputFile: Boolean)
-  extends MultiFilePartitionReaderFactoryBase(sqlConf, broadcastedConf, rapidsConf) {
+  extends MultiFilePartitionReaderFactoryBase(sqlConf, broadcastedConf, rapidsConf)
+      with Serializable {
 
   private val debugDumpPrefix = rapidsConf.avroDebugDumpPrefix
   private val debugDumpAlways = rapidsConf.avroDebugDumpAlways
@@ -268,7 +269,7 @@ case class GpuAvroMultiFilePartitionReaderFactory(
       conf: Configuration): PartitionReader[ColumnarBatch] = {
     val clippedBlocks = ArrayBuffer[AvroSingleDataBlockInfo]()
     val mapPathHeader = LinkedHashMap[Path, Header]()
-    val filterHandler = AvroFileFilterHandler(conf, options)
+    val filterHandler = new AvroFileFilterHandler(conf, options)
 
     metrics.getOrElse(FILTER_TIME, NoopMetric).ns {
       metrics.getOrElse(SCAN_TIME, NoopMetric).ns {
@@ -278,13 +279,13 @@ case class GpuAvroMultiFilePartitionReaderFactory(
           } catch {
             case e: FileNotFoundException if ignoreMissingFiles =>
               logWarning(s"Skipped missing file: ${file.filePath}", e)
-              AvroBlockMeta(null, 0L, Seq.empty)
+              new AvroBlockMeta(null, 0L, Seq.empty)
             // Throw FileNotFoundException even if `ignoreCorruptFiles` is true
             case e: FileNotFoundException if !ignoreMissingFiles => throw e
             case e@(_: RuntimeException | _: IOException) if ignoreCorruptFiles =>
               logWarning(
                 s"Skipped the rest of the content in the corrupted file: ${file.filePath}", e)
-              AvroBlockMeta(null, 0L, Seq.empty)
+              new AvroBlockMeta(null, 0L, Seq.empty)
           }
           val fPath = new Path(new URI(file.filePath.toString()))
           clippedBlocks ++= singleFileInfo.blocks.map(block =>
@@ -944,7 +945,7 @@ class GpuMultiFileAvroPartitionReader(
     // in 'checkIfNeedToSplitDataBlock'
     val mergedHeader = Header.mergeMetadata(headers.toSeq)
     assert(mergedHeader.nonEmpty, "No header exists")
-    AvroBatchContext(chunkedBlocks, clippedSchema, mergedHeader.get)
+    new AvroBatchContext(chunkedBlocks, clippedSchema, mergedHeader.get)
   }
 
   override def calculateEstimatedBlocksOutputSize(batchContext: BatchContext): Long = {
@@ -1055,9 +1056,9 @@ class GpuMultiFileAvroPartitionReader(
 }
 
 /** A tool to filter Avro blocks */
-case class AvroFileFilterHandler(
+class AvroFileFilterHandler(
     hadoopConf: Configuration,
-    @transient options: AvroOptions) extends RapidsLocalLog {
+    options: AvroOptions) extends RapidsLocalLog with Serializable {
 
   @scala.annotation.nowarn(
     "msg=value ignoreExtension in class AvroOptions is deprecated*"
@@ -1071,10 +1072,10 @@ case class AvroFileFilterHandler(
         // Get blocks only belong to this split
         reader.sync(partFile.start)
         val partBlocks = reader.getPartialBlocks(partFile.start + partFile.length)
-        AvroBlockMeta(reader.header, reader.headerSize, partBlocks)
+        new AvroBlockMeta(reader.header, reader.headerSize, partBlocks)
       }
     } else {
-      AvroBlockMeta(null, 0L, Seq.empty)
+      new AvroBlockMeta(null, 0L, Seq.empty)
     }
   }
 }
@@ -1085,7 +1086,8 @@ case class AvroFileFilterHandler(
  * @param header the header of avro file
  * @param blocks the total block info of avro file
  */
-case class AvroBlockMeta(header: Header, headerSize: Long, blocks: Seq[BlockInfo])
+class AvroBlockMeta(val header: Header, val headerSize: Long, val blocks: Seq[BlockInfo])
+  extends Serializable
 
 /**
  * CopyRange to indicate from where to copy.
@@ -1118,7 +1120,7 @@ class AvroSingleDataBlockInfo(
   val readSchema: StructType,
   val extraInfo: AvroExtraInfo) extends SingleDataBlockInfo with Serializable
 
-case class AvroBatchContext(
+class AvroBatchContext(
   override val origChunkedBlocks: LinkedHashMap[Path, ArrayBuffer[DataBlockBase]],
   override val schema: SchemaBase,
-  mergedHeader: Header) extends BatchContext(origChunkedBlocks, schema)
+  val mergedHeader: Header) extends BatchContext(origChunkedBlocks, schema) with Serializable

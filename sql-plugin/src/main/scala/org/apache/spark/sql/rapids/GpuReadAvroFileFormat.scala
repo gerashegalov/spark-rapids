@@ -53,7 +53,7 @@ class GpuReadAvroFileFormat extends AvroFileFormat with GpuReadFileFormatWithMet
     val broadcastedHadoopConf =
       sparkSession.sparkContext.broadcast(new SerializableConfiguration(hadoopConf))
 
-    val factory = GpuAvroPartitionReaderFactory(
+    val factory = new GpuAvroPartitionReaderFactory(
       sqlConf,
       new RapidsConf(sqlConf),
       broadcastedHadoopConf,
@@ -73,7 +73,7 @@ class GpuReadAvroFileFormat extends AvroFileFormat with GpuReadFileFormatWithMet
       pushedFilters: Array[Filter],
       fileScan: GpuFileSourceScanExec): PartitionReaderFactory = {
     val poolConfBuilder = ThreadPoolConfBuilder(fileScan.rapidsConf)
-    GpuAvroMultiFilePartitionReaderFactory(
+    new GpuAvroMultiFilePartitionReaderFactory(
       fileScan.relation.sparkSession.sessionState.conf,
       fileScan.rapidsConf,
       broadcastedConf,

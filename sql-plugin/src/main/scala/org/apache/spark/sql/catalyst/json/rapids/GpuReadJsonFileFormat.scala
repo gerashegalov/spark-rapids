@@ -56,7 +56,7 @@ class GpuReadJsonFileFormat extends JsonFileFormat with GpuReadFileFormatWithMet
       sparkSession.sessionState.conf.sessionLocalTimeZone,
       sparkSession.sessionState.conf.columnNameOfCorruptRecord)
     val rapidsConf = new RapidsConf(sqlConf)
-    val factory = GpuJsonPartitionReaderFactory(
+    val factory = new GpuJsonPartitionReaderFactory(
       sqlConf,
       broadcastedHadoopConf,
       dataSchema,

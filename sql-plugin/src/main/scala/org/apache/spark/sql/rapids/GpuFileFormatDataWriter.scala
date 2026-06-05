@@ -978,9 +978,9 @@ class GpuDynamicPartitionDataConcurrentWriter(
  * @param bucketIdExpression Expression to calculate bucket id based on bucket column(s).
  * @param bucketFileNamePrefix Prefix of output file name based on bucket id.
  */
-case class GpuWriterBucketSpec(
-  bucketIdExpression: GpuExpression,
-  bucketFileNamePrefix: Int => String)
+class GpuWriterBucketSpec(
+  val bucketIdExpression: GpuExpression,
+  val bucketFileNamePrefix: Int => String) extends Serializable
 
 /**
  * A shared job description for all the GPU write tasks.
@@ -1058,6 +1058,6 @@ object BucketIdMetaUtils {
     // The bucket file name prefix is following Hive, Presto and Trino conversion, then
     // Hive bucketed tables written by Plugin can be read by other SQL engines.
     val fileNamePrefix = (bucketId: Int) => f"$bucketId%05d_0_"
-    GpuWriterBucketSpec(bucketIdExpression, fileNamePrefix)
+    new GpuWriterBucketSpec(bucketIdExpression, fileNamePrefix)
   }
 }

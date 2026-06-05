@@ -1338,7 +1338,6 @@ org/apache/spark/sql/catalyst/GpuProjectingColumnarBatch.class
 org/apache/spark/sql/catalyst/expressions/rapids/TimeStamp$$anon$1.class
 org/apache/spark/sql/catalyst/expressions/rapids/TimeStamp$.class
 org/apache/spark/sql/catalyst/expressions/rapids/TimeStamp.class
-org/apache/spark/sql/catalyst/json/rapids/GpuJsonPartitionReaderFactory$.class
 org/apache/spark/sql/catalyst/json/rapids/GpuJsonPartitionReaderFactory.class
 org/apache/spark/sql/catalyst/json/rapids/GpuJsonScan$.class
 org/apache/spark/sql/catalyst/json/rapids/GpuJsonScan$JsonFileFormatReaderType$.class
@@ -2253,11 +2252,8 @@ org/apache/spark/sql/execution/datasources/parquet/ParquetCVShims.class
 org/apache/spark/sql/execution/datasources/parquet/ShimCurrentBatchIterator.class
 org/apache/spark/sql/rapids/AddOverflowChecks$.class
 org/apache/spark/sql/rapids/AddOverflowChecks.class
-org/apache/spark/sql/rapids/AvroBatchContext$.class
 org/apache/spark/sql/rapids/AvroBatchContext.class
-org/apache/spark/sql/rapids/AvroBlockMeta$.class
 org/apache/spark/sql/rapids/AvroBlockMeta.class
-org/apache/spark/sql/rapids/AvroFileFilterHandler$.class
 org/apache/spark/sql/rapids/AvroFileFilterHandler.class
 org/apache/spark/sql/rapids/AvroProviderImpl$$anon$1.class
 org/apache/spark/sql/rapids/AvroProviderImpl.class
@@ -2342,10 +2338,8 @@ org/apache/spark/sql/rapids/GpuAtan$.class
 org/apache/spark/sql/rapids/GpuAtan.class
 org/apache/spark/sql/rapids/GpuAtanh$.class
 org/apache/spark/sql/rapids/GpuAtanh.class
-org/apache/spark/sql/rapids/GpuAvroMultiFilePartitionReaderFactory$.class
 org/apache/spark/sql/rapids/GpuAvroMultiFilePartitionReaderFactory.class
 org/apache/spark/sql/rapids/GpuAvroPartitionReader.class
-org/apache/spark/sql/rapids/GpuAvroPartitionReaderFactory$.class
 org/apache/spark/sql/rapids/GpuAvroPartitionReaderFactory.class
 org/apache/spark/sql/rapids/GpuAvroReaderBase.class
 org/apache/spark/sql/rapids/GpuAvroScan$.class
@@ -2767,7 +2761,6 @@ org/apache/spark/sql/rapids/GpuWriteJobDescription.class
 org/apache/spark/sql/rapids/GpuWriteJobStatsTracker$.class
 org/apache/spark/sql/rapids/GpuWriteJobStatsTracker.class
 org/apache/spark/sql/rapids/GpuWriteTaskStatsTracker.class
-org/apache/spark/sql/rapids/GpuWriterBucketSpec$.class
 org/apache/spark/sql/rapids/GpuWriterBucketSpec.class
 org/apache/spark/sql/rapids/GpuXxHash64$.class
 org/apache/spark/sql/rapids/GpuXxHash64.class
@@ -3044,7 +3037,6 @@ com/nvidia/spark/rapids/GpuBoundReference$.class
 com/nvidia/spark/rapids/GpuBoundReference.class
 com/nvidia/spark/rapids/GpuBringBackToHost$.class
 com/nvidia/spark/rapids/GpuBringBackToHost.class
-com/nvidia/spark/rapids/GpuCSVPartitionReaderFactory$.class
 com/nvidia/spark/rapids/GpuCSVPartitionReaderFactory.class
 com/nvidia/spark/rapids/GpuCSVScan$.class
 com/nvidia/spark/rapids/GpuCSVScan.class
@@ -3246,10 +3238,8 @@ com/nvidia/spark/rapids/GpuOpTimeTrackingRDD.class
 com/nvidia/spark/rapids/GpuOrcFileFilterHandler$GpuOrcPartitionReaderUtils$.class
 com/nvidia/spark/rapids/GpuOrcFileFilterHandler$GpuOrcPartitionReaderUtils.class
 com/nvidia/spark/rapids/GpuOrcFileFilterHandler.class
-com/nvidia/spark/rapids/GpuOrcMultiFilePartitionReaderFactory$.class
 com/nvidia/spark/rapids/GpuOrcMultiFilePartitionReaderFactory.class
 com/nvidia/spark/rapids/GpuOrcPartitionReader.class
-com/nvidia/spark/rapids/GpuOrcPartitionReaderFactory$.class
 com/nvidia/spark/rapids/GpuOrcPartitionReaderFactory.class
 com/nvidia/spark/rapids/GpuOrcScan$.class
 com/nvidia/spark/rapids/GpuOrcTimezoneUtils.class
