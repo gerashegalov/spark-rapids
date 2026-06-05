@@ -1251,6 +1251,7 @@ org/apache/spark/sql/catalyst/json/rapids/GpuReadJsonFileFormat$.class
 org/apache/spark/sql/catalyst/json/rapids/GpuReadJsonFileFormat.class
 org/apache/spark/sql/execution/datasources/v2/rapids/GpuAtomicCreateTableAsSelectExec$.class
 com/nvidia/spark/rapids/spill/ChunkedPacker.class
+com/nvidia/spark/rapids/parquet/HMBSeekableInputStream.class
 org/apache/spark/sql/rapids/execution/python/shims/PythonArgumentUtils.class
 org/apache/spark/sql/rapids/shims/RapidsErrorUtils.class
 rapids/*.py

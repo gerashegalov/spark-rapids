@@ -18,7 +18,7 @@ package com.nvidia.spark.rapids.parquet
 
 import java.io.{Closeable, EOFException, FileNotFoundException, InputStream, IOException, OutputStream}
 import java.net.URI
-import java.nio.{ByteBuffer, ByteOrder}
+import java.nio.{Buffer, ByteBuffer, ByteOrder}
 import java.nio.channels.SeekableByteChannel
 import java.nio.charset.StandardCharsets
 import java.util.{Collections, Locale}
@@ -427,14 +427,14 @@ class HMBSeekableInputStream(
     if (bytesRead < 0) {
       bytesRead
     } else {
-      buf.position(buf.position() + bytesRead)
+      buf.asInstanceOf[Buffer].position(buf.position() + bytesRead)
       bytesRead
     }
   }
 
   private def readFullyHeapBuffer(buf: ByteBuffer): Unit = {
     readFully(buf.array, buf.arrayOffset + buf.position(), buf.remaining)
-    buf.position(buf.limit)
+    buf.asInstanceOf[Buffer].position(buf.limit)
   }
 
   private def readDirectBuffer(buf: ByteBuffer): Int = {
