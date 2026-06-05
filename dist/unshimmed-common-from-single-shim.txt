@@ -3459,7 +3459,6 @@ com/nvidia/spark/rapids/GpuParquetWriter.class
 com/nvidia/spark/rapids/GpuPartitioning.class
 com/nvidia/spark/rapids/GpuPosExplode$.class
 com/nvidia/spark/rapids/GpuPosExplode.class
-com/nvidia/spark/rapids/GpuPostHocResolutionOverrides$.class
 com/nvidia/spark/rapids/GpuPostHocResolutionOverrides.class
 com/nvidia/spark/rapids/GpuProjectAstExec$$anon$1.class
 com/nvidia/spark/rapids/GpuProjectAstExec$$anonfun$output$2.class
@@ -3472,7 +3471,6 @@ com/nvidia/spark/rapids/GpuProjectExecLike.class
 com/nvidia/spark/rapids/GpuProjectExecMeta.class
 com/nvidia/spark/rapids/GpuPromotePrecision$.class
 com/nvidia/spark/rapids/GpuPromotePrecision.class
-com/nvidia/spark/rapids/GpuQueryStagePrepOverrides$.class
 com/nvidia/spark/rapids/GpuQueryStagePrepOverrides.class
 com/nvidia/spark/rapids/GpuRangeExec$.class
 com/nvidia/spark/rapids/GpuRangeExec.class

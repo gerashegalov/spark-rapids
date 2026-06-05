@@ -26,7 +26,8 @@ import org.apache.spark.sql.catalyst.rules.Rule
  * phase by `SparkSessionExtensions.injectPostHocResolutionRule`. As its name suggests, it will
  * be applied after the logical plan has been resolved.
  */
-case class GpuPostHocResolutionOverrides(spark: SparkSession) extends Rule[LogicalPlan] {
+class GpuPostHocResolutionOverrides(val spark: SparkSession)
+    extends Rule[LogicalPlan] with Serializable {
 
   @transient private val rapidsConf = new RapidsConf(spark.sessionState.conf)
 

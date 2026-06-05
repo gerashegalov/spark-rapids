@@ -5151,7 +5151,7 @@ object GpuOverrideUtil {
 }
 
 /** Tag the initial plan when AQE is enabled */
-case class GpuQueryStagePrepOverrides() extends Rule[SparkPlan] {
+class GpuQueryStagePrepOverrides extends Rule[SparkPlan] with Serializable {
   override def apply(sparkPlan: SparkPlan): SparkPlan = GpuOverrideUtil.tryOverride { plan =>
     // Exposing a bare exchange at the root is only valid while AQE is preparing a
     // query stage. Tag the exchanges seen in this rule so transition cleanup can
