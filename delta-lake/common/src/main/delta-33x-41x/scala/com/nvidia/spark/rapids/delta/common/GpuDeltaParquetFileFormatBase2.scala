@@ -744,26 +744,24 @@ class GpuDeltaParquetFileFormatBase2(
     /**
      * Deletion vector metadata for a single host memory buffer containing a part of data.
      */
-    private case class SingleBufferDVMetadata(
-        maybeDvInfo: Option[SpillableDeletionVectorInfo]
-    )
+    private class SingleBufferDVMetadata(
+        val maybeDvInfo: Option[SpillableDeletionVectorInfo])
 
-    private case class DeletionVectorMetadata(
-        metadatas: Array[SingleBufferDVMetadata]
-    )
+    private class DeletionVectorMetadata(
+        val metadatas: Array[SingleBufferDVMetadata])
 
-    private object DeletionVectorMetadata {
-      def forSingleBuffer(maybeDvInfo: Option[SpillableDeletionVectorInfo]) = {
-        DeletionVectorMetadata(
-          Array(
-            SingleBufferDVMetadata(maybeDvInfo)
-          )
+    private def deletionVectorMetadataForSingleBuffer(
+        maybeDvInfo: Option[SpillableDeletionVectorInfo]): DeletionVectorMetadata = {
+      new DeletionVectorMetadata(
+        Array(
+          new SingleBufferDVMetadata(maybeDvInfo)
         )
-      }
+      )
+    }
 
-      def combine(metadatas: Array[DeletionVectorMetadata]): DeletionVectorMetadata = {
-        DeletionVectorMetadata(metadatas.flatMap(_.metadatas))
-      }
+    private def combineDeletionVectorMetadata(
+        metadatas: Array[DeletionVectorMetadata]): DeletionVectorMetadata = {
+      new DeletionVectorMetadata(metadatas.flatMap(_.metadatas))
     }
 
     private class DeltaParquetHostMemoryEmptyMetaData(
@@ -852,7 +850,7 @@ class GpuDeltaParquetFileFormatBase2(
       }
 
       closeOnExcept(maybeSerializedDV) { _ =>
-        val dvMetadata = DeletionVectorMetadata.forSingleBuffer(
+        val dvMetadata = deletionVectorMetadataForSingleBuffer(
           maybeSerializedDV.map{ serializedDV =>
             val (rowGroupOffsets, rowGroupNumRows) = RapidsDeletionVectors
               .getRowGroupMetadata(blocks)
@@ -882,7 +880,7 @@ class GpuDeltaParquetFileFormatBase2(
         nonEmptyMeta: CombinedMeta): HostMemoryEmptyMetaData = {
       val metaForEmpty = emptyMeta.metaForEmpty
       val toCombine = emptyMeta.emptyMetas.map(_.asInstanceOf[DeltaParquetHostMemoryEmptyMetaData])
-      val combinedDVMeta = DeletionVectorMetadata.combine(toCombine.flatMap(_.dvMetadata))
+      val combinedDVMeta = combineDeletionVectorMetadata(toCombine.flatMap(_.dvMetadata))
 
       new DeltaParquetHostMemoryEmptyMetaData(
         metaForEmpty.partitionedFile, // just pick one since not used
@@ -922,7 +920,7 @@ class GpuDeltaParquetFileFormatBase2(
             .map(_.asInstanceOf[ParquetDataBlock].dataBlock)
           val (rowGroupOffsets, rowGroupNumRows) = RapidsDeletionVectors
             .getRowGroupMetadata(dataBlocks)
-          DeletionVectorMetadata.forSingleBuffer(
+          deletionVectorMetadataForSingleBuffer(
             maybeSerializedDV.map { serializedDV =>
               serializedDV.incRefCount()
               SpillableDeletionVectorInfo(
@@ -956,7 +954,7 @@ class GpuDeltaParquetFileFormatBase2(
       val metaToUse = combinedMeta.firstNonEmpty
       val toCombine = combinedMeta.toCombine
         .collect { case hmb: DeltaParquetHostMemoryBuffersWithMetaData => hmb }
-      val combinedDVMeta = DeletionVectorMetadata.combine(toCombine.flatMap(_.dvMetadata))
+      val combinedDVMeta = combineDeletionVectorMetadata(toCombine.flatMap(_.dvMetadata))
 
       new DeltaParquetHostMemoryBuffersWithMetaData(
         metaToUse.partitionedFile,
