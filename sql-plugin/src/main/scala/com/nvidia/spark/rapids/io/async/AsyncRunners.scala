@@ -35,7 +35,7 @@ sealed trait AsyncRunResource
 /**
  * HostResource represents host memory resource requirement for CPU-bound tasks.
  */
-case class HostResource(hostMemoryBytes: Long) extends AsyncRunResource
+class HostResource(val hostMemoryBytes: Long) extends AsyncRunResource with Serializable
 
 /**
  * DeviceResource is a marker object for GPU resources, no additional fields needed.
@@ -44,7 +44,7 @@ object DeviceResource extends AsyncRunResource
 
 object AsyncRunResource {
   def newCpuResource(hostMemoryBytes: Long): AsyncRunResource = {
-    HostResource(hostMemoryBytes)
+    new HostResource(hostMemoryBytes)
   }
 
   def newGpuResource(): AsyncRunResource = DeviceResource

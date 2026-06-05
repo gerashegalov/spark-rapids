@@ -297,7 +297,6 @@ com/nvidia/spark/rapids/io/async/ExecFailed$.class
 com/nvidia/spark/rapids/io/async/FastReleaseResult.class
 com/nvidia/spark/rapids/io/async/HostMemoryThrottle.class
 com/nvidia/spark/rapids/io/async/HostResource.class
-com/nvidia/spark/rapids/io/async/HostResource$.class
 com/nvidia/spark/rapids/io/async/Init.class
 com/nvidia/spark/rapids/io/async/Init$.class
 com/nvidia/spark/rapids/io/async/InvalidResourceRequest.class
