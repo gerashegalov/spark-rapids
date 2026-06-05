@@ -72,7 +72,6 @@ com/nvidia/spark/rapids/GpuRegExpStringReplaceMulti.class
 com/nvidia/spark/rapids/GpuRegExpStringReplaceMulti$.class
 com/nvidia/spark/rapids/GpuStageMemoryEstimator.class
 com/nvidia/spark/rapids/GpuTaskMemoryEstimator.class
-com/nvidia/spark/rapids/GpuTaskMemoryEstimator$.class
 com/nvidia/spark/rapids/GpuUnsignedIntegerType.class
 com/nvidia/spark/rapids/GpuUnsignedIntegerType$.class
 com/nvidia/spark/rapids/GpuUnsignedLongType.class

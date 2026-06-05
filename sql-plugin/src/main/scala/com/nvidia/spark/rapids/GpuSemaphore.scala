@@ -50,16 +50,11 @@ case object SemaphoreAcquired extends TryAcquireResult
  */
 case class AcquireFailed(numWaitingTasks: Int) extends TryAcquireResult
 
-private object GpuTaskMemoryEstimator {
-  private val TIME_WINDOW: Double = TimeUnit.MILLISECONDS.toNanos(100).toDouble
-}
-
 class GpuTaskMemoryEstimator(val stageId: Int,
                              val taskId: Long,
                              val defaultEstimate: Long,
                              val allowDynamicUpdate: Boolean) {
-  import GpuTaskMemoryEstimator._
-
+  private val TIME_WINDOW: Double = TimeUnit.MILLISECONDS.toNanos(100).toDouble
   private val startTimeNanos: Long = System.nanoTime()
   private var totalTimeLost: Long = 0
   private var maxMemory: Long = 0
