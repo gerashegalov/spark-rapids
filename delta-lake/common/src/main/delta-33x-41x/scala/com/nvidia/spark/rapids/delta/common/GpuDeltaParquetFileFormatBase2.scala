@@ -766,33 +766,33 @@ class GpuDeltaParquetFileFormatBase2(
       }
     }
 
-    private case class DeltaParquetHostMemoryEmptyMetaData(
+    private class DeltaParquetHostMemoryEmptyMetaData(
         override val partitionedFile: PartitionedFile,
-        bufferSize: Long,
+        val bufferSize: Long,
         override val bytesRead: Long,
-        dateRebaseMode: DateTimeRebaseMode,
-        timestampRebaseMode: DateTimeRebaseMode,
-        hasInt96Timestamps: Boolean,
-        clippedSchema: MessageType,
-        readSchema: StructType,
-        numRows: Long,
-        dvMetadata: Array[DeletionVectorMetadata],
-        override val allPartValues: Option[Array[(Long, InternalRow)]] = None)
+        val dateRebaseMode: DateTimeRebaseMode,
+        val timestampRebaseMode: DateTimeRebaseMode,
+        val hasInt96Timestamps: Boolean,
+        val clippedSchema: MessageType,
+        val readSchema: StructType,
+        val numRows: Long,
+        val dvMetadata: Array[DeletionVectorMetadata],
+        override val allPartValues: Option[Array[(Long, InternalRow)]])
       extends HostMemoryEmptyMetaData {}
 
-    private case class DeltaParquetHostMemoryBuffersWithMetaData(
+    private class DeltaParquetHostMemoryBuffersWithMetaData(
         override val partitionedFile: PartitionedFile,
         override val memBuffersAndSizes: Array[SingleHMBAndMeta],
         override val bytesRead: Long,
-        dateRebaseMode: DateTimeRebaseMode,
-        timestampRebaseMode: DateTimeRebaseMode,
-        hasInt96Timestamps: Boolean,
-        clippedSchema: MessageType,
-        readSchema: StructType,
+        val dateRebaseMode: DateTimeRebaseMode,
+        val timestampRebaseMode: DateTimeRebaseMode,
+        val hasInt96Timestamps: Boolean,
+        val clippedSchema: MessageType,
+        val readSchema: StructType,
         override val allPartValues: Option[Array[(Long, InternalRow)]],
         // deletion vector metadata. should be aligned with memBuffersAndSizes if deletion vectors
         // are present.
-        dvMetadata: Array[DeletionVectorMetadata]
+        val dvMetadata: Array[DeletionVectorMetadata]
     ) extends HostMemoryBuffersWithMetaData {
 
       override def consumeHeadBuffer(): HostMemoryBuffersWithMetaData = {
@@ -805,7 +805,17 @@ class GpuDeltaParquetFileFormatBase2(
         } else {
           (Array.empty[SingleHMBAndMeta], Array.empty[DeletionVectorMetadata])
         }
-        this.copy(memBuffersAndSizes = remainingBuffers, dvMetadata = newDvMetadata)
+        new DeltaParquetHostMemoryBuffersWithMetaData(
+          partitionedFile,
+          remainingBuffers,
+          bytesRead,
+          dateRebaseMode,
+          timestampRebaseMode,
+          hasInt96Timestamps,
+          clippedSchema,
+          readSchema,
+          allPartValues,
+          newDvMetadata)
       }
     }
 
@@ -852,7 +862,7 @@ class GpuDeltaParquetFileFormatBase2(
               rowGroupOffsets,
               rowGroupNumRows)}
         )
-        DeltaParquetHostMemoryEmptyMetaData(
+        new DeltaParquetHostMemoryEmptyMetaData(
           partitionedFile,
           bufferSize,
           bytesRead,
@@ -862,7 +872,8 @@ class GpuDeltaParquetFileFormatBase2(
           clippedSchema,
           readSchema,
           numRows,
-          Array(dvMetadata)
+          Array(dvMetadata),
+          None
         )
       }
     }
@@ -873,7 +884,7 @@ class GpuDeltaParquetFileFormatBase2(
       val toCombine = emptyMeta.emptyMetas.map(_.asInstanceOf[DeltaParquetHostMemoryEmptyMetaData])
       val combinedDVMeta = DeletionVectorMetadata.combine(toCombine.flatMap(_.dvMetadata))
 
-      DeltaParquetHostMemoryEmptyMetaData(
+      new DeltaParquetHostMemoryEmptyMetaData(
         metaForEmpty.partitionedFile, // just pick one since not used
         emptyMeta.emptyBufferSize,
         emptyMeta.emptyTotalBytesRead,
@@ -922,7 +933,7 @@ class GpuDeltaParquetFileFormatBase2(
             })
         }
 
-        DeltaParquetHostMemoryBuffersWithMetaData(
+        new DeltaParquetHostMemoryBuffersWithMetaData(
           partitionedFile,
           memBuffersAndSize,
           bytesRead,
@@ -947,7 +958,7 @@ class GpuDeltaParquetFileFormatBase2(
         .collect { case hmb: DeltaParquetHostMemoryBuffersWithMetaData => hmb }
       val combinedDVMeta = DeletionVectorMetadata.combine(toCombine.flatMap(_.dvMetadata))
 
-      DeltaParquetHostMemoryBuffersWithMetaData(
+      new DeltaParquetHostMemoryBuffersWithMetaData(
         metaToUse.partitionedFile,
         Array(newHmbBufferInfo),
         offset,
