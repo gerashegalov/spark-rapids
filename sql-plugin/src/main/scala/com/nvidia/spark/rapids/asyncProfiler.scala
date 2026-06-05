@@ -348,7 +348,7 @@ object AsyncProfilerOnExecutor {
               val outPath = new Path(asyncProfilerPrefix.get, 
                 if (jfrCompressionEnabled) baseFileName + ".gz" else baseFileName)
               
-              val hadoopConf = pluginCtx.ask(ProfileInitMsg(executorId, outPath.toString))
+              val hadoopConf = pluginCtx.ask(new ProfileInitMsg(executorId, outPath.toString))
                 .asInstanceOf[SerializableConfiguration].value
               val fs = outPath.getFileSystem(hadoopConf)
 

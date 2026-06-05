@@ -144,16 +144,11 @@ com/nvidia/spark/rapids/QuantifierFixedLength$.class
 com/nvidia/spark/rapids/QuantifierVariableLength.class
 com/nvidia/spark/rapids/QuantifierVariableLength$.class
 com/nvidia/spark/rapids/ProfileEndMsg.class
-com/nvidia/spark/rapids/ProfileEndMsg$.class
 com/nvidia/spark/rapids/ProfileErrorMsg.class
-com/nvidia/spark/rapids/ProfileErrorMsg$.class
 com/nvidia/spark/rapids/ProfileInitMsg.class
-com/nvidia/spark/rapids/ProfileInitMsg$.class
 com/nvidia/spark/rapids/ProfileJobStageQueryMsg.class
-com/nvidia/spark/rapids/ProfileJobStageQueryMsg$.class
 com/nvidia/spark/rapids/ProfileMsg.class
 com/nvidia/spark/rapids/ProfileStatusMsg.class
-com/nvidia/spark/rapids/ProfileStatusMsg$.class
 com/nvidia/spark/rapids/RapidsExecutorPlugin$.class
 com/nvidia/spark/rapids/RapidsLocalLog.class
 com/nvidia/spark/rapids/RapidsReaderType.class

@@ -112,7 +112,7 @@ object ProfilerOnExecutor {
         } catch {
           case l: Exception =>
             logWarning("Unable to launch profiler, we will abort profiling session.",l)
-            pluginCtx.send(ProfileErrorMsg(executorId, s"error launching profiler: $l"))
+            pluginCtx.send(new ProfileErrorMsg(executorId, s"error launching profiler: $l"))
             // failed to initialize, lets close the writer, and try to shutdown.
             if (profileWriter != null) {
               Profiler.shutdown()
@@ -201,7 +201,7 @@ object ProfilerOnExecutor {
       if (!isProfileActive) {
         Profiler.start()
         isProfileActive = true
-        w.pluginCtx.send(ProfileStatusMsg(w.executorId, "profile started"))
+        w.pluginCtx.send(new ProfileStatusMsg(w.executorId, "profile started"))
       }
     }
   }
@@ -211,7 +211,7 @@ object ProfilerOnExecutor {
       if (isProfileActive) {
         Profiler.stop()
         isProfileActive = false
-        w.pluginCtx.send(ProfileStatusMsg(w.executorId, "profile stopped"))
+        w.pluginCtx.send(new ProfileStatusMsg(w.executorId, "profile stopped"))
       }
     }
   }
@@ -303,7 +303,7 @@ object ProfilerOnExecutor {
         (activeJobs.toArray, (activeStages ++ stageTaskCount.keys).toArray)
       }
       val (completedJobs, completedStages, allDone) =
-        w.pluginCtx.ask(ProfileJobStageQueryMsg(jobs, stages))
+        w.pluginCtx.ask(new ProfileJobStageQueryMsg(jobs, stages))
           .asInstanceOf[(Array[Int], Array[Int], Boolean)]
       synchronized {
         completedJobs.foreach(activeJobs.remove)
@@ -350,7 +350,7 @@ class ProfileWriter(
       isClosed = true
       out.close()
       logWarning(s"Profiling completed, output written to $outPath")
-      pluginCtx.send(ProfileEndMsg(executorId, outPath.toString))
+      pluginCtx.send(new ProfileEndMsg(executorId, outPath.toString))
     }
   }
 
@@ -372,7 +372,7 @@ class ProfileWriter(
 
   private def openOutput(codec: Option[CompressionCodec]): WritableByteChannel = {
     logWarning(s"Profiler initialized, output will be written to $outPath")
-    val hadoopConf = pluginCtx.ask(ProfileInitMsg(executorId, outPath.toString))
+    val hadoopConf = pluginCtx.ask(new ProfileInitMsg(executorId, outPath.toString))
       .asInstanceOf[SerializableConfiguration].value
     val fs = outPath.getFileSystem(hadoopConf)
     val fsStream = fs.create(outPath, false)
@@ -429,29 +429,35 @@ object ProfilerOnDriver {
   }
 
   def handleMsg(m: ProfileMsg): AnyRef = m match {
-    case ProfileInitMsg(executorId, path) =>
+    case msg: ProfileInitMsg =>
+      val executorId = msg.executorId
+      val path = msg.path
       logWarning(s"Profiling: Executor $executorId initialized profiler, writing to $path")
       if (hadoopConf == null) {
         throw new IllegalStateException("Hadoop configuration not set")
       }
       hadoopConf
-    case ProfileErrorMsg(executorId, msg) =>
+    case msg: ProfileErrorMsg =>
+      val executorId = msg.executorId
+      val errorMsg = msg.msg
       if (profilerErrored) {
-        logDebug(s"Profiling: Error starting profiler from $executorId: $msg")
+        logDebug(s"Profiling: Error starting profiler from $executorId: $errorMsg")
       } else {
-        logError(s"Profiling: Error starting profiler from $executorId: $msg. Suppressing others.")
+        logError(s"Profiling: Error starting profiler from $executorId: $errorMsg. " +
+            "Suppressing others.")
       }
       profilerErrored = true
       null
-    case ProfileStatusMsg(executorId, msg) =>
-      logWarning(s"Profiling: Executor $executorId: $msg")
+    case msg: ProfileStatusMsg =>
+      logWarning(s"Profiling: Executor ${msg.executorId}: ${msg.msg}")
       null
-    case ProfileJobStageQueryMsg(activeJobs, activeStages) =>
-      val filteredJobs = activeJobs.filter(j => completedJobs.containsKey(j))
-      val filteredStages = activeStages.filter(s => completedStages.containsKey(s))
+    case msg: ProfileJobStageQueryMsg =>
+      val filteredJobs = msg.activeJobs.filter(j => completedJobs.containsKey(j))
+      val filteredStages = msg.activeStages.filter(s => completedStages.containsKey(s))
       (filteredJobs, filteredStages, isJobsStageProfilingComplete)
-    case ProfileEndMsg(executorId, path) =>
-      logWarning(s"Profiling: Executor $executorId ended profiling, profile written to $path")
+    case msg: ProfileEndMsg =>
+      logWarning(s"Profiling: Executor ${msg.executorId} ended profiling, " +
+          s"profile written to ${msg.path}")
       null
     case _ =>
       throw new IllegalStateException(s"Unexpected profile msg: $m")
@@ -478,17 +484,7 @@ object ProfilerOnDriver {
   }
 }
 
-trait ProfileMsg
-
-case class ProfileInitMsg(executorId: String, path: String) extends ProfileMsg
-case class ProfileStatusMsg(executorId: String, msg: String) extends ProfileMsg
-case class ProfileErrorMsg(executorId: String, msg: String) extends ProfileMsg
-case class ProfileEndMsg(executorId: String, path: String) extends ProfileMsg
-
-// Reply is a tuple of:
+// Reply to ProfileJobStageQueryMsg is a tuple of:
 // - array of jobs that have completed
 // - array of stages that have completed
 // - boolean if there are no further jobs/stages to profile
-case class ProfileJobStageQueryMsg(
-    activeJobs: Array[Int],
-    activeStages: Array[Int]) extends ProfileMsg
