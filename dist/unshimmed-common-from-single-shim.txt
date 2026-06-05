@@ -2927,6 +2927,7 @@ com/nvidia/spark/rapids/ArmScalaSpecificImpl.class
 com/nvidia/spark/rapids/ArrayAggregateDecomposer$.class
 com/nvidia/spark/rapids/ArrayAggregateDecomposer.class
 com/nvidia/spark/rapids/ArrayIndexUtils$.class
+com/nvidia/spark/rapids/ArrayIndexUtils$IndexAndNumElement.class
 com/nvidia/spark/rapids/ArrayIndexUtils.class
 com/nvidia/spark/rapids/AstExprContext$.class
 com/nvidia/spark/rapids/AstExprContext.class

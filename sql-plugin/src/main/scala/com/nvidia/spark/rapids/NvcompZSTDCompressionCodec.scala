@@ -18,8 +18,7 @@ package com.nvidia.spark.rapids
 
 import ai.rapids.cudf.{BaseDeviceMemoryBuffer, ContiguousTable, Cuda, DeviceMemoryBuffer}
 import ai.rapids.cudf.nvcomp.{BatchedZstdCompressor, BatchedZstdDecompressor}
-import com.nvidia.spark.rapids.Arm.{closeOnExcept, withResource}
-import com.nvidia.spark.rapids.RapidsPluginImplicits.AutoCloseableProducingArray
+import com.nvidia.spark.rapids.Arm.closeOnExcept
 import com.nvidia.spark.rapids.format.{BufferMeta, CodecType}
 
 /** A table compression codec that uses nvcomp's ZSTD-GPU codec */
@@ -88,25 +87,5 @@ class BatchedNvcompZSTDDecompressor(maxBatchMemory: Long,
     batchDecompressor.decompressAsync(compressedBufs,
       outputBufs.asInstanceOf[Array[BaseDeviceMemoryBuffer]], stream)
     outputBufs
-  }
-}
-
-object DeviceBuffersUtils {
-  def incRefCount(bufs: Array[BaseDeviceMemoryBuffer]): Array[BaseDeviceMemoryBuffer] = {
-    bufs.safeMap { b =>
-      b.incRefCount()
-      b
-    }
-  }
-
-  def allocateBuffers(bufSizes: Array[Long]): Array[DeviceMemoryBuffer] = {
-    var curPos = 0L
-    withResource(DeviceMemoryBuffer.allocate(bufSizes.sum)) { singleBuf =>
-      bufSizes.safeMap { len =>
-        val ret = singleBuf.slice(curPos, len)
-        curPos += len
-        ret
-      }
-    }
   }
 }
