@@ -119,7 +119,6 @@ com/nvidia/spark/rapids/OrcFormatType$.class
 com/nvidia/spark/rapids/OomInjectionConf.class
 com/nvidia/spark/rapids/OomInjectionConf$.class
 com/nvidia/spark/rapids/PartitionRowData.class
-com/nvidia/spark/rapids/PartitionRowData$.class
 com/nvidia/spark/rapids/OutOfCoreSort.class
 com/nvidia/spark/rapids/OutOfCoreSort$.class
 com/nvidia/spark/rapids/ParquetFormatType.class
