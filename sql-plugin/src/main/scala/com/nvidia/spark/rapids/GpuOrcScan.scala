@@ -18,7 +18,7 @@ package com.nvidia.spark.rapids
 
 import java.io.{ByteArrayInputStream, FileNotFoundException, IOException, OutputStream}
 import java.net.URI
-import java.nio.ByteBuffer
+import java.nio.{Buffer, ByteBuffer}
 import java.nio.channels.Channels
 import java.nio.charset.StandardCharsets
 import java.time.ZoneId
@@ -1831,7 +1831,7 @@ private object GpuOrcFileFilterHandler {
       val fileSize = bb.getLong
       val modificationTime = bb.getLong
       val serializedTail = bb.slice()
-      bb.position(0)
+      bb.asInstanceOf[Buffer].position(0)
       // last byte is the size of the postscript section
       val psSize = bb.get(bb.limit() - 1) & 0xff
       val ps = loadPostScript(bb, psSize)
@@ -1865,8 +1865,8 @@ private object GpuOrcFileFilterHandler {
         val bb = ByteBuffer.allocate(footerSizeGuess)
         val readSize = fileSize.min(footerSizeGuess).toInt
         in.readFully(fileSize - readSize, bb.array(), bb.arrayOffset(), readSize)
-        bb.position(0)
-        bb.limit(readSize)
+        bb.asInstanceOf[Buffer].position(0)
+        bb.asInstanceOf[Buffer].limit(readSize)
         val psLen = bb.get(readSize - 1) & 0xff
         ensureOrcFooter(in, filePath, psLen, bb)
         val psOffset = readSize - 1 - psLen
@@ -1877,18 +1877,18 @@ private object GpuOrcFileFilterHandler {
         // calculate the amount of tail data that was missed in the speculative initial read
         val unreadRemaining = Math.max(0, tailSize - readSize)
         // copy tail bytes from original buffer
-        bb.position(Math.max(0, readSize - tailSize))
-        tailBuffer.position(TAIL_PREFIX_SIZE + unreadRemaining)
+        bb.asInstanceOf[Buffer].position(Math.max(0, readSize - tailSize))
+        tailBuffer.asInstanceOf[Buffer].position(TAIL_PREFIX_SIZE + unreadRemaining)
         tailBuffer.put(bb)
         if (unreadRemaining > 0) {
           // first read did not grab the entire tail, need to read more
-          tailBuffer.position(TAIL_PREFIX_SIZE)
+          tailBuffer.asInstanceOf[Buffer].position(TAIL_PREFIX_SIZE)
           in.readFully(fileSize - readSize - unreadRemaining, tailBuffer.array(),
             tailBuffer.arrayOffset() + tailBuffer.position(), unreadRemaining)
         }
         tailBuffer.putLong(0, fileSize)
         tailBuffer.putLong(java.lang.Long.BYTES, modificationTime)
-        tailBuffer.position(0)
+        tailBuffer.asInstanceOf[Buffer].position(0)
         tailBuffer
       }
     }

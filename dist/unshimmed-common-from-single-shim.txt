@@ -555,6 +555,7 @@ com/nvidia/spark/rapids/OrcOutputStripe.class
 com/nvidia/spark/rapids/OrcOutputStripe$.class
 com/nvidia/spark/rapids/OrcPartitionReaderContext.class
 com/nvidia/spark/rapids/OrcPartitionReaderContext$.class
+com/nvidia/spark/rapids/GpuOrcFileFilterHandler$.class
 com/nvidia/spark/rapids/OrcSchemaWrapper.class
 com/nvidia/spark/rapids/OrcSchemaWrapper$.class
 com/nvidia/spark/rapids/HttpBackendType.class
