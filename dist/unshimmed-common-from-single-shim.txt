@@ -1605,7 +1605,6 @@ com/nvidia/spark/rapids/shuffle/ucx/UCXServerConnection$$anon$2.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXServerConnection$$anon$3.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXServerConnection.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXShuffleTransport$CallerRunsAndLogs.class
-com/nvidia/spark/rapids/shuffle/ucx/UCXShuffleTransport$ClientAndBufferReceiveState$.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXShuffleTransport$ClientAndBufferReceiveState.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXShuffleTransport$PerClientReadyRequests.class
 com/nvidia/spark/rapids/spill/DeviceSpillableHandle.class

@@ -377,8 +377,8 @@ class UCXShuffleTransport(shuffleServerId: BlockManagerId, rapidsConf: RapidsCon
     }
   }
 
-  private case class ClientAndBufferReceiveState(client: RapidsShuffleClient,
-                                                 brs: BufferReceiveState)
+  private class ClientAndBufferReceiveState(val client: RapidsShuffleClient,
+                                                 val brs: BufferReceiveState)
   private val pendingBrs = new ConcurrentHashMap[Long, ClientAndBufferReceiveState]()
 
   def handleBufferReceive(size: Long, header: Long,
@@ -498,7 +498,7 @@ class UCXShuffleTransport(shuffleServerId: BlockManagerId, rapidsConf: RapidsCon
                 perClientRequests.bounceBuffer,
                 perClientRequests.transferRequests.toSeq,
                 () => bufferReceiveStateComplete(brsId))
-              pendingBrs.put(brs.id, ClientAndBufferReceiveState(client, brs))
+              pendingBrs.put(brs.id, new ClientAndBufferReceiveState(client, brs))
               client.issueBufferReceives(brs)
             }
           } else if (!hasBounceBuffers) {
