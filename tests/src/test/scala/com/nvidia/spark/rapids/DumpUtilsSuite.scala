@@ -120,7 +120,7 @@ class DumpUtilsSuite extends AnyFunSuite with BeforeAndAfterAll {
         val header = headerOptional.get()
         val buffer = HostMemoryBuffer.allocate(header.getTotalDataLen())
         buffer.copyFromStream(0, din, header.getTotalDataLen())
-        val spillableKudoTable = SpillableKudoTable(header, buffer)
+        val spillableKudoTable = SpillableKudoTable.from(header, buffer)
         withResource(new KudoSerializedTableColumn(spillableKudoTable)) { column =>
           val batch = new ColumnarBatch(Array(column.asInstanceOf[GpuColumnVectorBase]),
             spillableKudoTable.header.getNumRows)
