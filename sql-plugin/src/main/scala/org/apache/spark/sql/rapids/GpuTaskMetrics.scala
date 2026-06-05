@@ -18,9 +18,7 @@ package org.apache.spark.sql.rapids
 
 import java.{lang => jl}
 import java.io.ObjectInputStream
-import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 import ai.rapids.cudf.{NvtxColor, NvtxRange}
@@ -31,42 +29,6 @@ import com.nvidia.spark.rapids.jni.RmmSpark
 
 import org.apache.spark.{SparkContext, TaskContext}
 import org.apache.spark.util.{AccumulatorV2, LongAccumulator, Utils}
-
-case class NanoTime(value: java.lang.Long) {
-  override def toString: String = {
-    val hours = TimeUnit.NANOSECONDS.toHours(value)
-    var remaining = value - TimeUnit.HOURS.toNanos(hours)
-    val minutes = TimeUnit.NANOSECONDS.toMinutes(remaining)
-    remaining = remaining - TimeUnit.MINUTES.toNanos(minutes)
-    val seconds = remaining.toDouble / TimeUnit.SECONDS.toNanos(1)
-    val locale = Locale.US
-    "%02d:%02d:%06.3f".formatLocal(locale, hours, minutes, seconds)
-  }
-}
-
-// Format example:
-//  10.74GB (11534336000 bytes)
-//  1.23MB (1289750 bytes)
-//  1020.10KB (1044585 bytes)
-case class SizeInBytes(value: jl.Long) {
-  override def toString: String = {
-    var unitVal = value
-    var remainVal = 0L
-    var unitIndex = 0
-    while (unitIndex < SizeInBytes.SizeUnitNames.length && unitVal >= 1024) {
-      val nextUnitVal = unitVal >> 10
-      remainVal = unitVal - (nextUnitVal << 10)
-      unitVal = nextUnitVal
-      unitIndex += 1
-    }
-    val finalVal = "%.2f".format(unitVal + (remainVal.toDouble / 1024))
-    s"$finalVal${SizeInBytes.SizeUnitNames(unitIndex)} ($value bytes)"
-  }
-}
-
-private object SizeInBytes {
-  private val SizeUnitNames: Array[String] = Array("B", "KB", "MB", "GB", "TB", "PB", "EB")
-}
 
 class NanoSecondAccumulator extends AccumulatorV2[jl.Long, NanoTime] {
   private var _sum = 0L
@@ -99,7 +61,7 @@ class NanoSecondAccumulator extends AccumulatorV2[jl.Long, NanoTime] {
         s"Cannot merge ${this.getClass.getName} with ${other.getClass.getName}")
   }
 
-  override def value: NanoTime = NanoTime(_sum)
+  override def value: NanoTime = new NanoTime(_sum)
 }
 
 /**
@@ -132,7 +94,7 @@ class SizeInBytesAccumulator extends AccumulatorV2[jl.Long, SizeInBytes] {
         s"Cannot merge ${this.getClass.getName} with ${other.getClass.getName}")
   }
 
-  override def value: SizeInBytes = SizeInBytes(_sum)
+  override def value: SizeInBytes = new SizeInBytes(_sum)
 
   private[spark] def setValue(newValue: Long): Unit = _sum = newValue
 }
@@ -163,7 +125,7 @@ class HighWatermarkAccumulator extends AccumulatorV2[jl.Long, SizeInBytes] {
         s"Cannot merge ${this.getClass.getName} with ${other.getClass.getName}")
   }
 
-  override def value: SizeInBytes = SizeInBytes(_value)
+  override def value: SizeInBytes = new SizeInBytes(_value)
 }
 
 class MaxLongAccumulator extends AccumulatorV2[jl.Long, jl.Long] {

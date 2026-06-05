@@ -553,9 +553,7 @@ org/apache/spark/sql/rapids/HighWatermarkAccumulator.class
 org/apache/spark/sql/rapids/MaxLongAccumulator.class
 org/apache/spark/sql/rapids/NanoSecondAccumulator.class
 org/apache/spark/sql/rapids/NanoTime.class
-org/apache/spark/sql/rapids/NanoTime$.class
 org/apache/spark/sql/rapids/SizeInBytes.class
-org/apache/spark/sql/rapids/SizeInBytes$.class
 org/apache/spark/sql/rapids/SizeInBytesAccumulator.class
 org/apache/spark/sql/rapids/execution/JoinCardinalityStats.class
 org/apache/spark/sql/rapids/execution/JoinBuildSideSelection.class
