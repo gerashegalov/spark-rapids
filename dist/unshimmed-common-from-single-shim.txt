@@ -1114,7 +1114,6 @@ org/apache/spark/sql/rapids/execution/GpuShuffleMetaBase$.class
 org/apache/spark/sql/rapids/execution/GpuSubPartitionPairIterator$.class
 org/apache/spark/sql/rapids/execution/JoinImpl$.class
 org/apache/spark/sql/rapids/execution/JoinImpl.class
-org/apache/spark/sql/rapids/execution/ShuffledBatchRDDPartition$.class
 org/apache/spark/sql/rapids/execution/ShuffledBatchRDDPartition.class
 org/apache/spark/sql/rapids/execution/python/BatchProducer$.class
 org/apache/spark/sql/rapids/execution/python/GpuPythonFunction$.class
