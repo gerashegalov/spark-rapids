@@ -39,10 +39,10 @@ import org.apache.spark.storage.{ShuffleBlockBatchId, ShuffleBlockId}
  * @param offset starting offset within the handle
  * @param length number of bytes in this segment
  */
-case class PartitionSegment(
-    handle: SpillablePartialFileHandle,
-    offset: Long,
-    length: Long)
+class PartitionSegment(
+    val handle: SpillablePartialFileHandle,
+    val offset: Long,
+    val length: Long)
 
 /**
  * Catalog for managing shuffle data in MULTITHREADED mode without merging.
@@ -110,7 +110,7 @@ class MultithreadedShuffleBufferCatalog {
     }
 
     val blockId = ShuffleBlockId(shuffleId, mapId, partitionId)
-    val segment = PartitionSegment(handle, offset, length)
+    val segment = new PartitionSegment(handle, offset, length)
 
     partitionSegments.compute(blockId, (_, existing) => {
       val segments = if (existing == null) new ArrayBuffer[PartitionSegment]() else existing

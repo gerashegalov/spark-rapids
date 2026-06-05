@@ -344,7 +344,7 @@ class JCudfTableOperator
   }
 }
 
-case class RowCountOnlyMergeResult(rowCount: Int) extends CoalescedHostResult {
+class RowCountOnlyMergeResult(val rowCount: Int) extends CoalescedHostResult {
   override def toGpuBatch(dataTypes: Array[DataType]): ColumnarBatch = {
     new ColumnarBatch(Array.empty, rowCount)
   }
@@ -384,7 +384,7 @@ class KudoTableOperator(kudo: Option[KudoSerializer], readOption: CoalesceReadOp
     val numCols = columns.head.spillableKudoTable.header.getNumColumns
     if (numCols == 0) {
       val totalRowsNum = columns.map(getNumRows).sum
-      RowCountOnlyMergeResult(totalRowsNum)
+      new RowCountOnlyMergeResult(totalRowsNum)
     } else {
       // "lock" all input tables in memory before merge
       withResource(columns.safeMap(_.spillableKudoTable.makeKudoTable)) { kudoTables =>

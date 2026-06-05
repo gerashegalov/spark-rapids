@@ -238,8 +238,8 @@ object GpuSpillableProjectedSortEachBatchIterator {
  * Holds data for the out of core sort. It includes the batch of data and the first row in that
  * batch so we can sort the batches.
  */
-case class OutOfCoreBatch(buffer: SpillableColumnarBatch,
-    firstRow: UnsafeRow) extends AutoCloseable {
+class OutOfCoreBatch(val buffer: SpillableColumnarBatch,
+    val firstRow: UnsafeRow) extends AutoCloseable {
   override def close(): Unit = buffer.close()
 }
 
@@ -434,7 +434,7 @@ case class GpuOutOfCoreSortIterator(
                 if (ct.getRowCount > 0) {
                   val sp = SpillableColumnarBatch(ct, sorter.projectedBatchTypes,
                     SpillPriorities.ACTIVE_ON_DECK_PRIORITY)
-                  pendingObs += OutOfCoreBatch(sp, lower)
+                  pendingObs += new OutOfCoreBatch(sp, lower)
                 } else {
                   ct.close()
                 }

@@ -1132,13 +1132,21 @@ abstract class MultiFileCoalescingPartitionReaderBase(
     }
   }
 
-  protected case class CurrentChunkMeta(
-    clippedSchema: SchemaBase,
-    readSchema: StructType,
-    currentChunk: FileMajorBlockChunk,
-    extraInfo: ExtraInfo) {
+  protected class CurrentChunkMeta(
+    val clippedSchema: SchemaBase,
+    val readSchema: StructType,
+    val currentChunk: FileMajorBlockChunk,
+    val extraInfo: ExtraInfo) {
     def rowsPerPartition: Array[Long] = currentChunk.rowsPerPartition
     def allPartValues: Array[InternalRow] = currentChunk.allPartValues
+
+    def copy(
+        clippedSchema: SchemaBase = this.clippedSchema,
+        readSchema: StructType = this.readSchema,
+        currentChunk: FileMajorBlockChunk = this.currentChunk,
+        extraInfo: ExtraInfo = this.extraInfo): CurrentChunkMeta = {
+      new CurrentChunkMeta(clippedSchema, readSchema, currentChunk, extraInfo)
+    }
   }
 
   /**
@@ -1599,6 +1607,6 @@ abstract class MultiFileCoalescingPartitionReaderBase(
     logDebug(s"Loaded $numRows rows from ${getFileFormatShortName}. " +
       s"${getFileFormatShortName} bytes read: $numChunkBytes. Estimated GPU bytes: $numBytes. " +
       s"Number of partition entries: ${fileMajorChunk.allPartValues.length}")
-    CurrentChunkMeta(currentClippedSchema, currentReadSchema, fileMajorChunk, extraInfo)
+    new CurrentChunkMeta(currentClippedSchema, currentReadSchema, fileMajorChunk, extraInfo)
   }
 }

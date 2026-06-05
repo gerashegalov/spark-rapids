@@ -669,7 +669,6 @@ com/nvidia/spark/rapids/RangeCopier$Conf.class
 com/nvidia/spark/rapids/RapidsMeta$.class
 com/nvidia/spark/rapids/RapidsStack.class
 com/nvidia/spark/rapids/RowCountOnlyMergeResult.class
-com/nvidia/spark/rapids/RowCountOnlyMergeResult$.class
 com/nvidia/spark/rapids/SerializedTableOperator.class
 com/nvidia/spark/rapids/ShimTaggingExpression.class
 com/nvidia/spark/rapids/ShuffleCleanupEndpoint$.class
@@ -3535,7 +3534,6 @@ com/nvidia/spark/rapids/GpuQueryStagePrepOverrides$.class
 com/nvidia/spark/rapids/GpuQueryStagePrepOverrides.class
 com/nvidia/spark/rapids/GpuRangeExec$.class
 com/nvidia/spark/rapids/GpuRangeExec.class
-com/nvidia/spark/rapids/GpuRangeIterator$AutoCloseableLong$.class
 com/nvidia/spark/rapids/GpuRangeIterator$AutoCloseableLong.class
 com/nvidia/spark/rapids/GpuRangeIterator.class
 com/nvidia/spark/rapids/GpuRangePartitioner$.class
@@ -3617,7 +3615,6 @@ com/nvidia/spark/rapids/GpuShuffledSizedHashJoinExec$BoundJoinExprs$.class
 com/nvidia/spark/rapids/GpuShuffledSizedHashJoinExec$BoundJoinExprs.class
 com/nvidia/spark/rapids/GpuShuffledSizedHashJoinExec$HostHostJoinSizer.class
 com/nvidia/spark/rapids/GpuShuffledSizedHashJoinExec$HostHostUnspillableJoinSizer.class
-com/nvidia/spark/rapids/GpuShuffledSizedHashJoinExec$JoinInfo$.class
 com/nvidia/spark/rapids/GpuShuffledSizedHashJoinExec$JoinInfo.class
 com/nvidia/spark/rapids/GpuShuffledSizedHashJoinExec$JoinSizer.class
 com/nvidia/spark/rapids/GpuShuffledSizedHashJoinExec$SpillableColumnarBatchJoinSizer.class
@@ -3791,7 +3788,6 @@ com/nvidia/spark/rapids/MultiFileCloudOrcPartitionReader$HostMemoryEmptyMetaData
 com/nvidia/spark/rapids/MultiFileCloudOrcPartitionReader$ReadBatchRunner.class
 com/nvidia/spark/rapids/MultiFileCloudOrcPartitionReader.class
 com/nvidia/spark/rapids/MultiFileCloudPartitionReaderBase.class
-com/nvidia/spark/rapids/MultiFileCoalescingPartitionReaderBase$CurrentChunkMeta$.class
 com/nvidia/spark/rapids/MultiFileCoalescingPartitionReaderBase$CurrentChunkMeta.class
 com/nvidia/spark/rapids/MultiFileCoalescingPartitionReaderBase$FileBlockGroup.class
 com/nvidia/spark/rapids/MultiFileCoalescingPartitionReaderBase$FileBlockGroupWithPartition.class
@@ -3828,7 +3824,6 @@ com/nvidia/spark/rapids/OrcTableReader$.class
 com/nvidia/spark/rapids/OrcTableReader.class
 com/nvidia/spark/rapids/OrcTools$.class
 com/nvidia/spark/rapids/OrcTools.class
-com/nvidia/spark/rapids/OutOfCoreBatch$.class
 com/nvidia/spark/rapids/OutOfCoreBatch.class
 com/nvidia/spark/rapids/OverwriteByExpressionExecMeta.class
 com/nvidia/spark/rapids/OverwriteByExpressionExecV1Meta.class
@@ -3844,7 +3839,6 @@ com/nvidia/spark/rapids/PartChecksImpl.class
 com/nvidia/spark/rapids/PartMeta.class
 com/nvidia/spark/rapids/PartRule.class
 com/nvidia/spark/rapids/PartitionReaderWithBytesRead.class
-com/nvidia/spark/rapids/PartitionSegment$.class
 com/nvidia/spark/rapids/PartitionSegment.class
 com/nvidia/spark/rapids/Pending$$anon$1.class
 com/nvidia/spark/rapids/Pending.class

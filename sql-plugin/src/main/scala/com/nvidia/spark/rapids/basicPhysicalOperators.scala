@@ -1608,7 +1608,7 @@ private[rapids] class GpuRangeIterator(
       val remainingRows = (safePartitionEnd - start) / step
       // Start is inclusive so we need to produce at least one row
       val rowsExpected = Math.max(1, Math.min(remainingRows, maxRowCountPerBatch))
-      val iter = withRetry(AutoCloseableLong(rowsExpected), reduceRowsNumberByHalf) { rows =>
+      val iter = withRetry(new AutoCloseableLong(rowsExpected), reduceRowsNumberByHalf) { rows =>
         withResource(Scalar.fromLong(start)) { startScalar =>
           withResource(Scalar.fromLong(step)) { stepScalar =>
             withResource(
@@ -1657,12 +1657,12 @@ private[rapids] class GpuRangeIterator(
           throw new GpuSplitAndRetryOOM(s"GPU OutOfMemory: the number of rows generated is" +
             s" too small to be split ${rowsNumber.value}!")
         }
-        Seq(AutoCloseableLong(rowsNumber.value / 2))
+        Seq(new AutoCloseableLong(rowsNumber.value / 2))
       }
     }
 
   /** A bridge class between Long and AutoCloseable for retry */
-  case class AutoCloseableLong(value: Long) extends AutoCloseable {
+  class AutoCloseableLong(val value: Long) extends AutoCloseable {
     override def close(): Unit = { /* Nothing to be closed */ }
   }
 }
