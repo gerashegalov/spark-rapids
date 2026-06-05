@@ -83,14 +83,14 @@ object HashExprChecks {
 
   val murmur3ProjectChecks: ExprChecks = ExprChecks.projectOnly(
     TypeSig.INT, TypeSig.INT,
-    repeatingParamCheck = Some(RepeatingParamCheck(
+    repeatingParamCheck = Some(new RepeatingParamCheck(
       "input",
       murmur3InputTypes,
       TypeSig.all)))
 
   val xxhash64ProjectChecks: ExprChecks = ExprChecks.projectOnly(
     TypeSig.LONG, TypeSig.LONG,
-    repeatingParamCheck = Some(RepeatingParamCheck(
+    repeatingParamCheck = Some(new RepeatingParamCheck(
       "input",
       XxHash64Shims.supportedTypes,
       TypeSig.all)))

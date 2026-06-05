@@ -97,7 +97,7 @@ object ZOrderRules {
           TypeSig.BINARY,
           TypeSig.BINARY,
           repeatingParamCheck =
-            Some(RepeatingParamCheck("input",
+            Some(new RepeatingParamCheck("input",
               TypeSig.INT,
               TypeSig.INT))),
         (a, conf, p, r) => new ExprMeta[Expression](a, conf, p, r) {
@@ -129,7 +129,7 @@ object ZOrderRules {
           TypeSig.LONG,
           TypeSig.LONG,
           repeatingParamCheck =
-            Some(RepeatingParamCheck("input",
+            Some(new RepeatingParamCheck("input",
               TypeSig.INT,
               TypeSig.INT))),
         (a, conf, p, r) => new ExprMeta[Expression](a, conf, p, r) {

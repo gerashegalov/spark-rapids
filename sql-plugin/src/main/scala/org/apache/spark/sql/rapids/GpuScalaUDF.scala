@@ -49,7 +49,7 @@ object GpuScalaUDFMeta {
       GpuUserDefinedFunction.udfTypeSig,
       TypeSig.all,
       repeatingParamCheck =
-        Some(RepeatingParamCheck("param", GpuUserDefinedFunction.udfTypeSig, TypeSig.all))),
+        Some(new RepeatingParamCheck("param", GpuUserDefinedFunction.udfTypeSig, TypeSig.all))),
     (expr, conf, p, r) => new ExprMeta(expr, conf, p, r) {
       lazy val opRapidsFunc = GpuScalaUDF.getRapidsUDFInstance(expr.function)
 
