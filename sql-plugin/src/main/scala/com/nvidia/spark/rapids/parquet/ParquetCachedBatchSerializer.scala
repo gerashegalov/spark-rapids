@@ -231,7 +231,7 @@ case class ParquetCachedBatch(
  * Spark wants the producer to close the batch. We have a listener in this iterator that will close
  * the batch after the task is completed
  */
-private case class CloseableColumnBatchIterator(iter: Iterator[ColumnarBatch]) extends
+private class CloseableColumnBatchIterator(val iter: Iterator[ColumnarBatch]) extends
     Iterator[ColumnarBatch] {
   var cb: ColumnarBatch = _
 
@@ -592,7 +592,7 @@ class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer {
           new ColumnarBatch(cols.safeMap(_.copyToHost()).toArray, gpuBatch.numRows())
         }
       })
-      cbRdd.mapPartitions(iter => CloseableColumnBatchIterator(iter))
+      cbRdd.mapPartitions(iter => new CloseableColumnBatchIterator(iter))
     } else {
       val origSelectedAttributesWithUnambiguousNames =
         sanitizeColumnNames(selectedAttributes, selectedSchemaWithNames)

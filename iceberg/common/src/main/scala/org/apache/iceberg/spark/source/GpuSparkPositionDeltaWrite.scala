@@ -475,7 +475,7 @@ trait GpuDeleteAndDataDeltaWriter extends GpuDeltaWriter {
                     }
                   } else {
                     // Unpartitioned spec
-                    Seq(ColumnarBatchWithPartition(
+                    Seq(new ColumnarBatchWithPartition(
                       SpillableColumnarBatch(filteredPositionDeletes,
                         SpillPriorities.ACTIVE_ON_DECK_PRIORITY),
                       emptyPartitionData
@@ -596,7 +596,7 @@ class GpuDeleteOnlyDeltaWriter(
                     }
                   } else {
                     // Unpartitioned spec
-                    Seq(ColumnarBatchWithPartition(
+                    Seq(new ColumnarBatchWithPartition(
                       SpillableColumnarBatch(filteredPositionDeletes,
                         SpillPriorities.ACTIVE_ON_DECK_PRIORITY),
                       emptyPartitionData

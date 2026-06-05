@@ -705,7 +705,7 @@ abstract class AbstractGpuCoalesceIterator(
           throw new GpuSplitAndRetryOOM(s"Cannot split a sequence of $numBatches batches")
         }
         val res = it.splitAt(numBatches / 2)
-        Seq(BatchesToCoalesce(res._1), BatchesToCoalesce(res._2))
+        Seq(new BatchesToCoalesce(res._1), new BatchesToCoalesce(res._2))
       }
     }
   }
@@ -718,7 +718,7 @@ abstract class AbstractGpuCoalesceIterator(
  * instances in `batches`
  * @param batches a sequence of `SpillableColumnarBatch` to manage.
  */
-case class BatchesToCoalesce(batches: Array[SpillableColumnarBatch])
+class BatchesToCoalesce(val batches: Array[SpillableColumnarBatch])
     extends AutoCloseable {
   override def close(): Unit = {
     batches.safeClose()
@@ -778,7 +778,7 @@ class GpuCoalesceIterator(iter: Iterator[ColumnarBatch],
   }
 
   override def getCoalesceRetryIterator: Iterator[ColumnarBatch] = {
-    val candidates = BatchesToCoalesce(batches.clone().toArray)
+    val candidates = new BatchesToCoalesce(batches.clone().toArray)
     batches.clear()
     withRetry(candidates, splitBatchesToCoalesceFn) { attempt: BatchesToCoalesce =>
       concatBatches(attempt.batches)
@@ -900,7 +900,7 @@ class GpuCompressionAwareCoalesceIterator(
   }
 
   override def getCoalesceRetryIterator: Iterator[ColumnarBatch] = {
-    val candidates = BatchesToCoalesce(batches.clone().toArray)
+    val candidates = new BatchesToCoalesce(batches.clone().toArray)
     batches.clear()
     withRetry(candidates, splitBatchesToCoalesceFn) { attempt: BatchesToCoalesce =>
       concatBatches(attempt.batches)

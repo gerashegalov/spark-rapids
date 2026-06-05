@@ -40,7 +40,7 @@ class GpuDeltaLog(val deltaLog: DeltaLog, val rapidsConf: RapidsConf) {
    * directly to the DeltaLog otherwise they will not be checked for conflicts.
    */
   def startTransaction(): GpuOptimisticTransactionBase = {
-    DeltaRuntimeShim.startTransaction(StartTransactionArg(deltaLog, rapidsConf, _clock, None,
+    DeltaRuntimeShim.startTransaction(new StartTransactionArg(deltaLog, rapidsConf, _clock, None,
       None))
   }
 
@@ -62,7 +62,7 @@ class GpuDeltaLog(val deltaLog: DeltaLog, val rapidsConf: RapidsConf) {
   def startTransaction(
       catalogTableOpt: Option[CatalogTable],
       snapshotOpt: Option[Snapshot] = None): GpuOptimisticTransactionBase = {
-    DeltaRuntimeShim.startTransaction(StartTransactionArg(deltaLog, rapidsConf, _clock,
+    DeltaRuntimeShim.startTransaction(new StartTransactionArg(deltaLog, rapidsConf, _clock,
       catalogTableOpt, snapshotOpt))
   }
 
