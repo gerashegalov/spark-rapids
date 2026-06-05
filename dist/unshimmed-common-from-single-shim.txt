@@ -3978,12 +3978,10 @@ com/nvidia/spark/rapids/RetryStateTracker.class
 com/nvidia/spark/rapids/RightCrossGatherMap.class
 com/nvidia/spark/rapids/RmmRapidsRetryIterator$.class
 com/nvidia/spark/rapids/RmmRapidsRetryIterator$AutoCloseableAttemptSpliterator.class
-com/nvidia/spark/rapids/RmmRapidsRetryIterator$AutoCloseableSeqInternal$.class
 com/nvidia/spark/rapids/RmmRapidsRetryIterator$AutoCloseableSeqInternal.class
 com/nvidia/spark/rapids/RmmRapidsRetryIterator$NoInputSpliterator.class
 com/nvidia/spark/rapids/RmmRapidsRetryIterator$RmmRapidsRetryAutoCloseableIterator.class
 com/nvidia/spark/rapids/RmmRapidsRetryIterator$RmmRapidsRetryIterator.class
-com/nvidia/spark/rapids/RmmRapidsRetryIterator$SingleItemAutoCloseableIteratorInternal$.class
 com/nvidia/spark/rapids/RmmRapidsRetryIterator$SingleItemAutoCloseableIteratorInternal.class
 com/nvidia/spark/rapids/RmmRapidsRetryIterator$SizeProvider.class
 com/nvidia/spark/rapids/RmmRapidsRetryIterator$Spliterator.class

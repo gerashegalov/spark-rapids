@@ -100,7 +100,7 @@ object RmmRapidsRetryIterator {
       splitPolicy: T => Seq[T])
       (fn: T => K): Iterator[K] = {
     val attemptIter = new AutoCloseableAttemptSpliterator(
-      SingleItemAutoCloseableIteratorInternal(input), fn, splitPolicy)
+      new SingleItemAutoCloseableIteratorInternal(input), fn, splitPolicy)
     new RmmRapidsRetryAutoCloseableIterator(attemptIter)
   }
 
@@ -130,7 +130,7 @@ object RmmRapidsRetryIterator {
       input: T)
       (fn: T => K): K = {
     val attemptIter = new AutoCloseableAttemptSpliterator(
-      SingleItemAutoCloseableIteratorInternal(input), fn)
+      new SingleItemAutoCloseableIteratorInternal(input), fn)
     drainSingleWithVerification(
       new RmmRapidsRetryAutoCloseableIterator(attemptIter))
   }
@@ -160,9 +160,9 @@ object RmmRapidsRetryIterator {
   def withRetryNoSplit[T <: AutoCloseable, K](
       input: Seq[T])
       (fn: Seq[T] => K): K = {
-    val wrapped = AutoCloseableSeqInternal(input)
+    val wrapped = new AutoCloseableSeqInternal(input)
     val attemptIter = new AutoCloseableAttemptSpliterator(
-      SingleItemAutoCloseableIteratorInternal(wrapped), fn)
+      new SingleItemAutoCloseableIteratorInternal(wrapped), fn)
     drainSingleWithVerification(
       new RmmRapidsRetryAutoCloseableIterator(attemptIter))
   }
@@ -346,7 +346,7 @@ object RmmRapidsRetryIterator {
    * @param ts the Seq to wrap
    * @tparam T the type of the items in `ts`
    */
-  private case class AutoCloseableSeqInternal[T <: AutoCloseable](ts: Seq[T])
+  private class AutoCloseableSeqInternal[T <: AutoCloseable](ts: Seq[T])
       extends Seq[T] with AutoCloseable {
     override def close(): Unit = {
       ts.foreach(_.safeClose())
@@ -375,7 +375,7 @@ object RmmRapidsRetryIterator {
    * @param ts the AutoCloseable item to close if this iterator hasn't been drained
    * @tparam T the type of `ts`, must be AutoCloseable
    */
-  private case class SingleItemAutoCloseableIteratorInternal[T <: AutoCloseable](ts: T)
+  private class SingleItemAutoCloseableIteratorInternal[T <: AutoCloseable](ts: T)
       extends Iterator[T] with AutoCloseable {
 
     private var wasCalledSuccessfully = false
