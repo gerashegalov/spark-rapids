@@ -156,20 +156,6 @@ object TransactionStatus extends Enumeration {
 }
 
 /**
- * Case class representing stats for the a transaction
- * @param txTimeMs amount of time this [[Transaction]] took
- * @param sendSize amount of bytes sent
- * @param receiveSize amount of bytes received
- * @param sendThroughput send throughput in GB/sec
- * @param recvThroughput receive throughput in GB/sec
- */
-case class TransactionStats(txTimeMs: Double,
-                            sendSize: Long,
-                            receiveSize: Long,
-                            sendThroughput: Double,
-                            recvThroughput: Double)
-
-/**
  * TransportBuffer represents a buffer with an address and length.
  *
  * There are two implementations:

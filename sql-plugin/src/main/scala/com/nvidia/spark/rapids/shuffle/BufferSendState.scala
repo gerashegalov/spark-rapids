@@ -161,8 +161,8 @@ class BufferSendState(
     }
   }
 
-  case class RangeBuffer(
-      range: BlockRange[SendBlock], rapidsBuffer: MemoryBuffer)
+  private class RangeBuffer(
+      val range: BlockRange[SendBlock], val rapidsBuffer: MemoryBuffer)
       extends AutoCloseable {
     override def close(): Unit = {
       rapidsBuffer.close()
@@ -202,7 +202,7 @@ class BufferSendState(
               case _ =>
                 hostBuffs += blockRange.rangeSize()
             }
-            RangeBuffer(blockRange, buff)
+            new RangeBuffer(blockRange, buff)
           }
 
           logDebug(s"Occupancy for bounce buffer is " +
@@ -214,7 +214,9 @@ class BufferSendState(
             hostBounceBuffer.buffer
           }
 
-          acquiredBuffs.foreach { case RangeBuffer(blockRange, memoryBuffer) =>
+          acquiredBuffs.foreach { rangeBuffer =>
+            val blockRange = rangeBuffer.range
+            val memoryBuffer = rangeBuffer.rapidsBuffer
             needsCleanup = true
             require(blockRange.rangeSize() <= bounceBuffToUse.getLength - buffOffset)
             bounceBuffToUse.copyFromMemoryBufferAsync(

@@ -28,10 +28,10 @@ class WindowedBlockIteratorSuite extends RapidsShuffleTestHelper {
   }
 
   test ("1-byte+ ranges are allowed, but 0-byte or negative ranges are not") {
-    assertResult(1)(BlockRange(null, 123, 124).rangeSize())
-    assertResult(2)(BlockRange(null, 123, 125).rangeSize())
-    assertThrows[IllegalArgumentException](BlockRange(null, 123, 123))
-    assertThrows[IllegalArgumentException](BlockRange(null, 123, 122))
+    assertResult(1)(new BlockRange[BlockWithSize](null, 123, 124).rangeSize())
+    assertResult(2)(new BlockRange[BlockWithSize](null, 123, 125).rangeSize())
+    assertThrows[IllegalArgumentException](new BlockRange[BlockWithSize](null, 123, 123))
+    assertThrows[IllegalArgumentException](new BlockRange[BlockWithSize](null, 123, 122))
   }
 
   test ("0-byte blocks are not allowed") {
