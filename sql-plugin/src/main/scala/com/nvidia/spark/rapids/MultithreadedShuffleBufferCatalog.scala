@@ -18,7 +18,7 @@ package com.nvidia.spark.rapids
 
 import java.io.{InputStream, IOException}
 import java.lang.{Boolean => JBoolean}
-import java.nio.ByteBuffer
+import java.nio.{Buffer, ByteBuffer}
 import java.nio.channels.WritableByteChannel
 import java.util.HashSet
 import java.util.concurrent.ConcurrentHashMap
@@ -291,7 +291,7 @@ class MultiBatchManagedBuffer(segments: Seq[PartitionSegment]) extends ManagedBu
       }
     }
 
-    buffer.flip()
+    buffer.asInstanceOf[Buffer].flip()
     buffer
   }
 
