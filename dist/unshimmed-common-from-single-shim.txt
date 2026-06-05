@@ -14,7 +14,6 @@ com/nvidia/spark/rapids/AcquireFailed$.class
 com/nvidia/spark/rapids/ActiveTaskMetrics.class
 com/nvidia/spark/rapids/ActiveTaskMetrics$.class
 com/nvidia/spark/rapids/AggregateModeInfo.class
-com/nvidia/spark/rapids/AggregateModeInfo$.class
 com/nvidia/spark/rapids/AllocationKind.class
 com/nvidia/spark/rapids/AllocationKind$.class
 com/nvidia/spark/rapids/AutoClosableArrayBuffer.class

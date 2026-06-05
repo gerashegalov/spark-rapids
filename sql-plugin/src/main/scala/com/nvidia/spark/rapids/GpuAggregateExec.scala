@@ -331,26 +331,6 @@ case class GpuHashAggregateMetrics(
     heuristicTime: GpuMetric) {
 }
 
-/** Utility class to convey information on the aggregation modes being used */
-case class AggregateModeInfo(
-    uniqueModes: Seq[AggregateMode],
-    hasPartialMode: Boolean,
-    hasPartialMergeMode: Boolean,
-    hasFinalMode: Boolean,
-    hasCompleteMode: Boolean)
-
-object AggregateModeInfo {
-  def apply(uniqueModes: Seq[AggregateMode]): AggregateModeInfo = {
-    AggregateModeInfo(
-      uniqueModes = uniqueModes,
-      hasPartialMode = uniqueModes.contains(Partial),
-      hasPartialMergeMode = uniqueModes.contains(PartialMerge),
-      hasFinalMode = uniqueModes.contains(Final),
-      hasCompleteMode = uniqueModes.contains(Complete)
-    )
-  }
-}
-
 /**
  * Internal class used in `computeAggregates` for the pre, agg, and post steps
  *
@@ -2027,7 +2007,7 @@ case class GpuHashAggregateExec(
     val aggregateExprs = aggregateExpressions
     val aggregateAttrs = aggregateAttributes
     val resultExprs = resultExpressions
-    val modeInfo = AggregateModeInfo(uniqueModes)
+    val modeInfo = AggregateModeInfo.from(uniqueModes)
     val targetBatchSize = configuredTargetBatchSize
 
     val rdd = child.executeColumnar()
