@@ -41,9 +41,14 @@ import org.apache.spark.sql.rapids.shims.SparkSessionUtils
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.util.SerializableConfiguration
 
-case class LoreRDDMeta(numPartitions: Int, outputPartitions: Seq[Int], attrs: Seq[Attribute])
+class LoreRDDMeta(
+    val numPartitions: Int,
+    val outputPartitions: Seq[Int],
+    val attrs: Seq[Attribute]) extends Serializable
 
-case class LoreRDDPartitionMeta(numBatches: Int, dataType: Seq[DataType])
+class LoreRDDPartitionMeta(
+    val numBatches: Int,
+    val dataType: Seq[DataType]) extends Serializable
 
 trait GpuLoreRDD {
   def rootPath: Path
@@ -271,12 +276,13 @@ object GpuLore {
                 checkUnsupportedOperator(g)
                 val currentExecRootPath = new Path(loreOutputRootPath, s"loreId-$loreId")
                 registerTag(g, LORE_DUMP_PATH_TAG, currentExecRootPath.toString, tagRollbacks)
-                val loreOutputInfo = LoreOutputInfo(outputLoreIds,
+                val loreOutputInfo = new LoreOutputInfo(outputLoreIds,
                   currentExecRootPath.toString)
 
                 g.children.zipWithIndex.foreach {
                   case (child, idx) =>
-                    val dumpRDDInfo = LoreDumpRDDInfo(idx, loreOutputInfo, child.output, hadoopConf,
+                    val dumpRDDInfo = new LoreDumpRDDInfo(idx, loreOutputInfo, child.output,
+                      hadoopConf,
                       useOriginalSchemaNames = rapidsConf.loreParquetUseOriginalNames,
                       nonStrictMode = allowNonStrictMode)
                     child match {
@@ -344,7 +350,7 @@ object GpuLore {
       tagRollbacks: mutable.ArrayBuffer[TagRollback], nonStrictMode: Boolean) = {
     val innerPlan = sub.plan.child
     if (innerPlan.isInstanceOf[GpuExec]) {
-      val dumpRDDInfo = LoreDumpRDDInfo(id, loreOutputInfo, innerPlan.output,
+      val dumpRDDInfo = new LoreDumpRDDInfo(id, loreOutputInfo, innerPlan.output,
         hadoopConf,
         useOriginalSchemaNames = RapidsConf.LORE_PARQUET_USE_ORIGINAL_NAMES
           .get(SparkSessionUtils.sessionFromPlan(innerPlan).sessionState.conf),

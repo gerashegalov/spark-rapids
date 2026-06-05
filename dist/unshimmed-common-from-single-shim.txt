@@ -360,14 +360,10 @@ com/nvidia/spark/rapids/GpuBuildSide.class
 com/nvidia/spark/rapids/GpuJoinUtils.class
 com/nvidia/spark/rapids/GpuJoinUtils$.class
 com/nvidia/spark/rapids/lore/LoreOutputInfo.class
-com/nvidia/spark/rapids/lore/LoreOutputInfo$.class
 com/nvidia/spark/rapids/lore/GpuLoreRDD.class
 com/nvidia/spark/rapids/lore/LoreRDDMeta.class
-com/nvidia/spark/rapids/lore/LoreRDDMeta$.class
 com/nvidia/spark/rapids/lore/LoreRDDPartitionMeta.class
-com/nvidia/spark/rapids/lore/LoreRDDPartitionMeta$.class
 com/nvidia/spark/rapids/lore/LoreReplayPartition.class
-com/nvidia/spark/rapids/lore/LoreReplayPartition$.class
 com/nvidia/spark/rapids/lore/OutputLoreId.class
 com/nvidia/spark/rapids/lore/OutputLoreId$.class
 com/nvidia/spark/rapids/lore/package.class
@@ -596,7 +592,6 @@ com/nvidia/spark/rapids/OrcSchemaWrapper.class
 com/nvidia/spark/rapids/HttpBackendType.class
 com/nvidia/spark/rapids/HttpBackendType$.class
 com/nvidia/spark/rapids/lore/LoreDumpRDDInfo.class
-com/nvidia/spark/rapids/lore/LoreDumpRDDInfo$.class
 com/nvidia/spark/rapids/MapUtil.class
 com/nvidia/spark/rapids/MapUtil$.class
 com/nvidia/spark/rapids/MarkdownUtils.class

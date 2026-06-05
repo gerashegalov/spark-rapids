@@ -94,8 +94,8 @@ class GpuLoreReplayRDD(sc: SparkContext, rootPathStr: String,
   }
 
   override protected def getPartitions: Array[Partition] = {
-    (0 until loreRDDMeta.numPartitions).map(LoreReplayPartition).toArray
+    (0 until loreRDDMeta.numPartitions).map(new LoreReplayPartition(_)).toArray
   }
 }
 
-case class LoreReplayPartition(override val index: Int) extends Partition
+class LoreReplayPartition(override val index: Int) extends Partition

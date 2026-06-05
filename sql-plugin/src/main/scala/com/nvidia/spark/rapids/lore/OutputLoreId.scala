@@ -25,7 +25,7 @@ case class OutputLoreId(loreId: LoreId, partitionIds: Set[Int]) {
     partitionIds.contains(partitionId)
 }
 
-case class LoreOutputInfo(outputLoreId: OutputLoreId, pathStr: String) {
+class LoreOutputInfo(val outputLoreId: OutputLoreId, val pathStr: String) extends Serializable {
   def path: Path = new Path(pathStr)
 }
 

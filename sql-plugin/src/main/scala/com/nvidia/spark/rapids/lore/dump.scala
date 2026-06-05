@@ -36,13 +36,13 @@ import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.util.SerializableConfiguration
 
 
-case class LoreDumpRDDInfo(
-    idxInParent: Int,
-    loreOutputInfo: LoreOutputInfo,
-    attrs: Seq[Attribute],
-    hadoopConf: Broadcast[SerializableConfiguration],
-    useOriginalSchemaNames: Boolean = false,
-    nonStrictMode: Boolean = false)
+class LoreDumpRDDInfo(
+    val idxInParent: Int,
+    val loreOutputInfo: LoreOutputInfo,
+    val attrs: Seq[Attribute],
+    val hadoopConf: Broadcast[SerializableConfiguration],
+    val useOriginalSchemaNames: Boolean,
+    val nonStrictMode: Boolean) extends Serializable
 
 class GpuLoreDumpRDD(info: LoreDumpRDDInfo, input: RDD[ColumnarBatch])
   extends RDD[ColumnarBatch](input) with GpuLoreRDD {
@@ -53,7 +53,8 @@ class GpuLoreDumpRDD(info: LoreDumpRDDInfo, input: RDD[ColumnarBatch])
 
   def saveMeta(): Unit = {
     try {
-      val meta = LoreRDDMeta(input.getNumPartitions, this.getPartitions.map(_.index), info.attrs)
+      val meta = new LoreRDDMeta(input.getNumPartitions, this.getPartitions.map(_.index),
+        info.attrs)
       GpuLore.dumpObject(meta, pathOfMeta, this.context.hadoopConfiguration)
     } catch {
       case NonFatal(e) if (info.nonStrictMode) =>
@@ -86,9 +87,9 @@ class GpuLoreDumpRDD(info: LoreDumpRDDInfo, input: RDD[ColumnarBatch])
                   .isInstanceOf[KudoSerializedTableColumn])
               val partitionMeta = if (isFromShuffle) {
                 // get the array of dataType from the info.attrs
-                LoreRDDPartitionMeta(batchIdx, factDataTypes)
+                new LoreRDDPartitionMeta(batchIdx, factDataTypes)
               } else {
-                LoreRDDPartitionMeta(batchIdx, GpuColumnVector.extractTypes(ret))
+                new LoreRDDPartitionMeta(batchIdx, GpuColumnVector.extractTypes(ret))
               }
               GpuLore.dumpObject(partitionMeta, pathOfPartitionMeta(split.index),
                 info.hadoopConf.value.value)
