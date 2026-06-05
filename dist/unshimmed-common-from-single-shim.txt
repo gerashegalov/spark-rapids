@@ -25,7 +25,6 @@ com/nvidia/spark/rapids/CloseableHolder.class
 com/nvidia/spark/rapids/ColumnIndex.class
 com/nvidia/spark/rapids/ColumnarCopyHelper.class
 com/nvidia/spark/rapids/CombineConf.class
-com/nvidia/spark/rapids/CombineConf$.class
 com/nvidia/spark/rapids/CompressedTable.class
 com/nvidia/spark/rapids/CompressedTable$.class
 com/nvidia/spark/rapids/ConfBuilder.class
@@ -76,7 +75,6 @@ com/nvidia/spark/rapids/GpuUnsignedIntegerType$.class
 com/nvidia/spark/rapids/GpuUnsignedLongType.class
 com/nvidia/spark/rapids/GpuUnsignedLongType$.class
 com/nvidia/spark/rapids/DefaultThreadPoolConf.class
-com/nvidia/spark/rapids/DefaultThreadPoolConf$.class
 com/nvidia/spark/rapids/HashMode.class
 com/nvidia/spark/rapids/HasCustomTaggingData.class
 com/nvidia/spark/rapids/HashedPriorityQueue.class
@@ -107,7 +105,6 @@ com/nvidia/spark/rapids/LineBuffererFactory.class
 com/nvidia/spark/rapids/MemoryState.class
 com/nvidia/spark/rapids/MultiFileReaderFunctions.class
 com/nvidia/spark/rapids/MemoryBoundedPoolConf.class
-com/nvidia/spark/rapids/MemoryBoundedPoolConf$.class
 com/nvidia/spark/rapids/MutableBlockInfo.class
 com/nvidia/spark/rapids/MutableBlockInfo$.class
 com/nvidia/spark/rapids/Murmur3Mode.class

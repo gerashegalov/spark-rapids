@@ -1228,7 +1228,7 @@ abstract class AbstractGpuParquetMultiFilePartitionReaderFactory(
       filterHandler.filterBlocks(fileIO, footerReadType, file, new Configuration(conf),
         filters, readDataSchema)
     }
-    val combineConf = CombineConf(combineThresholdSize, combineWaitTime)
+    val combineConf = new CombineConf(combineThresholdSize, combineWaitTime)
     val poolConf = poolConfBuilder.build()
     val reader = createBaseMultiFileCloudReader(fileIO, conf, files, filterFunc,
       isCaseSensitive,

@@ -619,7 +619,7 @@ case class GpuOrcMultiFilePartitionReaderFactory(
    */
   override def buildBaseColumnarReaderForCloud(files: Array[PartitionedFile], conf: Configuration):
       PartitionReader[ColumnarBatch] = {
-    val combineConf = CombineConf(combineThresholdSize, combineWaitTime)
+    val combineConf = new CombineConf(combineThresholdSize, combineWaitTime)
     val poolConf = poolConfBuilder.build()
     val reader = new MultiFileCloudOrcPartitionReader(
       conf, files, dataSchema, readDataSchema, partitionSchema,
