@@ -33,14 +33,6 @@ import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.storage.ShuffleBlockId
 
-/** Identifier for a shuffle buffer that holds the data for a table */
-case class ShuffleBufferId(
-    blockId: ShuffleBlockId,
-    tableId: Int) {
-  val shuffleId: Int = blockId.shuffleId
-  val mapId: Long = blockId.mapId
-}
-
 /** Catalog for lookup of shuffle buffers by block ID */
 class ShuffleBufferCatalog {
   private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
@@ -266,7 +258,7 @@ class ShuffleBufferCatalog {
     }
 
     val tableId = tableIdCounter.getAndUpdate(ShuffleBufferCatalog.TABLE_ID_UPDATER)
-    val id = ShuffleBufferId(blockId, tableId)
+    val id = new ShuffleBufferId(blockId, tableId)
     val prev = tableMap.put(tableId, id)
     if (prev != null) {
       throw new IllegalStateException(s"table ID $tableId is already in use")

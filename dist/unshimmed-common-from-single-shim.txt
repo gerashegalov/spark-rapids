@@ -224,7 +224,6 @@ com/nvidia/spark/rapids/SimpleQuantifier$.class
 com/nvidia/spark/rapids/SemaphoreAcquired.class
 com/nvidia/spark/rapids/SemaphoreAcquired$.class
 com/nvidia/spark/rapids/ShuffleBufferId.class
-com/nvidia/spark/rapids/ShuffleBufferId$.class
 com/nvidia/spark/rapids/SlicedGpuColumnVector.class
 com/nvidia/spark/rapids/SlicedSerializedColumnVector.class
 com/nvidia/spark/rapids/SortEachBatch.class
