@@ -480,6 +480,7 @@ org/apache/iceberg/spark/functions/GpuYears$.class
 org/apache/iceberg/spark/functions/GpuYears.class
 org/apache/iceberg/spark/functions/GpuYearsExpression$.class
 org/apache/iceberg/spark/functions/GpuYearsExpression.class
+org/apache/iceberg/spark/source/DeleteWriteContext$.class
 org/apache/iceberg/spark/source/DeleteWriteContext.class
 org/apache/iceberg/spark/source/GpuBaseBatchWrite.class
 org/apache/iceberg/spark/source/GpuBasePositionDeltaWriter.class
@@ -2180,6 +2181,7 @@ org/apache/spark/sql/delta/rapids/GpuWriteIntoDeltaBase$$anonfun$3.class
 org/apache/spark/sql/delta/rapids/GpuWriteIntoDeltaBase$$anonfun$4.class
 org/apache/spark/sql/delta/rapids/GpuWriteIntoDeltaBase$$anonfun$5.class
 org/apache/spark/sql/delta/rapids/GpuWriteIntoDeltaBase.class
+org/apache/spark/sql/delta/rapids/StartTransactionArg$.class
 org/apache/spark/sql/delta/rapids/StartTransactionArg.class
 org/apache/spark/sql/delta/rapids/SupportsPathIdentifier.class
 org/apache/spark/sql/delta/rapids/commands/GpuOptimizeExecutor$$anonfun$1.class
