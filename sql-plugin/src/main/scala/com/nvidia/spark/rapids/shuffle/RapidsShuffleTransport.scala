@@ -16,7 +16,7 @@
 
 package com.nvidia.spark.rapids.shuffle
 
-import java.nio.{ByteBuffer, ByteOrder}
+import java.nio.{Buffer, ByteBuffer, ByteOrder}
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -193,7 +193,7 @@ class MetadataTransportBuffer(val dbb: RefCountedDirectByteBuffer) extends Trans
   def copy(in: ByteBuffer): Unit = {
     val bb = dbb.getBuffer()
     bb.put(in)
-    bb.rewind()
+    bb.asInstanceOf[Buffer].rewind()
   }
 
   override def getAddress(): Long =
@@ -422,7 +422,7 @@ class DirectByteBufferPool(bufferSize: Long) {
       logDebug(s"Allocating new direct buffer, high watermark = $high")
       new RefCountedDirectByteBuffer(ByteBuffer.allocateDirect(bufferSize.toInt), Option(this))
     } else {
-      buff.clear()
+      buff.asInstanceOf[Buffer].clear()
       // Reset endianness to BIG_ENDIAN, as it could have changed depending on the consumer
       // (i.e. flat buffers force byte order to be LITTLE_ENDIAN, but pool consumers could be
       //  things like handshake messages that don't use flat buffers).
@@ -437,7 +437,7 @@ class DirectByteBufferPool(bufferSize: Long) {
 
   def releaseBuffer(buff: RefCountedDirectByteBuffer): Boolean = {
     logDebug(s"Free direct buffers ${buffers.size()}")
-    buff.getBuffer().clear()
+    buff.getBuffer().asInstanceOf[Buffer].clear()
     buffers.offer(buff.getBuffer())
   }
 }
@@ -538,7 +538,7 @@ object TransportUtils {
     NvtxRegistry.TRANSPORT_COPY_BUFFER.push()
     try {
       val ro = src.asReadOnlyBuffer()
-      ro.limit(ro.position() + size) // make sure we only copy size bytes
+      ro.asInstanceOf[Buffer].limit(ro.position() + size) // make sure we only copy size bytes
       // copy from position to remaining = (limit - position)
       dst.put(ro) // bulk put
     } finally {

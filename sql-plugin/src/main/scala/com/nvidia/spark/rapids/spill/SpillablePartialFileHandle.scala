@@ -17,7 +17,7 @@
 package com.nvidia.spark.rapids.spill
 
 import java.io.{BufferedInputStream, BufferedOutputStream, File, FileInputStream, FileOutputStream, IOException, RandomAccessFile}
-import java.nio.ByteBuffer
+import java.nio.{Buffer, ByteBuffer}
 import java.nio.channels.FileChannel
 
 import ai.rapids.cudf.HostMemoryBuffer
@@ -274,7 +274,7 @@ class SpillablePartialFileHandle private (
     withResource(new FileOutputStream(file)) { fos =>
       val channel = fos.getChannel
       val bb = buffer.asByteBuffer()
-      bb.limit(writePosition.toInt)
+      bb.asInstanceOf[Buffer].limit(writePosition.toInt)
       while (bb.hasRemaining) {
         channel.write(bb)
       }
@@ -686,7 +686,7 @@ class SpillablePartialFileHandle private (
       try {
         val channel = fos.getChannel
         val bb = bufferToSpill.asByteBuffer()
-        bb.limit(totalBytesWritten.toInt)
+        bb.asInstanceOf[Buffer].limit(totalBytesWritten.toInt)
         while (bb.hasRemaining) {
           channel.write(bb)
         }
