@@ -24,6 +24,7 @@ BUILD_ALL_DEBUG=0
 SCALA213=0
 UNSHIM_FAST=0
 UNSHIM_PARALLEL_WORLD_ONLY=0
+UNSHIM_REUSE_BUILT_JARS=0
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)
 SOURCE_DIR=$(cd "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)
@@ -77,6 +78,8 @@ function print_usage() {
   echo "        skip Maven checks/docs, tests, build metadata, coverage, enforcer, and snapshot refresh for repeated unshim/dist iteration"
   echo "   --parallel-world-only, --unshim-parallel-world-only"
   echo "        build analyzer-only parallel-world output without the final Maven dist invocation"
+  echo "   --unshim-reuse-built-jars"
+  echo "        with --unshim-fast --parallel-world-only, skip shim Maven builds and reuse existing target jars"
 }
 
 function bloopInstall() {
@@ -177,6 +180,10 @@ case "$1" in
   UNSHIM_PARALLEL_WORLD_ONLY=1
   ;;
 
+--unshim-reuse-built-jars)
+  UNSHIM_REUSE_BUILT_JARS=1
+  ;;
+
 --rebuild-dist-only)
   SKIP_DIST_DEPS="1"
   MODULE="dist"
@@ -219,6 +226,12 @@ else
   export MVN_FAST_SKIP_OPTS=""
 fi
 export UNSHIM_FAST
+
+if [[ "$UNSHIM_REUSE_BUILT_JARS" == "1" && \
+      ( "$UNSHIM_FAST" != "1" || "$UNSHIM_PARALLEL_WORLD_ONLY" != "1" ) ]]; then
+  echo >&2 "--unshim-reuse-built-jars requires --unshim-fast --parallel-world-only"
+  exit 1
+fi
 
 if [[ "$SCALA213" == "1" ]]; then
   POM_FILE="scala2.13/pom.xml"
@@ -317,6 +330,24 @@ function refresh_fast_aggregator_jar() {
 }
 export -f refresh_fast_aggregator_jar
 
+function verify_reusable_unshim_artifacts() {
+  local BUILD_VER=$1
+  local classifier="spark$BUILD_VER"
+  local api_base="rapids-4-spark-sql-plugin-api_${RAPIDS_SCALA_BINARY_VERSION}-${RAPIDS_PROJECT_VERSION}"
+  local agg_base="rapids-4-spark-aggregator_${RAPIDS_SCALA_BINARY_VERSION}-${RAPIDS_PROJECT_VERSION}"
+  local api_jar="$MVN_BASE_DIR/sql-plugin-api/target/$classifier/${api_base}-$classifier.jar"
+  local agg_shaded_jar="$MVN_BASE_DIR/aggregator/target/$classifier/${agg_base}-shaded.jar"
+  local jar_path
+  for jar_path in "$api_jar" "$agg_shaded_jar"; do
+    if [[ ! -f "$jar_path" ]]; then
+      echo >&2 "Expected reusable unshim artifact missing: $jar_path"
+      echo >&2 "Re-run without --unshim-reuse-built-jars after source or dependency changes."
+      exit 255
+    fi
+  done
+}
+export -f verify_reusable_unshim_artifacts
+
 function build_single_shim() {
   [[ "$BUILD_ALL_DEBUG" == "1" ]] && set -x
   local BUILD_VER=$1
@@ -402,6 +433,13 @@ export -f build_single_shim
 time (
   # printf a single buildver array element per line
   if [[ "$SKIP_DIST_DEPS" != "1" ]]; then
+    if [[ "$UNSHIM_REUSE_BUILT_JARS" == "1" ]]; then
+      echo "Unshim fast: reusing existing per-shim jars and skipping Maven shim builds"
+      for bv in "${SPARK_SHIM_VERSIONS[@]}"; do
+        verify_reusable_unshim_artifacts "$bv"
+        refresh_fast_aggregator_jar "$bv"
+      done
+    else
     # Execute initialize to download a massive jar for spark-rapids-jni in a single thread to
     # avoid repeating this work in parallel. This is unnecessary in unshim-fast modes that skip
     # JNI unpacking.
@@ -415,8 +453,9 @@ time (
     printf "%s\n" "${SPARK_SHIM_VERSIONS[@]}" | \
       xargs -t -I% -P "$BUILD_PARALLEL" -n 1 \
       bash -c 'build_single_shim "$@"' _ %
+    fi
   fi
-  if [[ "$UNSHIM_FAST" == "1" ]]; then
+  if [[ "$UNSHIM_FAST" == "1" && "$UNSHIM_REUSE_BUILT_JARS" != "1" ]]; then
     for bv in "${SPARK_SHIM_VERSIONS[@]}"; do
       refresh_fast_aggregator_jar "$bv"
     done
