@@ -1989,7 +1989,6 @@ com/nvidia/spark/rapids/delta/common/GpuDelta4xParquetFileFormat.class
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormat2$.class
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormat2.class
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase.class
-com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$DeltaBatchExtraInfo$.class
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$DeltaBatchExtraInfo.class
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$DeltaParquetExtraInfo.class
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$DeltaParquetPartitionReader.class
@@ -2005,11 +2004,8 @@ com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$MultiFileClo
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$MultiFileCloudDeltaParquetPartitionReader.class
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$MultiFileDeltaCoalescingParquetPartitionReader$$anon$1.class
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$MultiFileDeltaCoalescingParquetPartitionReader.class
-com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$PerFileDVEntry$.class
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$PerFileDVEntry.class
-com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$SerializedRoaringBitmap$.class
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$SerializedRoaringBitmap.class
-com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$SpillableDeletionVectorInfo$.class
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$SpillableDeletionVectorInfo.class
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2.class
 com/nvidia/spark/rapids/delta/common/GpuIncrementMetric$.class

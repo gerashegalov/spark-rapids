@@ -334,16 +334,16 @@ class GpuDeltaParquetFileFormatBase2(
   /**
    * Spillable version of DeletionVector.DeletionVectorInfo.
    */
-  case class SpillableDeletionVectorInfo(
-      serializedBitmap: SpillableHostBuffer,
+  class SpillableDeletionVectorInfo(
+      val serializedBitmap: SpillableHostBuffer,
       // Pre-computed number of deleted rows across all row groups.
-      numRowsDeleted: Long,
+      val numRowsDeleted: Long,
       // The offsets and numRows below are the original row group offsets and row counts
       // in the file. The combining process in multi-threaded reader involves re-organizing
       // row groups across files, but the offsets and numRows here are not changed even
       // after the combining.
-      rowGroupOffsets: Array[Long],
-      rowGroupNumRows: Array[Int]
+      val rowGroupOffsets: Array[Long],
+      val rowGroupNumRows: Array[Int]
   ) extends AutoCloseable {
 
     override def close(): Unit = {
@@ -351,50 +351,47 @@ class GpuDeltaParquetFileFormatBase2(
     }
   }
 
-  object SpillableDeletionVectorInfo {
-
-    /**
-     * Computes the number of deleted rows within the given row ranges
-     * in the bitmap.
-     */
-    private def countDeletedRows(
-        scalaBitmap: RoaringBitmapArray,
-        rowGroupOffsets: Array[Long],
-        rowGroupNumRows: Array[Int]): Long = {
-      if (scalaBitmap.cardinality == 0) return 0L
-      var count = 0L
-      val rowRanges = rowGroupOffsets.zip(rowGroupNumRows)
-      // Computes the number of deleted rows by iterating only over the set bits
-      // in the bitmap (deleted row indices) and checking which row group each
-      // belongs to. This is O(deleted_rows * num_row_groups) instead of
-      // O(total_rows). The former is usually smaller than the latter.
-      // This is a temporary solution until we add a dedicated API in cuDF.
-      scalaBitmap.forEach { deletedIndex: Long =>
-        rowRanges.find { case (offset, numRows) =>
-          deletedIndex >= offset && deletedIndex < offset + numRows
-        }.foreach { _ =>
-          // If the deleted index falls within this row group, count it as deleted.
-          count += 1L
-        }
+  /**
+   * Computes the number of deleted rows within the given row ranges
+   * in the bitmap.
+   */
+  private def countDeletedRows(
+      scalaBitmap: RoaringBitmapArray,
+      rowGroupOffsets: Array[Long],
+      rowGroupNumRows: Array[Int]): Long = {
+    if (scalaBitmap.cardinality == 0) return 0L
+    var count = 0L
+    val rowRanges = rowGroupOffsets.zip(rowGroupNumRows)
+    // Computes the number of deleted rows by iterating only over the set bits
+    // in the bitmap (deleted row indices) and checking which row group each
+    // belongs to. This is O(deleted_rows * num_row_groups) instead of
+    // O(total_rows). The former is usually smaller than the latter.
+    // This is a temporary solution until we add a dedicated API in cuDF.
+    scalaBitmap.forEach { deletedIndex: Long =>
+      rowRanges.find { case (offset, numRows) =>
+        deletedIndex >= offset && deletedIndex < offset + numRows
+      }.foreach { _ =>
+        // If the deleted index falls within this row group, count it as deleted.
+        count += 1L
       }
-      count
     }
+    count
+  }
 
-    def apply(
-        serializedBitmap: HostMemoryBuffer,
-        scalaBitmap: RoaringBitmapArray,
-        rowGroupOffsets: Array[Long],
-        rowGroupNumRows: Array[Int]): SpillableDeletionVectorInfo = {
-      val numRowsDeleted = countDeletedRows(scalaBitmap, rowGroupOffsets, rowGroupNumRows)
-      new SpillableDeletionVectorInfo(
-        SpillableHostBuffer(
-          serializedBitmap,
-          serializedBitmap.getLength(),
-          SpillPriorities.ACTIVE_BATCHING_PRIORITY),
-        numRowsDeleted,
-        rowGroupOffsets,
-        rowGroupNumRows)
-    }
+  private def spillableDeletionVectorInfo(
+      serializedBitmap: HostMemoryBuffer,
+      scalaBitmap: RoaringBitmapArray,
+      rowGroupOffsets: Array[Long],
+      rowGroupNumRows: Array[Int]): SpillableDeletionVectorInfo = {
+    val numRowsDeleted = countDeletedRows(scalaBitmap, rowGroupOffsets, rowGroupNumRows)
+    new SpillableDeletionVectorInfo(
+      SpillableHostBuffer(
+        serializedBitmap,
+        serializedBitmap.getLength(),
+        SpillPriorities.ACTIVE_BATCHING_PRIORITY),
+      numRowsDeleted,
+      rowGroupOffsets,
+      rowGroupNumRows)
   }
 
   override def createMultiFileReaderFactory(
@@ -442,11 +439,11 @@ class GpuDeltaParquetFileFormatBase2(
    * @param rowGroupNumRows number of rows in each row group
    * @param partitionIndex index into rowsPerPartition / allPartValues this file contributes to
    */
-  case class PerFileDVEntry(
-      dvDescriptor: Option[String],
-      rowGroupOffsets: Array[Long],
-      rowGroupNumRows: Array[Int],
-      partitionIndex: Int)
+  class PerFileDVEntry(
+      val dvDescriptor: Option[String],
+      val rowGroupOffsets: Array[Long],
+      val rowGroupNumRows: Array[Int],
+      val partitionIndex: Int)
 
   /**
    * Per-file DV load result produced during [[prepareForDecode]].
@@ -454,7 +451,7 @@ class GpuDeltaParquetFileFormatBase2(
    * @param gpuBitmap serialized roaring bitmap buffer for the file's deletion vector
    * @param aliveCount number of alive (non-deleted) rows in the file
    */
-  case class SerializedRoaringBitmap(gpuBitmap: SpillableHostBuffer, aliveCount: Long)
+  class SerializedRoaringBitmap(val gpuBitmap: SpillableHostBuffer, val aliveCount: Long)
 
   /**
    * Per-batch DV info that replaces [[ParquetExtraInfo]] in [[CurrentChunkMeta]] after batch
@@ -463,13 +460,13 @@ class GpuDeltaParquetFileFormatBase2(
    *  - [[loadedDVResults]] is filled in by [[prepareForDecode]] after the copy phase.
    *  [[perFileEntries]] and [[loadedDVResults]] are always parallel sequences of the same length.
    */
-  case class DeltaBatchExtraInfo(
+  class DeltaBatchExtraInfo(
       override val dateRebaseMode: DateTimeRebaseMode,
       override val timestampRebaseMode: DateTimeRebaseMode,
       override val hasInt96Timestamps: Boolean,
       val perFileEntries: Seq[PerFileDVEntry],
       // Filled by prepareForDecode() after the copy phase; empty until then.
-      val loadedDVResults: Seq[SerializedRoaringBitmap] = Seq.empty
+      val loadedDVResults: Seq[SerializedRoaringBitmap]
   ) extends ParquetExtraInfo(dateRebaseMode, timestampRebaseMode, hasInt96Timestamps) {
     /**
      * True if at least one file in this batch carries a deletion vector descriptor.
@@ -480,7 +477,8 @@ class GpuDeltaParquetFileFormatBase2(
      * Returns a copy of this instance with [[loadedDVResults]] set.
      */
     def withLoadedDVResults(loadedDVResults: Seq[SerializedRoaringBitmap]): DeltaBatchExtraInfo =
-      this.copy(loadedDVResults = loadedDVResults)
+      new DeltaBatchExtraInfo(dateRebaseMode, timestampRebaseMode, hasInt96Timestamps,
+        perFileEntries, loadedDVResults)
 
     /**
      * Closes the DV bitmaps in [[loadedDVResults]].
@@ -854,7 +852,7 @@ class GpuDeltaParquetFileFormatBase2(
           maybeSerializedDV.map{ serializedDV =>
             val (rowGroupOffsets, rowGroupNumRows) = RapidsDeletionVectors
               .getRowGroupMetadata(blocks)
-            SpillableDeletionVectorInfo(
+            spillableDeletionVectorInfo(
               serializedDV,
               maybeScalaBitmap.get,
               rowGroupOffsets,
@@ -923,7 +921,7 @@ class GpuDeltaParquetFileFormatBase2(
           deletionVectorMetadataForSingleBuffer(
             maybeSerializedDV.map { serializedDV =>
               serializedDV.incRefCount()
-              SpillableDeletionVectorInfo(
+              spillableDeletionVectorInfo(
                 serializedDV,
                 maybeScalaBitmap.get,
                 rowGroupOffsets,
@@ -1121,12 +1119,12 @@ class GpuDeltaParquetFileFormatBase2(
             fileNumRows += extra.rowGroupNumRows
           }
 
-          PerFileDVEntry(fileDesc, fileOffsets.toArray, fileNumRows.toArray, partitionIndex)
+          new PerFileDVEntry(fileDesc, fileOffsets.toArray, fileNumRows.toArray, partitionIndex)
       }.toSeq
 
       val batchExtra = new DeltaBatchExtraInfo(
         meta.extraInfo.dateRebaseMode, meta.extraInfo.timestampRebaseMode,
-        meta.extraInfo.hasInt96Timestamps, fileEntries)
+        meta.extraInfo.hasInt96Timestamps, fileEntries, Seq.empty)
       meta.copy(extraInfo = batchExtra)
     }
 
@@ -1181,7 +1179,7 @@ class GpuDeltaParquetFileFormatBase2(
               require(numDeleted <= totalRows,
                 s"Deletion vector cardinality ($numDeleted) exceeds " +
                   s"file row count ($totalRows)")
-              SerializedRoaringBitmap(gpuBitmap, totalRows - numDeleted)
+              new SerializedRoaringBitmap(gpuBitmap, totalRows - numDeleted)
             }
           }
         })
