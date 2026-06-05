@@ -1960,7 +1960,6 @@ com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$SpillableDel
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2.class
 com/nvidia/spark/rapids/delta/common/GpuIncrementMetric$.class
 com/nvidia/spark/rapids/delta/common/GpuIncrementMetric.class
-com/nvidia/spark/rapids/delta/common/GpuIncrementMetricMeta$.class
 com/nvidia/spark/rapids/delta/common/GpuIncrementMetricMeta.class
 com/nvidia/spark/rapids/delta/common/MakeParquetTableWithDVProducer$.class
 com/nvidia/spark/rapids/delta/common/MakeParquetTableWithDVProducer.class
