@@ -76,11 +76,11 @@ object NvtxIdWithMetrics {
   }
 }
 
-class MetricRange(val metrics: Seq[GpuMetric], val excludeMetric: Seq[GpuMetric] = Seq.empty)
+class MetricRange(val metrics: Seq[GpuMetric], val excludeMetric: Seq[GpuMetric])
   extends AutoCloseable {
 
   // add a convenient constructor
-  def this(metrics: GpuMetric*) = this(metrics.toSeq)
+  def this(metrics: GpuMetric*) = this(metrics.toSeq, Seq.empty)
 
   val needTracks = metrics.map(_.tryActivateTimer(excludeMetric))
   private val start = System.nanoTime()

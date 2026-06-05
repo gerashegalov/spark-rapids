@@ -374,7 +374,6 @@ com/nvidia/spark/rapids/lore/OutputLoreId$.class
 com/nvidia/spark/rapids/lore/package.class
 com/nvidia/spark/rapids/lore/package$.class
 com/nvidia/spark/rapids/MetricRange.class
-com/nvidia/spark/rapids/MetricRange$.class
 com/nvidia/spark/rapids/NvtxId.class
 com/nvidia/spark/rapids/NvtxId$.class
 com/nvidia/spark/rapids/NvtxIdWithMetrics.class
