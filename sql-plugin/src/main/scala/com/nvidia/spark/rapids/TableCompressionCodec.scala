@@ -56,11 +56,6 @@ trait TableCompressionCodec {
       stream: Cuda.Stream): BatchedBufferDecompressor
 }
 
-/**
- * A small case class used to carry codec-specific settings.
- */
-case class TableCompressionCodecConfig(lz4ChunkSize: Long, zstdChunkSize: Long)
-
 object TableCompressionCodec {
   private val log = org.slf4j.LoggerFactory.getLogger(getClass.getName.stripSuffix("$"))
 
@@ -77,7 +72,7 @@ object TableCompressionCodec {
 
   /** Make a codec configuration object which can be serialized (can be used in tasks) */
   def makeCodecConfig(rapidsConf: RapidsConf): TableCompressionCodecConfig =
-    TableCompressionCodecConfig(
+    new TableCompressionCodecConfig(
       rapidsConf.shuffleCompressionLz4ChunkSize,
       rapidsConf.shuffleCompressionZstdChunkSize)
 

@@ -251,7 +251,6 @@ com/nvidia/spark/rapids/Supported.class
 com/nvidia/spark/rapids/SuffixRangeWithOffset.class
 com/nvidia/spark/rapids/SuffixRangeWithOffset$.class
 com/nvidia/spark/rapids/TableCompressionCodecConfig.class
-com/nvidia/spark/rapids/TableCompressionCodecConfig$.class
 com/nvidia/spark/rapids/TaskCompletionCallbackHandle.class
 com/nvidia/spark/rapids/TaskRegistryTracker.class
 com/nvidia/spark/rapids/TaskRegistryTracker$.class
