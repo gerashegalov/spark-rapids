@@ -16,7 +16,7 @@
 package com.nvidia.spark.rapids.shims
 
 import java.io.{EOFException, IOException}
-import java.nio.ByteBuffer
+import java.nio.{Buffer, ByteBuffer}
 import java.nio.channels.SeekableByteChannel
 
 import ai.rapids.cudf.HostMemoryBuffer
@@ -116,7 +116,7 @@ abstract class GpuOrcDataReaderBase(
               throw new EOFException("Unexpected EOF while reading stripe footer")
             }
           }
-          tailBuf.flip()
+          tailBuf.asInstanceOf[Buffer].flip()
         }
       }
     } else {

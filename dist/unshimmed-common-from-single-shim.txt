@@ -728,6 +728,8 @@ com/nvidia/spark/rapids/shims/GpuDeterministicFirstLastCollectShim.class
 com/nvidia/spark/rapids/shims/GpuFileFormatDataWriterShim$.class
 com/nvidia/spark/rapids/shims/GpuFileFormatDataWriterShim.class
 com/nvidia/spark/rapids/shims/GpuOrcDataReader$.class
+com/nvidia/spark/rapids/shims/GpuOrcDataReader320Plus$BufferChunkLoader.class
+com/nvidia/spark/rapids/shims/GpuOrcDataReaderBase.class
 com/nvidia/spark/rapids/shims/GpuParquetCrypto$.class
 com/nvidia/spark/rapids/shims/GpuParquetCrypto.class
 com/nvidia/spark/rapids/shims/GpuScalarSubqueryShims.class
