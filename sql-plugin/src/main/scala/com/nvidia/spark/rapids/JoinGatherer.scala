@@ -155,7 +155,7 @@ object JoinGatherer {
       outOfBoundsPolicyRight: OutOfBoundsPolicy): JoinGatherer = {
     val left = JoinGatherer(leftMap, leftData, outOfBoundsPolicyLeft)
     val right = JoinGatherer(rightMap, rightData, outOfBoundsPolicyRight)
-    MultiJoinGather(left, right)
+    new MultiJoinGather(left, right)
   }
 
   def getRowsInNextBatch(gatherer: JoinGatherer, targetSize: Long,
@@ -749,7 +749,8 @@ class JoinGathererSameTable(
 /**
  * Join Gatherer for a left table and a right table
  */
-case class MultiJoinGather(left: JoinGatherer, right: JoinGatherer) extends JoinGatherer {
+class MultiJoinGather(val left: JoinGatherer, val right: JoinGatherer)
+    extends JoinGatherer with Serializable {
   assert(left.numRowsLeft == right.numRowsLeft,
     "all gatherers much have the same number of rows to gather")
 

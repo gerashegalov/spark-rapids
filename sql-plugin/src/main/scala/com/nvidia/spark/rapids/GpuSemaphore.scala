@@ -48,7 +48,7 @@ case object SemaphoreAcquired extends TryAcquireResult
  * @param numWaitingTasks the number of tasks waiting at the time the request was made.
  *                        Note that this can change very quickly.
  */
-case class AcquireFailed(numWaitingTasks: Int) extends TryAcquireResult
+class AcquireFailed(val numWaitingTasks: Int) extends TryAcquireResult with Serializable
 
 class GpuTaskMemoryEstimator(val stageId: Int,
                              val taskId: Long,
@@ -582,7 +582,7 @@ private final class GpuSemaphore(val maxConcurrentGpuTasksLimit: Int) {
           numWaiting += 1
         }
       }
-      AcquireFailed(numWaiting)
+      new AcquireFailed(numWaiting)
     }
   }
 

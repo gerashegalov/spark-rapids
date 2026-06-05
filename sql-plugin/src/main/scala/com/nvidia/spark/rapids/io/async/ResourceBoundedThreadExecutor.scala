@@ -64,14 +64,14 @@ class RapidsFutureTask[T](val runner: AsyncRunner[T])
         } else {
           // Failed due to unexpected exceptions
           val ex = new IllegalStateException("runner failed unexpectedly")
-          rr.setState(ExecFailed(ex))
+          rr.setState(new ExecFailed(ex))
         }
 
       // Throw the ScheduleFailed exception within the scope of `FutureTask.run`, so that
       // the exception can be properly recorded and propagated to the caller of `get()`.
-      case ScheduleFailed(ex: Throwable) =>
+      case failed: ScheduleFailed =>
         // Trick: register a pre-hook to let `AsyncRunner.call` throw the exception
-        rr.addPreHook(() => throw ex)
+        rr.addPreHook(() => throw failed.exception)
         super.run()
 
       // Handle the cancelled case as a special kind of ScheduleFailed
@@ -89,7 +89,7 @@ class RapidsFutureTask[T](val runner: AsyncRunner[T])
   }
 
   override def setException(e: Throwable): Unit = {
-    runner.setState(ExecFailed(e))
+    runner.setState(new ExecFailed(e))
     super.setException(e)
   }
 
@@ -226,7 +226,7 @@ class ResourceBoundedThreadExecutor(mgr: ResourcePool,
       rr.getState match {
         // Cancelled case: Cancelled -> ScheduleFailed
         case Cancelled =>
-          rr.setState(ScheduleFailed(new IllegalStateException("cancelled")))
+          rr.setState(new ScheduleFailed(new IllegalStateException("cancelled")))
           logWarning(s"Runner being cancelled ahead of execution: $rr")
 
         // The main path: Init -> Pending -> Running | Pending | ScheduleFailed
@@ -246,9 +246,9 @@ class ResourceBoundedThreadExecutor(mgr: ResourcePool,
               rr.setState(Running)
               futTask.scheduleTime += s.elapsedTime
             // Fail the scheduling: Pending -> ScheduleFailed
-            case AcquireExcepted(ex) =>
-              rr.setState(ScheduleFailed(ex))
-              logError(s"$ex [$rr]")
+            case excepted: AcquireExcepted =>
+              rr.setState(new ScheduleFailed(excepted.exception))
+              logError(s"${excepted.exception} [$rr]")
             // Bypass the execution: Pending -> Pending
             case AcquireFailed =>
           }
@@ -258,7 +258,7 @@ class ResourceBoundedThreadExecutor(mgr: ResourcePool,
           // If we throw an exception here, it will crash the ThreadWorker without signaling
           // the caller. So we just mark the state as ScheduleFailed to pass the exception to
           // the caller via FutureTask.get().
-          rr.setState(ScheduleFailed(new IllegalStateException("Unexpected state")))
+          rr.setState(new ScheduleFailed(new IllegalStateException("Unexpected state")))
           logError(s"Unexpected state before schedule: $rr")
       }
     }
@@ -272,7 +272,7 @@ class ResourceBoundedThreadExecutor(mgr: ResourcePool,
       // and recorded the exception internally.
       if (t != null) {
         if (!rr.getState.isInstanceOf[ExecFailed]) {
-          rr.setState(ExecFailed(t))
+          rr.setState(new ExecFailed(t))
         }
         // Also try to fail the Spark task which launched this runner.
         rr.sparkTaskContext.foreach { ctx =>
@@ -285,7 +285,7 @@ class ResourceBoundedThreadExecutor(mgr: ResourcePool,
       // Post execution state handling
       rr.getState match {
         case Cancelled | // very rare case: cancelled between execution and afterExecute
-             ExecFailed(_) => // failed execution (ScheduleFailed should be cast to ExecFailed)
+             _: ExecFailed => // failed execution (ScheduleFailed should be cast to ExecFailed)
           // release holding resource immediately on exception
           if (rr.isHoldingResource) {
             rr.releaseResourceCallback()
@@ -307,7 +307,7 @@ class ResourceBoundedThreadExecutor(mgr: ResourcePool,
           require(!rr.isHoldingResource, s"Pending state should NOT hold Resource: $rr")
           // Requeue runners which failed to acquire resource and bypassed the execution.
           futTask.scheduleTime += timeoutMs * 1000000L
-          rr.setState(Init(firstTime = false)) // reset to Init state for re-scheduling
+          rr.setState(new Init(firstTime = false)) // reset to Init state for re-scheduling
           // Re-add the task to the work queue for re-execution
           if (!workQueue.add(futTask)) {
             // Fatal error
@@ -351,11 +351,11 @@ class ResourceBoundedThreadExecutor(mgr: ResourcePool,
           // Finalize the runner state
           state match {
             case Completed => // Completed -> Closed
-              rr.setState(Closed(None))
-            case ExecFailed(ex) => // ExecFailed -> Closed
-              rr.setState(Closed(Some(ex)))
+              rr.setState(new Closed(None))
+            case failed: ExecFailed => // ExecFailed -> Closed
+              rr.setState(new Closed(Some(failed.exception)))
             case Cancelled => // Cancelled -> Closed
-              rr.setState(Closed(Some(new IllegalStateException("cancelled"))))
+              rr.setState(new Closed(Some(new IllegalStateException("cancelled"))))
             case _ =>
               throw new IllegalStateException(s"Should NOT reach here: $rr")
           }
@@ -381,12 +381,12 @@ class ResourceBoundedThreadExecutor(mgr: ResourcePool,
           // 2. Mark the runner as Cancelled
           fut.runner.withStateLock { rr =>
             rr.getState match {
-              case Init(_) => rr.setState(Cancelled) // Init -> Cancelled
+              case _: Init => rr.setState(Cancelled) // Init -> Cancelled
               case Pending => rr.setState(Cancelled) // Pending -> Cancelled
               case Running => rr.setState(Cancelled) // Running -> Cancelled
-              case ScheduleFailed(_) => rr.setState(Cancelled) // ScheduleFailed -> Cancelled
+              case _: ScheduleFailed => rr.setState(Cancelled) // ScheduleFailed -> Cancelled
               case Completed => rr.setState(Cancelled) // Completed -> Cancelled
-              case Cancelled | ExecFailed(_) | Closed(_) => // do nothing
+              case Cancelled | _: ExecFailed | _: Closed => // do nothing
             }
           }
           // 3. If the runner is still holding resource, we release it

@@ -153,7 +153,7 @@ object RangeBoundaryValue {
   def double(value: Double): DoubleRangeBoundaryValue = DoubleRangeBoundaryValue(value)
 }
 
-case class ParsedBoundary(isUnbounded: Boolean, value: RangeBoundaryValue)
+class ParsedBoundary(val isUnbounded: Boolean, val value: RangeBoundaryValue) extends Serializable
 
 object GroupedAggregations {
   /**
@@ -307,7 +307,7 @@ object GroupedAggregations {
   private def getRangeBoundaryValue(boundary: Expression, orderByType: DType): ParsedBoundary =
     boundary match {
       case special: GpuSpecialFrameBoundary =>
-        ParsedBoundary(
+        new ParsedBoundary(
           isUnbounded = special.isUnbounded,
           value = orderByType.getTypeId match {
             case DType.DTypeEnum.DECIMAL128 => RangeBoundaryValue.bigInt(special.value)
@@ -320,38 +320,38 @@ object GroupedAggregations {
         // Get the total microseconds for TIMESTAMP_MICROSECONDS
         var x = TimeUnit.DAYS.toMicros(ci.days) + ci.microseconds
         if (x == Long.MinValue) x = Long.MaxValue
-        ParsedBoundary(isUnbounded = false, RangeBoundaryValue.long(Math.abs(x)))
+        new ParsedBoundary(isUnbounded = false, RangeBoundaryValue.long(Math.abs(x)))
       case GpuLiteral(value, ByteType) =>
         var x = value.asInstanceOf[Byte]
         if (x == Byte.MinValue) x = Byte.MaxValue
-        ParsedBoundary(isUnbounded = false, RangeBoundaryValue.long(Math.abs(x)))
+        new ParsedBoundary(isUnbounded = false, RangeBoundaryValue.long(Math.abs(x)))
       case GpuLiteral(value, ShortType) =>
         var x = value.asInstanceOf[Short]
         if (x == Short.MinValue) x = Short.MaxValue
-        ParsedBoundary(isUnbounded = false, RangeBoundaryValue.long(Math.abs(x)))
+        new ParsedBoundary(isUnbounded = false, RangeBoundaryValue.long(Math.abs(x)))
       case GpuLiteral(value, IntegerType) =>
         var x = value.asInstanceOf[Int]
         if (x == Int.MinValue) x = Int.MaxValue
-        ParsedBoundary(isUnbounded = false, RangeBoundaryValue.long(Math.abs(x)))
+        new ParsedBoundary(isUnbounded = false, RangeBoundaryValue.long(Math.abs(x)))
       case GpuLiteral(value, LongType) =>
         var x = value.asInstanceOf[Long]
         if (x == Long.MinValue) x = Long.MaxValue
-        ParsedBoundary(isUnbounded = false, RangeBoundaryValue.long(Math.abs(x)))
+        new ParsedBoundary(isUnbounded = false, RangeBoundaryValue.long(Math.abs(x)))
       case GpuLiteral(value, FloatType) =>
         var x = value.asInstanceOf[Float]
         if (x == Float.MinValue) x = Float.MaxValue
-        ParsedBoundary(isUnbounded = false, RangeBoundaryValue.double(Math.abs(x)))
+        new ParsedBoundary(isUnbounded = false, RangeBoundaryValue.double(Math.abs(x)))
       case GpuLiteral(value, DoubleType) =>
         var x = value.asInstanceOf[Double]
         if (x == Double.MinValue) x = Double.MaxValue
-        ParsedBoundary(isUnbounded = false, RangeBoundaryValue.double(Math.abs(x)))
+        new ParsedBoundary(isUnbounded = false, RangeBoundaryValue.double(Math.abs(x)))
       case GpuLiteral(value: Decimal, DecimalType()) =>
         orderByType.getTypeId match {
           case DType.DTypeEnum.DECIMAL32 | DType.DTypeEnum.DECIMAL64 =>
-            ParsedBoundary(isUnbounded = false,
+            new ParsedBoundary(isUnbounded = false,
               RangeBoundaryValue.long(Math.abs(value.toUnscaledLong)))
           case DType.DTypeEnum.DECIMAL128 =>
-            ParsedBoundary(isUnbounded = false,
+            new ParsedBoundary(isUnbounded = false,
               RangeBoundaryValue.bigInt(value.toJavaBigDecimal.unscaledValue().abs))
           case anythingElse =>
             throw new UnsupportedOperationException(s"Unexpected Decimal type: $anythingElse")

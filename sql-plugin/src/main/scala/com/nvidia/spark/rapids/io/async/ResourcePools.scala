@@ -31,13 +31,13 @@ class InvalidResourceRequest(msg: String) extends RuntimeException(
 // Represents the status of acquiring resources for a task
 sealed trait AcquireStatus
 
-case class AcquireSuccessful(elapsedTime: Long) extends AcquireStatus
+class AcquireSuccessful(val elapsedTime: Long) extends AcquireStatus with Serializable
 
 // AcquireFailed indicates that the task could not be scheduled due to resource constraints
 case object AcquireFailed extends AcquireStatus
 
 // AcquireExcepted indicates that an exception occurred while trying to acquire resources
-case class AcquireExcepted(exception: Throwable) extends AcquireStatus
+class AcquireExcepted(val exception: Throwable) extends AcquireStatus with Serializable
 
 /**
  * ResourceManager interface to be implemented for AsyncRunners requiring different kinds of
@@ -99,7 +99,7 @@ class HostMemoryPool(val maxHostMemoryBytes: Long) extends ResourcePool {
     // step 2: try to acquire the resource with blocking and timeout
     // 2.1 If no resource needed, acquire immediately
     if (memoryRequire == 0L) {
-      AcquireSuccessful(elapsedTime = 0L)
+      new AcquireSuccessful(elapsedTime = 0L)
     }
     // 2.2 The main path for acquiring resource with blocking and timeout
     else {
@@ -165,10 +165,10 @@ class HostMemoryPool(val maxHostMemoryBytes: Long) extends ResourcePool {
               s"Over-committed HostMemoryPool: exceeded_amount=${bytesToString(-remaining)}, " +
                   s"AsyncRunners=$numRunnerInPool, SparkTasks=${tasksInPool.size}")
           }
-          AcquireSuccessful(elapsedTime = timeoutNs - waitTimeNs)
+          new AcquireSuccessful(elapsedTime = timeoutNs - waitTimeNs)
         }
       } catch {
-        case ex: Throwable => AcquireExcepted(ex)
+        case ex: Throwable => new AcquireExcepted(ex)
       } finally {
         lock.unlock()
       }

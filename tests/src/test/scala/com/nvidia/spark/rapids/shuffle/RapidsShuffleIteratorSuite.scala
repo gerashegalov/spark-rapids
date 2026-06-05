@@ -172,7 +172,7 @@ class RapidsShuffleIteratorSuite extends RapidsShuffleTestHelper {
       val ac = ArgumentCaptor.forClass(classOf[RapidsShuffleFetchHandler])
       when(mockTransport.makeClient(any())).thenReturn(client)
       doNothing().when(client).doFetch(any(), ac.capture())
-      val mockBuffer = RapidsShuffleHandle(mock[SpillableDeviceBufferHandle], null)
+      val mockBuffer = new RapidsShuffleHandle(mock[SpillableDeviceBufferHandle], null)
       when(mockBuffer.spillable.sizeInBytes).thenReturn(123L)
 
       val cb = new ColumnarBatch(Array.empty, 10)

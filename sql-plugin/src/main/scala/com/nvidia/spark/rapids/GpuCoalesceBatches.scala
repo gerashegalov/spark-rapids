@@ -117,7 +117,7 @@ object CoalesceGoal {
         a // They are equal so it does not matter
       } else {
         // Nothing is the same so there is no guarantee
-        BatchedByKey(Seq.empty)(Seq.empty)
+        new BatchedByKey(Seq.empty)(Seq.empty)
       }
     case (TargetSize(aSize), TargetSize(bSize)) if aSize > bSize => a
     case _ => b
@@ -143,9 +143,9 @@ object CoalesceGoal {
     case (_, _: RequireSingleBatchLike) => false
     case (_: BatchedByKey, _: TargetSize) => true
     case (_: TargetSize, _: BatchedByKey) => false
-    case (BatchedByKey(aOrder), BatchedByKey(bOrder)) =>
-      aOrder.length == bOrder.length &&
-          aOrder.zip(bOrder).forall {
+    case (aGoal: BatchedByKey, bGoal: BatchedByKey) =>
+      aGoal.gpuOrder.length == bGoal.gpuOrder.length &&
+          aGoal.gpuOrder.zip(bGoal.gpuOrder).forall {
             case (a, b) => a.satisfies(b)
           }
     case (TargetSize(foundSize), TargetSize(requiredSize)) => foundSize >= requiredSize
@@ -235,9 +235,27 @@ case class TargetSize(override val targetSizeBytes: Long)
  * @param gpuOrder the GPU keys that should be used for batching.
  * @param cpuOrder the CPU keys that should be used for batching.
  */
-case class BatchedByKey(gpuOrder: Seq[SortOrder])(val cpuOrder: Seq[SortOrder])
-    extends CoalesceGoal {
+class BatchedByKey(val gpuOrder: Seq[SortOrder])(val cpuOrder: Seq[SortOrder])
+    extends CoalesceGoal with Serializable {
   require(gpuOrder.size == cpuOrder.size)
+
+  override def canEqual(that: Any): Boolean = that.isInstanceOf[BatchedByKey]
+
+  override def productArity: Int = 1
+
+  override def productElement(n: Int): Any = n match {
+    case 0 => gpuOrder
+    case _ => throw new IndexOutOfBoundsException(n.toString)
+  }
+
+  override def productPrefix: String = "BatchedByKey"
+
+  override def equals(other: Any): Boolean = other match {
+    case that: BatchedByKey => that.canEqual(this) && gpuOrder == that.gpuOrder
+    case _ => false
+  }
+
+  override def hashCode(): Int = scala.runtime.ScalaRunTime._hashCode(this)
 
   override def otherCopyArgs: Seq[AnyRef] = cpuOrder :: Nil
 

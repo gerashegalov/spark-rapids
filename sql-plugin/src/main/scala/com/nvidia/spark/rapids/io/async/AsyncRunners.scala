@@ -134,19 +134,19 @@ class DecayReleaseResult[T](override val data: T,
  */
 sealed trait AsyncRunnerState
 
-case class Init(firstTime: Boolean) extends AsyncRunnerState
+class Init(val firstTime: Boolean) extends AsyncRunnerState with Serializable
 
 case object Pending extends AsyncRunnerState
 
-case class ScheduleFailed(exception: Throwable) extends AsyncRunnerState
+class ScheduleFailed(val exception: Throwable) extends AsyncRunnerState with Serializable
 
 case object Running extends AsyncRunnerState
 
 case object Completed extends AsyncRunnerState
 
-case class ExecFailed(exception: Throwable) extends AsyncRunnerState
+class ExecFailed(val exception: Throwable) extends AsyncRunnerState with Serializable
 
-case class Closed(exception: Option[Throwable]) extends AsyncRunnerState
+class Closed(val exception: Option[Throwable]) extends AsyncRunnerState with Serializable
 
 case object Cancelled extends AsyncRunnerState
 
@@ -269,7 +269,7 @@ trait AsyncRunner[T] extends Callable[AsyncResult[T]] {
     }
   }
 
-  @volatile private var state: AsyncRunnerState = Init(firstTime = true)
+  @volatile private var state: AsyncRunnerState = new Init(firstTime = true)
 
   def isHoldingStateLock: Boolean = stateLock.isHeldByCurrentThread
 

@@ -282,7 +282,7 @@ class ShuffleBufferCatalog {
     val (maybeHandle, meta) = bufferIdToHandle.get(shuffleBufferId)
     maybeHandle match {
       case Some(spillable) =>
-        RapidsShuffleHandle(spillable, meta)
+        new RapidsShuffleHandle(spillable, meta)
       case None =>
         throw new IllegalStateException(
           "a buffer handle could not be obtained for a degenerate buffer")

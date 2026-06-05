@@ -10,7 +10,6 @@ com/nvidia/spark/rapids/optimizer/SQLOptimizerPlugin*
 com/nvidia/spark/rapids/ShimLoaderTemp*
 com/nvidia/spark/rapids/SparkShims*
 com/nvidia/spark/rapids/AcquireFailed.class
-com/nvidia/spark/rapids/AcquireFailed$.class
 com/nvidia/spark/rapids/ActiveTaskMetrics.class
 com/nvidia/spark/rapids/AggregateModeInfo.class
 com/nvidia/spark/rapids/AllocationKind.class
@@ -261,12 +260,10 @@ com/nvidia/spark/rapids/WriteFileOp$.class
 com/nvidia/spark/rapids/XORShiftRandom.class
 com/nvidia/spark/rapids/XORShiftRandom$.class
 com/nvidia/spark/rapids/io/async/AcquireExcepted.class
-com/nvidia/spark/rapids/io/async/AcquireExcepted$.class
 com/nvidia/spark/rapids/io/async/AcquireFailed.class
 com/nvidia/spark/rapids/io/async/AcquireFailed$.class
 com/nvidia/spark/rapids/io/async/AcquireStatus.class
 com/nvidia/spark/rapids/io/async/AcquireSuccessful.class
-com/nvidia/spark/rapids/io/async/AcquireSuccessful$.class
 com/nvidia/spark/rapids/io/async/AsyncFunctorForTest.class
 com/nvidia/spark/rapids/io/async/AsyncMetrics.class
 com/nvidia/spark/rapids/io/async/AsyncMetricsBuilder.class
@@ -280,19 +277,16 @@ com/nvidia/spark/rapids/io/async/AsyncRunnerState.class
 com/nvidia/spark/rapids/io/async/Cancelled.class
 com/nvidia/spark/rapids/io/async/Cancelled$.class
 com/nvidia/spark/rapids/io/async/Closed.class
-com/nvidia/spark/rapids/io/async/Closed$.class
 com/nvidia/spark/rapids/io/async/Completed.class
 com/nvidia/spark/rapids/io/async/Completed$.class
 com/nvidia/spark/rapids/io/async/DecayReleaseResult.class
 com/nvidia/spark/rapids/io/async/DeviceResource.class
 com/nvidia/spark/rapids/io/async/DeviceResource$.class
 com/nvidia/spark/rapids/io/async/ExecFailed.class
-com/nvidia/spark/rapids/io/async/ExecFailed$.class
 com/nvidia/spark/rapids/io/async/FastReleaseResult.class
 com/nvidia/spark/rapids/io/async/HostMemoryThrottle.class
 com/nvidia/spark/rapids/io/async/HostResource.class
 com/nvidia/spark/rapids/io/async/Init.class
-com/nvidia/spark/rapids/io/async/Init$.class
 com/nvidia/spark/rapids/io/async/InvalidResourceRequest.class
 com/nvidia/spark/rapids/io/async/MemoryBoundedAsyncRunner.class
 com/nvidia/spark/rapids/io/async/Pending.class
@@ -301,7 +295,6 @@ com/nvidia/spark/rapids/io/async/ResourcePool.class
 com/nvidia/spark/rapids/io/async/Running.class
 com/nvidia/spark/rapids/io/async/Running$.class
 com/nvidia/spark/rapids/io/async/ScheduleFailed.class
-com/nvidia/spark/rapids/io/async/ScheduleFailed$.class
 com/nvidia/spark/rapids/io/async/Task.class
 com/nvidia/spark/rapids/io/async/Throttle.class
 com/nvidia/spark/rapids/io/async/ThrottlingExecutorStats.class
@@ -839,7 +832,6 @@ com/nvidia/spark/rapids/window/GpuUnboundToUnboundWindowWithFixer.class
 com/nvidia/spark/rapids/window/LastRunningWindowFixer$.class
 com/nvidia/spark/rapids/window/LongRangeBoundaryValue$.class
 com/nvidia/spark/rapids/window/LongRangeBoundaryValue.class
-com/nvidia/spark/rapids/window/ParsedBoundary$.class
 com/nvidia/spark/rapids/window/ParsedBoundary.class
 com/nvidia/spark/rapids/window/RangeBoundaryValue$.class
 com/nvidia/spark/rapids/window/RangeBoundaryValue.class
@@ -2842,7 +2834,6 @@ com/nvidia/spark/rapids/BatchWithPartitionDataIterator.class
 com/nvidia/spark/rapids/BatchWithPartitionDataUtils$.class
 com/nvidia/spark/rapids/BatchWithPartitionDataUtils.class
 com/nvidia/spark/rapids/BatchedBufferDecompressor.class
-com/nvidia/spark/rapids/BatchedByKey$.class
 com/nvidia/spark/rapids/BatchedByKey.class
 com/nvidia/spark/rapids/BatchedCopyCompressor.class
 com/nvidia/spark/rapids/BatchedCopyDecompressor.class
@@ -3747,7 +3738,6 @@ com/nvidia/spark/rapids/MultiFileOrcPartitionReader.class
 com/nvidia/spark/rapids/MultiFilePartitionReaderFactoryBase.class
 com/nvidia/spark/rapids/MultiFileReaderThreadPool$.class
 com/nvidia/spark/rapids/MultiFileReaderThreadPool.class
-com/nvidia/spark/rapids/MultiJoinGather$.class
 com/nvidia/spark/rapids/MultiJoinGather.class
 com/nvidia/spark/rapids/MultiSegmentFileRegion.class
 com/nvidia/spark/rapids/MultiSegmentInputStream.class
@@ -3834,7 +3824,6 @@ com/nvidia/spark/rapids/RapidsPluginUtils$$anonfun$1.class
 com/nvidia/spark/rapids/RapidsPluginUtils$.class
 com/nvidia/spark/rapids/RapidsPluginUtils.class
 com/nvidia/spark/rapids/RapidsSerializerManager.class
-com/nvidia/spark/rapids/RapidsShuffleHandle$.class
 com/nvidia/spark/rapids/RapidsShuffleHandle.class
 com/nvidia/spark/rapids/RapidsShuffleHeartbeatEndpoint$HeartbeatTask.class
 com/nvidia/spark/rapids/RapidsShuffleHeartbeatEndpoint.class

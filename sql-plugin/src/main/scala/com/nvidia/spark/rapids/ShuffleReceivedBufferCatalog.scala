@@ -25,8 +25,9 @@ import com.nvidia.spark.rapids.spill.SpillableDeviceBufferHandle
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
-case class RapidsShuffleHandle(
-    spillable: SpillableDeviceBufferHandle, tableMeta: TableMeta) extends AutoCloseable {
+class RapidsShuffleHandle(
+    val spillable: SpillableDeviceBufferHandle,
+    val tableMeta: TableMeta) extends AutoCloseable with Serializable {
   override def close(): Unit = {
     spillable.safeClose()
   }
@@ -51,7 +52,7 @@ class ShuffleReceivedBufferCatalog() {
       buffer: DeviceMemoryBuffer,
       tableMeta: TableMeta,
       initialSpillPriority: Long): RapidsShuffleHandle = {
-    RapidsShuffleHandle(SpillableDeviceBufferHandle(buffer), tableMeta)
+    new RapidsShuffleHandle(SpillableDeviceBufferHandle(buffer), tableMeta)
   }
 
   /**
@@ -61,7 +62,7 @@ class ShuffleReceivedBufferCatalog() {
    * @return RapidsShuffleHandle associated with this buffer
    */
   def addDegenerateBatch(meta: TableMeta): RapidsShuffleHandle  = {
-    RapidsShuffleHandle(null, meta)
+    new RapidsShuffleHandle(null, meta)
   }
 
   def getColumnarBatchAndRemove(handle: RapidsShuffleHandle,
