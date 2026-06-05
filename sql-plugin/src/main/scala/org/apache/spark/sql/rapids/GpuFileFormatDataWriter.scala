@@ -348,12 +348,12 @@ class GpuDynamicPartitionDataSingleWriter(
   }
 
   /**
-   * A case class to hold the batch, the optional partition values and the optional bucket
+   * A class to hold the batch, the optional partition values and the optional bucket
    * ID for a split group. All the rows in the batch belong to the group defined by the
    * partition values and the bucket ID.
    */
-  private case class SplitPack(split: SpillableColumnarBatch, partValues: Option[InternalRow],
-      bucketId: Option[Int]) extends AutoCloseable {
+  private class SplitPack(val split: SpillableColumnarBatch, val partValues: Option[InternalRow],
+      val bucketId: Option[Int]) extends AutoCloseable {
     override def close(): Unit = {
       split.safeClose()
     }
@@ -546,7 +546,7 @@ class GpuDynamicPartitionDataSingleWriter(
           val split = splits(idx)
           splits(idx) = null
           closeOnExcept(split) { _ =>
-            SplitPack(
+            new SplitPack(
               SpillableColumnarBatch(split, outDataTypes,
                 SpillPriorities.ACTIVE_BATCHING_PRIORITY),
               getNextPartValues(idx), getBucketId(idx))
@@ -673,7 +673,10 @@ class GpuDynamicPartitionDataSingleWriter(
     // The input batch that is entirely sorted, so split it up by partitions and (or)
     // bucket ids, and write the split batches one by one.
     withResource(splitBatchByKeyAndClose(batch)) { splitPacks =>
-      splitPacks.zipWithIndex.foreach { case (SplitPack(sp, partVals, bucketId), i) =>
+      splitPacks.zipWithIndex.foreach { case (pack, i) =>
+        val sp = pack.split
+        val partVals = pack.partValues
+        val bucketId = pack.bucketId
         val hasDiffPart = partVals != currentWriterId.partitionValues
         val hasDiffBucket = bucketId != currentWriterId.bucketId
         if (hasDiffPart || hasDiffBucket) {

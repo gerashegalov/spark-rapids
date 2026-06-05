@@ -2477,7 +2477,6 @@ org/apache/spark/sql/rapids/GpuDivide.class
 org/apache/spark/sql/rapids/GpuDynamicPartitionDataConcurrentWriter$$anon$1.class
 org/apache/spark/sql/rapids/GpuDynamicPartitionDataConcurrentWriter$WriterStatusWithBatches.class
 org/apache/spark/sql/rapids/GpuDynamicPartitionDataConcurrentWriter.class
-org/apache/spark/sql/rapids/GpuDynamicPartitionDataSingleWriter$SplitPack$.class
 org/apache/spark/sql/rapids/GpuDynamicPartitionDataSingleWriter$SplitPack.class
 org/apache/spark/sql/rapids/GpuDynamicPartitionDataSingleWriter$WriterIndex.class
 org/apache/spark/sql/rapids/GpuDynamicPartitionDataSingleWriter.class
@@ -3816,11 +3815,8 @@ com/nvidia/spark/rapids/MetricsBatchIterator.class
 com/nvidia/spark/rapids/MetricsLevel$.class
 com/nvidia/spark/rapids/MetricsLevel.class
 com/nvidia/spark/rapids/MultiBatchManagedBuffer.class
-com/nvidia/spark/rapids/MultiFileCloudOrcPartitionReader$CombinedMeta$.class
 com/nvidia/spark/rapids/MultiFileCloudOrcPartitionReader$CombinedMeta.class
-com/nvidia/spark/rapids/MultiFileCloudOrcPartitionReader$HostMemoryBuffersWithMetaData$.class
 com/nvidia/spark/rapids/MultiFileCloudOrcPartitionReader$HostMemoryBuffersWithMetaData.class
-com/nvidia/spark/rapids/MultiFileCloudOrcPartitionReader$HostMemoryEmptyMetaData$.class
 com/nvidia/spark/rapids/MultiFileCloudOrcPartitionReader$HostMemoryEmptyMetaData.class
 com/nvidia/spark/rapids/MultiFileCloudOrcPartitionReader$ReadBatchRunner.class
 com/nvidia/spark/rapids/MultiFileCloudOrcPartitionReader.class

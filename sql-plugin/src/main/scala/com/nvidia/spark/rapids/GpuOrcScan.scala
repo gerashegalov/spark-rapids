@@ -2046,26 +2046,26 @@ class MultiFileCloudOrcPartitionReader(
     keepReadsInOrder = keepReadsInOrder, combineConf = combineConf)
   with MultiFileReaderFunctions with OrcPartitionReaderBase {
 
-  private case class HostMemoryEmptyMetaData(
+  private class HostMemoryEmptyMetaData(
       override val partitionedFile: PartitionedFile,
-      numRows: Long,
+      val numRows: Long,
       override val bytesRead: Long,
-      readSchema: StructType,
-      override val allPartValues: Option[Array[(Long, InternalRow)]] = None)
+      val readSchema: StructType,
+      override val allPartValues: Option[Array[(Long, InternalRow)]])
     extends HostMemoryBuffersWithMetaDataBase {
 
     override def memBuffersAndSizes: Array[SingleHMBAndMeta] =
       Array(SingleHMBAndMeta.empty(numRows))
   }
 
-  private case class HostMemoryBuffersWithMetaData(
+  private class HostMemoryBuffersWithMetaData(
       override val partitionedFile: PartitionedFile,
       override val memBuffersAndSizes: Array[SingleHMBAndMeta],
       override val bytesRead: Long,
-      updatedReadSchema: TypeDescription,
-      compressionKind: CompressionKind,
-      requestedMapping: Option[Array[Int]],
-      override val allPartValues: Option[Array[(Long, InternalRow)]] = None)
+      val updatedReadSchema: TypeDescription,
+      val compressionKind: CompressionKind,
+      val requestedMapping: Option[Array[Int]],
+      override val allPartValues: Option[Array[(Long, InternalRow)]])
     extends HostMemoryBuffersWithMetaDataBase
 
   private class ReadBatchRunner(
@@ -2085,13 +2085,13 @@ class MultiFileCloudOrcPartitionReader(
       } catch {
         case e: FileNotFoundException if ignoreMissingFiles =>
           logWarning(s"Skipped missing file: ${partFile.filePath}", e)
-          HostMemoryEmptyMetaData(partFile, 0, 0, null)
+          new HostMemoryEmptyMetaData(partFile, 0, 0, null, None)
         // Throw FileNotFoundException even if `ignoreCorruptFiles` is true
         case e: FileNotFoundException if !ignoreMissingFiles => throw e
         case e @ (_: RuntimeException | _: IOException) if ignoreCorruptFiles =>
           logWarning(
             s"Skipped the rest of the content in the corrupted file: ${partFile.filePath}", e)
-          HostMemoryEmptyMetaData(partFile, 0, 0, null)
+          new HostMemoryEmptyMetaData(partFile, 0, 0, null, None)
       } finally {
         RmmSpark.poolThreadFinishedForTask(taskContext.taskAttemptId())
         TrampolineUtil.unsetTaskContext()
@@ -2111,7 +2111,7 @@ class MultiFileCloudOrcPartitionReader(
         if (ctx == null || ctx.blockIterator.isEmpty) {
           val bytesRead = fileSystemBytesRead() - startingBytesRead
           logDebug(s"Read no blocks from file: ${partFile.filePath.toString}")
-          HostMemoryEmptyMetaData(partFile, 0, bytesRead, readDataSchema)
+          new HostMemoryEmptyMetaData(partFile, 0, bytesRead, readDataSchema, None)
         } else {
           blockChunkIter = ctx.blockIterator
           if (isDone) {
@@ -2119,14 +2119,14 @@ class MultiFileCloudOrcPartitionReader(
             // got close before finishing
             logDebug("Reader is closed, return empty buffer for the current read for " +
               s"file: ${partFile.filePath.toString}")
-            HostMemoryEmptyMetaData(partFile, 0, bytesRead, readDataSchema)
+            new HostMemoryEmptyMetaData(partFile, 0, bytesRead, readDataSchema, None)
           } else {
             if (ctx.updatedReadSchema.isEmpty) {
               val bytesRead = fileSystemBytesRead() - startingBytesRead
               val numRows = ctx.blockIterator.map(_.infoBuilder.getNumberOfRows).sum
               logDebug(s"Return empty buffer but with row number: $numRows for " +
                 s"file: ${partFile.filePath.toString}")
-              HostMemoryEmptyMetaData(partFile, numRows, bytesRead, readDataSchema)
+              new HostMemoryEmptyMetaData(partFile, numRows, bytesRead, readDataSchema, None)
             } else {
               while (blockChunkIter.hasNext) {
                 val blocksToRead = populateCurrentBlockChunk(blockChunkIter, maxReadBatchSizeRows,
@@ -2142,10 +2142,10 @@ class MultiFileCloudOrcPartitionReader(
                 hostBuffers.safeClose()
                 logDebug("Reader is closed, return empty buffer for the current read for " +
                   s"file: ${partFile.filePath.toString}")
-                HostMemoryEmptyMetaData(partFile, 0, bytesRead, readDataSchema)
+                new HostMemoryEmptyMetaData(partFile, 0, bytesRead, readDataSchema, None)
               } else {
-                HostMemoryBuffersWithMetaData(partFile, hostBuffers.toArray, bytesRead,
-                  ctx.updatedReadSchema, ctx.compressionKind, ctx.requestedMapping)
+                new HostMemoryBuffersWithMetaData(partFile, hostBuffers.toArray, bytesRead,
+                  ctx.updatedReadSchema, ctx.compressionKind, ctx.requestedMapping, None)
               }
             }
           }
@@ -2161,10 +2161,10 @@ class MultiFileCloudOrcPartitionReader(
     }
   }
 
-  private case class CombinedMeta(
-    combinedEmptyMeta: Option[HostMemoryEmptyMetaData],
-    allPartValues: Array[(Long, InternalRow)],
-    toCombine: Array[HostMemoryBuffersWithMetaDataBase])
+  private class CombinedMeta(
+    val combinedEmptyMeta: Option[HostMemoryEmptyMetaData],
+    val allPartValues: Array[(Long, InternalRow)],
+    val toCombine: Array[HostMemoryBuffersWithMetaDataBase])
 
   /**
    * The sub-class must implement the real file reading logic in a Callable
@@ -2257,7 +2257,9 @@ class MultiFileCloudOrcPartitionReader(
           buffer.partitionedFile, buffer.allPartValues)
         if (memBuffersAndSize.length > 1) {
           val updatedBuffers = memBuffersAndSize.drop(1)
-          currentFileHostBuffers = Some(buffer.copy(memBuffersAndSizes = updatedBuffers))
+          currentFileHostBuffers = Some(new HostMemoryBuffersWithMetaData(
+            buffer.partitionedFile, updatedBuffers, buffer.bytesRead, buffer.updatedReadSchema,
+            buffer.compressionKind, buffer.requestedMapping, buffer.allPartValues))
         } else {
           currentFileHostBuffers = None
         }
@@ -2401,9 +2403,10 @@ class MultiFileCloudOrcPartitionReader(
             SpillPriorities.ACTIVE_BATCHING_PRIORITY)
           val combinedRet = SingleHMBAndMeta(Array(finalBuf), outStream.getPos, numRows,
             blockMetas)
-          val newHmbWithMeta = metaToUse.copy(
-            memBuffersAndSizes = Array(combinedRet),
-            allPartValues = Some(combinedMeta.allPartValues))
+          val newHmbWithMeta = new HostMemoryBuffersWithMetaData(
+            metaToUse.partitionedFile, Array(combinedRet), metaToUse.bytesRead,
+            metaToUse.updatedReadSchema, metaToUse.compressionKind, metaToUse.requestedMapping,
+            Some(combinedMeta.allPartValues))
           val filterTime = combinedMeta.toCombine.map(_.getFilterTime).sum
           val bufferTime = combinedMeta.toCombine.map(_.getBufferTime).sum
           newHmbWithMeta.setExecutionTime(filterTime, bufferTime)
@@ -2490,7 +2493,7 @@ class MultiFileCloudOrcPartitionReader(
 
     val combinedEmptyMeta = if (allEmpty) {
       // metaForEmpty should not be null here
-      Some(HostMemoryEmptyMetaData(
+      Some(new HostMemoryEmptyMetaData(
         metaForEmpty.partitionedFile, // not used, so pick one
         emptyNumRows, emptyTotalBytesRead,
         metaForEmpty.readSchema,
@@ -2498,7 +2501,7 @@ class MultiFileCloudOrcPartitionReader(
     } else {
       None
     }
-    CombinedMeta(combinedEmptyMeta, allPartValues.toArray, toCombine.toArray)
+    new CombinedMeta(combinedEmptyMeta, allPartValues.toArray, toCombine.toArray)
   }
 }
 
