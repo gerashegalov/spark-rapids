@@ -2097,7 +2097,6 @@ com/nvidia/spark/rapids/window/BoundGpuWindowFunction.class
 com/nvidia/spark/rapids/window/CountUnboundedToUnboundedFixer.class
 com/nvidia/spark/rapids/window/DenseRankFixer$.class
 com/nvidia/spark/rapids/window/DenseRankFixer.class
-com/nvidia/spark/rapids/window/FirstPassAggResult$.class
 com/nvidia/spark/rapids/window/FirstPassAggResult.class
 com/nvidia/spark/rapids/window/FirstRunningWindowFixer.class
 com/nvidia/spark/rapids/window/GpuAggregateWindowFunction.class
@@ -2168,9 +2167,7 @@ com/nvidia/spark/rapids/window/PendingSecondAggResults$.class
 com/nvidia/spark/rapids/window/PendingSecondAggResults.class
 com/nvidia/spark/rapids/window/RankFixer$.class
 com/nvidia/spark/rapids/window/RankFixer.class
-com/nvidia/spark/rapids/window/SecondPassAggResult$.class
 com/nvidia/spark/rapids/window/SecondPassAggResult.class
-com/nvidia/spark/rapids/window/SlicedBySize$.class
 com/nvidia/spark/rapids/window/SlicedBySize.class
 com/nvidia/spark/rapids/window/SumBinaryFixer.class
 com/nvidia/spark/rapids/window/TableAndBatchUtils$.class

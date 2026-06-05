@@ -89,7 +89,7 @@ class GpuUnboundedToUnboundedAggWindowSuite extends RmmSparkRetrySuiteBase {
       rowsRemaining -= rowsToAdd
       rideAlongList.add(makeRideAlongCb(rowsToAdd.toInt))
     }
-    val inputIter = Seq(SecondPassAggResult(rideAlongList, makeRepeatCb())).toIterator
+    val inputIter = Seq(new SecondPassAggResult(rideAlongList, makeRepeatCb())).toIterator
     val splitIter = new GpuUnboundedToUnboundedAggSliceBySizeIterator(inputIter, conf,
       targetSizeBytes, NoopMetric)
     val repeatIter = new GpuUnboundedToUnboundedAggFinalIterator(splitIter, conf,
