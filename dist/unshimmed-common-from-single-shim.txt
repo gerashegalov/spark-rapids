@@ -844,9 +844,7 @@ com/nvidia/spark/rapids/shuffle/SendBounceBuffers$.class
 com/nvidia/spark/rapids/shuffle/SendBounceBuffers.class
 com/nvidia/spark/rapids/shuffle/TransportBuffer.class
 com/nvidia/spark/rapids/shuffle/WindowedBlockIterator.class
-com/nvidia/spark/rapids/shuffle/ucx/Rkeys$.class
 com/nvidia/spark/rapids/shuffle/ucx/Rkeys.class
-com/nvidia/spark/rapids/shuffle/ucx/UCXError$.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXError.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXTransactionType$.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXTransactionType.class
@@ -1358,7 +1356,6 @@ com/nvidia/spark/rapids/shuffle/TransactionCallback.class
 com/nvidia/spark/rapids/shuffle/TransportUtils$.class
 com/nvidia/spark/rapids/shuffle/TransportUtils.class
 com/nvidia/spark/rapids/shuffle/ucx/UCX$.class
-com/nvidia/spark/rapids/shuffle/ucx/UCXActiveMessage$.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXActiveMessage.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXAmCallback.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXConnection$.class

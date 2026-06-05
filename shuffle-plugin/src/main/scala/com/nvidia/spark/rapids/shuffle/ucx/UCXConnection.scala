@@ -30,7 +30,6 @@ import org.apache.spark.internal.Logging
  * These are private apis used within the ucx package.
  */
 
-case class UCXError(ucsStatus: Int, errorMsg: String)
 
 /**
  * `UCXAmCallback` is used by [[Transaction]] to handle UCX Active Messages operations.
@@ -94,8 +93,8 @@ class UCXServerConnection(ucx: UCX, transport: UCXShuffleTransport)
     logDebug(s"Sending to ${peerExecutorId} at ${TransportUtils.toHex(header)} " +
       s"with ${buffer}")
 
-    val sendAm = UCXActiveMessage(UCXConnection.composeSendAmId(messageType),
-      header, forceRndv = true)
+    val sendAm = new UCXActiveMessage(UCXConnection.composeSendAmId(messageType),
+      header, true)
 
     ucx.sendActiveMessage(peerExecutorId, sendAm, buffer,
       new UcxCallback {
@@ -123,7 +122,7 @@ class UCXServerConnection(ucx: UCX, transport: UCXShuffleTransport)
     logDebug(s"Responding to ${peerExecutorId} at ${TransportUtils.toHex(header)} " +
       s"with ${response}")
 
-    val responseAm = UCXActiveMessage(
+    val responseAm = new UCXActiveMessage(
       UCXConnection.composeResponseAmId(messageType), header, false)
     ucx.sendActiveMessage(peerExecutorId, responseAm, response,
       new UcxCallback {
@@ -191,12 +190,12 @@ class UCXClientConnection(peerExecutorId: Long, ucx: UCX, transport: UCXShuffleT
     // Register the active message response handler. Note that the `requestHeader`
     // is expected to come back with the response, and is used to find the
     // correct callback (this is an implementation detail in UCX.scala)
-    val responseAm = UCXActiveMessage(
+    val responseAm = new UCXActiveMessage(
       UCXConnection.composeResponseAmId(messageType), requestHeader, false)
     ucx.registerResponseHandler(responseAm, amCallback)
 
     // kick-off the request
-    val requestAm = UCXActiveMessage(
+    val requestAm = new UCXActiveMessage(
       UCXConnection.composeRequestAmId(messageType), requestHeader, false)
 
     logDebug(s"Performing a ${messageType} request of size ${request.remaining()} " +
