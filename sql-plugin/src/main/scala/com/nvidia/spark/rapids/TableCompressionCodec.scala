@@ -21,21 +21,7 @@ import scala.collection.mutable.ArrayBuffer
 import ai.rapids.cudf.{BaseDeviceMemoryBuffer, ContiguousTable, Cuda, DeviceMemoryBuffer}
 import com.nvidia.spark.rapids.Arm.{closeOnExcept, withResource}
 import com.nvidia.spark.rapids.RapidsPluginImplicits._
-import com.nvidia.spark.rapids.format.{BufferMeta, CodecType, TableMeta}
-
-
-/**
- * Compressed table descriptor
- * @param compressedSize size of the compressed data in bytes
- * @param meta metadata describing the table layout when uncompressed
- * @param buffer buffer containing the compressed data
- */
-case class CompressedTable(
-    compressedSize: Long,
-    meta: TableMeta,
-    buffer: DeviceMemoryBuffer) extends AutoCloseable {
-  override def close(): Unit = buffer.close()
-}
+import com.nvidia.spark.rapids.format.{BufferMeta, CodecType}
 
 /** An interface to a compression codec that can compress a contiguous Table on the GPU */
 trait TableCompressionCodec {
@@ -252,7 +238,7 @@ abstract class BatchedTableCompressor(maxBatchMemorySize: Long, stream: Cuda.Str
             ct.buffer.incRefCount()
             ct.buffer
           }
-          CompressedTable(ct.compressedSize, ct.meta, newBuffer)
+          new CompressedTable(ct.compressedSize, ct.meta, newBuffer)
         }
       }
     }

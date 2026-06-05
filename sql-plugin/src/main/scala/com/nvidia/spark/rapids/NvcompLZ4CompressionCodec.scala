@@ -68,7 +68,7 @@ class BatchedNvcompLZ4Compressor(maxBatchMemorySize: Long,
             table,
             CodecType.NVCOMP_LZ4,
             compressedSize)
-          CompressedTable(compressedSize, meta, buffer)
+          new CompressedTable(compressedSize, meta, buffer)
         }.toArray
       }
     }

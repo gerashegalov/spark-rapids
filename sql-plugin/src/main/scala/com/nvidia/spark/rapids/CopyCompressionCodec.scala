@@ -51,7 +51,7 @@ class BatchedCopyCompressor(maxBatchMemory: Long, stream: Cuda.Stream)
           ct,
           CodecType.COPY,
           outBuffer.getLength)
-        CompressedTable(outBuffer.getLength, meta, outBuffer)
+        new CompressedTable(outBuffer.getLength, meta, outBuffer)
       }
     }
     closeOnExcept(result) { _ => stream.sync() }

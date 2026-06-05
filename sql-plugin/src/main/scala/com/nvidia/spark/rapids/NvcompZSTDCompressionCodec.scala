@@ -58,7 +58,7 @@ class BatchedNvcompZSTDCompressor(maxBatchMemorySize: Long,
         compressedBufs.zip(tables).map { case (buffer, table) =>
           val compressedLen = buffer.getLength
           val meta = MetaUtils.buildTableMeta(None, table, CodecType.NVCOMP_ZSTD, compressedLen)
-          CompressedTable(compressedLen, meta, buffer)
+          new CompressedTable(compressedLen, meta, buffer)
         }.toArray
       }
     }
