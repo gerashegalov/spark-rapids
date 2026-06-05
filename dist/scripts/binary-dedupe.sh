@@ -266,6 +266,10 @@ function unshimmed_class_needs_shared_identity() {
   # executable javap output; only ScalaSignature metadata differs across Spark deps.
   # PythonMapInArrowExecShims and PythonArgumentUtils class shells have identical
   # executable bytecode; only source-file metadata differs across shim source names.
+  # GpuUnionExecShim and RapidsErrorUtils class shells have identical executable
+  # bytecode; only ScalaSignature metadata differs.
+  # GpuAtomicCreateTableAsSelectExec companion has identical executable bytecode;
+  # only line-number debug metadata differs across shim sources.
   if [[ "$class_file_quoted" =~ com/nvidia/spark/rapids/spark[34].*/.*ShuffleManager.class || \
           "$class_file_quoted" == "com/nvidia/spark/ParquetCachedBatchSerializer.class" || \
           "$class_file_quoted" =~ org/apache/spark/sql/rapids/ProxyRapidsShuffleInternalManagerBase || \
@@ -275,6 +279,9 @@ function unshimmed_class_needs_shared_identity() {
           "$class_file_quoted" == "org/apache/spark/sql/catalyst/json/rapids/GpuReadJsonFileFormat.class" || \
           "$class_file_quoted" == "com/nvidia/spark/rapids/shims/PythonMapInArrowExecShims.class" || \
           "$class_file_quoted" == "org/apache/spark/sql/rapids/execution/python/shims/PythonArgumentUtils.class" || \
+          "$class_file_quoted" == "com/nvidia/spark/rapids/shims/GpuUnionExecShim.class" || \
+          "$class_file" == "org/apache/spark/sql/execution/datasources/v2/rapids/GpuAtomicCreateTableAsSelectExec$.class" || \
+          "$class_file_quoted" == "org/apache/spark/sql/rapids/shims/RapidsErrorUtils.class" || \
           "$class_file_quoted" == "org/apache/spark/sql/rapids/execution/python/shims/WindowInPandasExecTypeShim.class" ]]; then
       return 1
   fi
