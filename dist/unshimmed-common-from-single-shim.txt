@@ -1532,6 +1532,8 @@ com/nvidia/spark/rapids/filecache/FileCacheManager$StartToken$.class
 com/nvidia/spark/rapids/filecache/FileCacheManager$StartToken.class
 com/nvidia/spark/rapids/filecache/FileCacheStub$.class
 com/nvidia/spark/rapids/filecache/FileCacheStub.class
+com/nvidia/spark/rapids/fileio/RapidsInputFiles$1.class
+com/nvidia/spark/rapids/fileio/RapidsInputFiles$S3PerfReader.class
 com/nvidia/spark/rapids/fileio/RapidsInputFiles.class
 com/nvidia/spark/rapids/fileio/hadoop/HadoopFileIO.class
 com/nvidia/spark/rapids/fileio/hadoop/HadoopInputFileFactory.class

@@ -17,20 +17,14 @@
 package com.nvidia.spark.rapids.fileio.hadoop;
 
 import ai.rapids.cudf.HostMemoryBuffer;
-import com.nvidia.spark.rapids.IntRangeWithOffset;
-import com.nvidia.spark.rapids.PerfIO$;
-import com.nvidia.spark.rapids.RangeWithOffset;
-import com.nvidia.spark.rapids.SuffixRangeWithOffset;
+import com.nvidia.spark.rapids.fileio.RapidsInputFiles;
 import com.nvidia.spark.rapids.jni.fileio.RapidsInputFile;
 import com.nvidia.spark.rapids.jni.fileio.SeekableInputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import scala.Option;
-import scala.collection.JavaConverters;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalLong;
 
@@ -78,12 +72,9 @@ public class S3InputFile implements RapidsInputFile {
     @Override
     public void readVectored(HostMemoryBuffer output, List<RapidsInputFile.CopyRange> copyRanges)
             throws IOException {
-        List<RangeWithOffset> ranges = new ArrayList<>(copyRanges.size());
-        for (RapidsInputFile.CopyRange range : copyRanges) {
-            ranges.add(new IntRangeWithOffset(
-                    range.getInputOffset(), range.getLength(), range.getOutputOffset()));
+        if (!RapidsInputFiles.readS3Vectored(hadoopConf, fileUri, output, copyRanges)) {
+            throw new IllegalArgumentException("expected to use PerfIO to read");
         }
-        readToHostMemory(output, ranges);
     }
 
     /**
@@ -99,18 +90,7 @@ public class S3InputFile implements RapidsInputFile {
         if (length < 0) {
             throw new IllegalArgumentException("length must be non-negative");
         }
-        List<RangeWithOffset> ranges = new ArrayList<>(1);
-        ranges.add(new SuffixRangeWithOffset(length, 0L));
-        readToHostMemory(output, ranges);
-    }
-
-    private void readToHostMemory(HostMemoryBuffer output, List<RangeWithOffset> ranges) {
-        Option<Object> result = PerfIO$.MODULE$.readToHostMemory(
-                hadoopConf,
-                output,
-                fileUri,
-                () -> JavaConverters.asScalaBufferConverter(ranges).asScala().toSeq());
-        if (result.isEmpty()) {
+        if (!RapidsInputFiles.readS3Tail(hadoopConf, fileUri, output, length, 0L)) {
             throw new IllegalArgumentException("expected to use PerfIO to read");
         }
     }
