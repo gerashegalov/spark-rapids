@@ -354,6 +354,15 @@ def json_node(node):
     }
 
 
+def location_relative_entry(info):
+    parts = info.entry.split("/", 1)
+    if info.location == "root":
+        return info.entry
+    if len(parts) == 2:
+        return parts[1]
+    return info.entry
+
+
 def direct_classifier_edges(graph):
     edges = []
     for source, targets in graph.items():
@@ -453,6 +462,8 @@ def main():
         help="print overlapping reachability counts for version-specific nodes")
     parser.add_argument("--format", choices=("text", "json"), default="text",
         help="output format")
+    parser.add_argument("--write-safe-paths",
+        help="write root-safe spark-shared class paths, one per line")
     args = parser.parse_args()
 
     exclude_prefixes = tuple(DEFAULT_EXCLUDES) + tuple(args.exclude_prefix)
@@ -483,6 +494,13 @@ def main():
         version_blocker_counts(graph, version_nodes, root_or_shared)
         if args.show_reachability or args.format == "json" else [])
     nearest_targets, blocked_paths = nearest_version_target_counts(graph, blocked)
+    safe_shared_paths = sorted(location_relative_entry(classes[node]) for node in safe_shared)
+
+    if args.write_safe_paths:
+        with open(args.write_safe_paths, "w", encoding="utf-8") as out:
+            for path in safe_shared_paths:
+                out.write(path)
+                out.write("\n")
 
     if args.format == "json":
         output = {
@@ -495,6 +513,7 @@ def main():
             "sccCount": len(components),
             "versionSpecificSccCount": len(version_components),
             "directClassifierDependencyCount": len(classifier_edges),
+            "rootSafeSparkSharedPaths": safe_shared_paths,
             "directClassifierDependencyExamples": [
                 {
                     "source": json_node(source),

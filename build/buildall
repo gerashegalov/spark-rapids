@@ -25,6 +25,7 @@ SCALA213=0
 UNSHIM_FAST=0
 UNSHIM_PARALLEL_WORLD_ONLY=0
 UNSHIM_REUSE_BUILT_JARS=0
+UNSHIM_ALLOWLIST_ONLY=0
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)
 SOURCE_DIR=$(cd "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)
@@ -80,6 +81,8 @@ function print_usage() {
   echo "        build analyzer-only parallel-world output without the final Maven dist invocation"
   echo "   --unshim-reuse-built-jars"
   echo "        with --unshim-fast --parallel-world-only, skip shim Maven builds and reuse existing target jars"
+  echo "   --unshim-allowlist-only"
+  echo "        imply --unshim-fast --parallel-world-only --unshim-reuse-built-jars and require only unshim allowlist changes"
 }
 
 function bloopInstall() {
@@ -184,6 +187,13 @@ case "$1" in
   UNSHIM_REUSE_BUILT_JARS=1
   ;;
 
+--unshim-allowlist-only)
+  UNSHIM_ALLOWLIST_ONLY=1
+  UNSHIM_FAST=1
+  UNSHIM_PARALLEL_WORLD_ONLY=1
+  UNSHIM_REUSE_BUILT_JARS=1
+  ;;
+
 --rebuild-dist-only)
   SKIP_DIST_DEPS="1"
   MODULE="dist"
@@ -226,11 +236,34 @@ else
   export MVN_FAST_SKIP_OPTS=""
 fi
 export UNSHIM_FAST
+export UNSHIM_PARALLEL_WORLD_ONLY
+export UNSHIM_ALLOWLIST_ONLY
 
 if [[ "$UNSHIM_REUSE_BUILT_JARS" == "1" && \
       ( "$UNSHIM_FAST" != "1" || "$UNSHIM_PARALLEL_WORLD_ONLY" != "1" ) ]]; then
   echo >&2 "--unshim-reuse-built-jars requires --unshim-fast --parallel-world-only"
   exit 1
+fi
+
+if [[ "$UNSHIM_ALLOWLIST_ONLY" == "1" ]] && \
+    git -C "$SOURCE_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  ALLOWLIST_ONLY_DIRTY=$(
+    {
+      git -C "$SOURCE_DIR" diff --name-only -- \
+        . \
+        ':(exclude)dist/unshimmed-common-from-single-shim.txt' \
+        ':(exclude)dist/unshimmed-from-each-spark3xx.txt'
+      git -C "$SOURCE_DIR" diff --cached --name-only -- \
+        . \
+        ':(exclude)dist/unshimmed-common-from-single-shim.txt' \
+        ':(exclude)dist/unshimmed-from-each-spark3xx.txt'
+    } | sort -u
+  )
+  if [[ -n "$ALLOWLIST_ONLY_DIRTY" ]]; then
+    echo >&2 "--unshim-allowlist-only can only reuse jars when tracked changes are limited to dist/unshimmed*.txt"
+    echo >&2 "$ALLOWLIST_ONLY_DIRTY"
+    exit 1
+  fi
 fi
 
 if [[ "$SCALA213" == "1" ]]; then
@@ -369,7 +402,8 @@ function build_single_shim() {
     LOG_FILE="$MVN_BASE_DIR/target/mvn-build-$BUILD_VER.log"
   fi
 
-  if [[ "$BUILD_VER" == "$BASE_VER" ]]; then
+  if [[ "$BUILD_VER" == "$BASE_VER" && \
+        ( "$UNSHIM_FAST" != "1" || "$UNSHIM_PARALLEL_WORLD_ONLY" != "1" ) ]]; then
     # WORKAROUND:
     # maven build on L193 currently relies on aggregator dependency which
     # will removed by
