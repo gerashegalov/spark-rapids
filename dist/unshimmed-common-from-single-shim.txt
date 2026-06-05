@@ -19,7 +19,6 @@ com/nvidia/spark/rapids/AllocationKind.class
 com/nvidia/spark/rapids/AllocationKind$.class
 com/nvidia/spark/rapids/AutoClosableArrayBuffer.class
 com/nvidia/spark/rapids/AutoCloseableTargetSize.class
-com/nvidia/spark/rapids/AutoCloseableTargetSize$.class
 com/nvidia/spark/rapids/BlockInfo.class
 com/nvidia/spark/rapids/BlockInfo$.class
 com/nvidia/spark/rapids/CloseableHolder.class

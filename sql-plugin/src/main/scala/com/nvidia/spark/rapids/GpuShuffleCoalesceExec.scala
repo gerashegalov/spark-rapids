@@ -196,9 +196,9 @@ object GpuShuffleCoalesceUtils {
 
       Seq(
         CloseableTableSeqWithTargetSize(firstHalfTables,
-          AutoCloseableTargetSize(targetByteSize, newTargetSize.minSize, firstHalfSize)),
+          new AutoCloseableTargetSize(targetByteSize, newTargetSize.minSize, firstHalfSize)),
         CloseableTableSeqWithTargetSize(secondHalfTables,
-          AutoCloseableTargetSize(targetByteSize, newTargetSize.minSize, secondHalfSize))
+          new AutoCloseableTargetSize(targetByteSize, newTargetSize.minSize, secondHalfSize))
       )
     }
   }
@@ -553,7 +553,7 @@ abstract class CoalesceIteratorBase[T <: AutoCloseable : ClassTag, R <: AutoClos
       splitPolicy match {
         case Some(policy) =>
           val dataSize = tablesSeq.map(tableOperator.getDataLen).sum
-          val targetSizeWrapper = AutoCloseableTargetSize(targetBatchByteSize,
+          val targetSizeWrapper = new AutoCloseableTargetSize(targetBatchByteSize,
             minSplitSizeForRetry, dataSize)
           val wrapper = CloseableTableSeqWithTargetSize(tablesSeq, targetSizeWrapper)
           val wrapperIter = Iterator(wrapper)

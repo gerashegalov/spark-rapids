@@ -147,7 +147,7 @@ abstract class AbstractGpuJoinIterator(
         // less from the gatherer, but because the gatherer tracks how much is used, the
         // next call to this function will start in the right place.
         val estimatedDataSize = (gather.numRowsLeft * gather.realCheapPerRowSizeEstimate).toLong
-        val targetSizeWrapper = AutoCloseableTargetSize(targetSize, minTargetSize,
+        val targetSizeWrapper = new AutoCloseableTargetSize(targetSize, minTargetSize,
           estimatedDataSize)
         gather.checkpoint()
         withRetry(targetSizeWrapper, splitTargetSizeInHalfGpu) { attempt =>
