@@ -1481,4 +1481,6 @@ org/apache/spark/sql/hive/rapids/shims/GpuInsertIntoHiveTable$.class
 org/apache/spark/sql/hive/rapids/shims/GpuInsertIntoHiveTableMeta.class
 org/apache/spark/sql/hive/rapids/shims/GpuRowBasedHiveGenericUDFShim.class
 org/apache/spark/sql/hive/rapids/shims/HiveProviderCmdShims.class
+com/nvidia/shaded/spark/org/roaringbitmap/*
+com/nvidia/shaded/spark/com/google/flatbuffers/*
 rapids/*.py
