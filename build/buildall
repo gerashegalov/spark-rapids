@@ -212,7 +212,7 @@ MVN=${MVN:-"mvn"}
 # include options to mvn command
 export MVN="$MVN -Dmaven.wagon.http.retryHandler.count=3 ${MVN_OPT}"
 if [[ "$UNSHIM_FAST" == "1" ]]; then
-  export MAVEN_REFRESH_OPT=""
+  export MAVEN_REFRESH_OPT="--no-snapshot-updates"
   export MVN_FAST_SKIP_OPTS="-Drat.skip=true -Dmaven.scalastyle.skip=true -Dmaven.scaladoc.skip=true -Dmaven.javadoc.skip=true -Ddist.jar.compress=false -Djacoco.skip=true -Denforcer.skip=true -Drapids.build.info.skip=true"
 else
   export MAVEN_REFRESH_OPT="-U"
@@ -276,7 +276,7 @@ fi
 
 if [[ "$UNSHIM_PARALLEL_WORLD_ONLY" == "1" ]]; then
   echo "Unshim parallel-world-only: stopping at generate-resources and skipping JNI unpack, shimplify, and jar packaging"
-  MVN_FAST_SKIP_OPTS="$MVN_FAST_SKIP_OPTS -Drapids.jni.unpack.skip=true -Drapids.shimplify.skip=true"
+  MVN_FAST_SKIP_OPTS="$MVN_FAST_SKIP_OPTS -Drapids.jni.unpack.skip=true -Drapids.shimplify.skip=true -Drapids.parallel.world.skip.reduced.pom=true"
 elif [[ "$UNSHIM_FAST" == "1" && -d "$MVN_BASE_DIR/dist/target/jni-deps" ]]; then
   echo "Unshim fast: reusing existing JNI deps from $MVN_BASE_DIR/dist/target/jni-deps"
   MVN_FAST_SKIP_OPTS="$MVN_FAST_SKIP_OPTS -Drapids.jni.unpack.skip=true"

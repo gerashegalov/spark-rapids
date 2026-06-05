@@ -389,11 +389,43 @@ def version_blocker_counts(graph, version_nodes, root_or_shared):
 
 def nearest_version_target_counts(graph, blocked):
     """Count terminal version nodes from each blocked node's shortest path."""
+    rev = reverse_graph(graph)
+    distance = {}
+    queue = collections.deque()
+    for node in sorted(node for node in graph if is_version_node(node)):
+        distance[node] = 0
+        queue.append(node)
+
+    while queue:
+        node = queue.popleft()
+        for parent in sorted(rev[node]):
+            if parent in distance:
+                continue
+            distance[parent] = distance[node] + 1
+            queue.append(parent)
+
+    def rebuild_path(start):
+        path = [start]
+        node = start
+        while not is_version_node(node):
+            next_node = None
+            for candidate in sorted(graph[node]):
+                if distance.get(candidate) == distance[node] - 1:
+                    next_node = candidate
+                    break
+            if next_node is None:
+                return None
+            path.append(next_node)
+            node = next_node
+        return path
+
     counts = collections.Counter()
     examples = {}
     paths = []
     for node in blocked:
-        path = shortest_path_to_version(graph, node)
+        if node not in distance:
+            continue
+        path = rebuild_path(node)
         if not path:
             continue
         paths.append((node, path))

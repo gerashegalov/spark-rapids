@@ -138,7 +138,8 @@
                      includesfile="${spark.rapids.source.basedir}/${rapids.module}/unshimmed-common-from-single-shim.txt"/>
         </delete>
     </target>
-    <target name="remove-dependencies-from-pom" depends="build-parallel-worlds">
+    <target name="remove-dependencies-from-pom" depends="build-parallel-worlds"
+            unless="rapids.parallel.world.skip.reduced.pom">
         <echo level="info">Generating dependency-reduced-pom.xml</echo>
         <resources id="aggregatorDependencyRegexWithoutWhitespace">
             <string>&lt;dependency&gt;</string>
