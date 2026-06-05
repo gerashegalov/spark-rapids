@@ -725,7 +725,7 @@ com/nvidia/spark/rapids/ShuffleCleanupEndpoint$.class
 com/nvidia/spark/rapids/SingleDataBlockInfo.class
 com/nvidia/spark/rapids/SingleGpuColumnarBatchIterator.class
 com/nvidia/spark/rapids/ThreadFactoryBuilder.class
-com/nvidia/spark/rapids/ThreadFactoryBuilder$$anon$1.class
+com/nvidia/spark/rapids/ThreadFactoryBuilder$1.class
 com/nvidia/spark/rapids/ToPrettyStringChecks$.class
 com/nvidia/spark/rapids/delta/DeltaWriteUtils$.class
 com/nvidia/spark/rapids/delta/DeltaWriteUtils.class
