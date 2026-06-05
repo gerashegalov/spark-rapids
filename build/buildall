@@ -326,7 +326,10 @@ function refresh_fast_aggregator_jar() {
     echo >&2 "Expected shaded aggregator jar missing: $shaded_jar"
     exit 255
   fi
-  cp "$shaded_jar" "$downstream_jar"
+  if [[ -f "$downstream_jar" ]] && cmp -s "$shaded_jar" "$downstream_jar"; then
+    return 0
+  fi
+  cp -p "$shaded_jar" "$downstream_jar"
 }
 export -f refresh_fast_aggregator_jar
 

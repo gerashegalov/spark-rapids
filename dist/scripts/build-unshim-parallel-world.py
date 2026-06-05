@@ -23,6 +23,7 @@ has already built the per-shim sql-plugin-api and aggregator jars under target/s
 
 import argparse
 import fnmatch
+import hashlib
 import os
 from pathlib import Path
 import shutil
@@ -91,6 +92,76 @@ def artifact_jar(base_dir, artifact, scala_binary_version, project_version, buil
     return jar_path
 
 
+def jar_signature(jar_path):
+    stat = jar_path.stat()
+    return "\n".join((
+        "path=%s" % jar_path,
+        "size=%s" % stat.st_size,
+        "mtime_ns=%s" % stat.st_mtime_ns,
+        "",
+    ))
+
+
+def dedupe_cache_key(base_dir, scala_binary_version, project_version, buildvers):
+    parts = []
+    for buildver in sorted(buildvers, reverse=True):
+        for artifact in ARTIFACTS:
+            jar_path = artifact_jar(
+                base_dir, artifact, scala_binary_version, project_version, buildver)
+            parts.extend((
+                "buildver=%s" % buildver,
+                "artifact=%s" % artifact,
+                jar_signature(jar_path),
+            ))
+    return hashlib.sha1("\n".join(parts).encode("utf-8")).hexdigest()
+
+
+def ensure_extracted_cache(jar_path, cache_dir):
+    contents_dir = cache_dir / "contents"
+    marker = cache_dir / ".source"
+    signature = jar_signature(jar_path)
+
+    if marker.is_file() and marker.read_text() == signature:
+        return contents_dir
+
+    if cache_dir.exists():
+        shutil.rmtree(cache_dir)
+    contents_dir.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(jar_path) as zip_handle:
+        safe_extract(zip_handle, contents_dir)
+    marker.write_text(signature)
+    return contents_dir
+
+
+def link_or_copy(src, dst):
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    if dst.exists() or dst.is_symlink():
+        dst.unlink()
+    try:
+        os.link(src, dst)
+    except OSError:
+        shutil.copy2(src, dst)
+
+
+def link_tree_contents(src_dir, dst_dir):
+    for root, _, files in os.walk(src_dir):
+        root_path = Path(root)
+        rel_root = root_path.relative_to(src_dir)
+        target_root = dst_dir / rel_root
+        target_root.mkdir(parents=True, exist_ok=True)
+        for name in files:
+            link_or_copy(root_path / name, target_root / name)
+
+
+def link_members(contents_dir, destination, members):
+    for member in members:
+        if member.endswith("/"):
+            continue
+        src = contents_dir / member
+        if src.is_file():
+            link_or_copy(src, destination / member)
+
+
 def copy_and_extract_jars(
         base_dir,
         target_dir,
@@ -99,8 +170,8 @@ def copy_and_extract_jars(
         buildvers,
         from_single_shim,
         from_each):
-    deps_dir = target_dir / "deps"
     parallel_world = target_dir / "parallel-world"
+    cache_root = target_dir / "unshim-parallel-world-cache"
     sorted_buildvers = sorted(buildvers, reverse=True)
     root_buildver = sorted_buildvers[0]
 
@@ -109,19 +180,20 @@ def copy_and_extract_jars(
         for artifact in ARTIFACTS:
             jar_path = artifact_jar(
                 base_dir, artifact, scala_binary_version, project_version, buildver)
-            deps_jar = deps_dir / jar_path.name
-            shutil.copy2(jar_path, deps_jar)
+            contents_dir = ensure_extracted_cache(
+                jar_path, cache_root / classifier / artifact)
+            with zipfile.ZipFile(jar_path) as zip_handle:
+                namelist = zip_handle.namelist()
 
-            with zipfile.ZipFile(deps_jar) as zip_handle:
-                safe_extract(zip_handle, parallel_world / classifier)
-                if buildver == root_buildver and artifact == "sql-plugin-api":
-                    safe_extract(zip_handle, parallel_world)
+            link_tree_contents(contents_dir, parallel_world / classifier)
+            if buildver == root_buildver and artifact == "sql-plugin-api":
+                link_tree_contents(contents_dir, parallel_world)
 
-                patterns = from_each
-                if buildver == root_buildver:
-                    patterns = from_single_shim + from_each
-                members = matching_members(zip_handle.namelist(), patterns)
-                safe_extract(zip_handle, parallel_world, members)
+            patterns = from_each
+            if buildver == root_buildver:
+                patterns = from_single_shim + from_each
+            members = matching_members(namelist, patterns)
+            link_members(contents_dir, parallel_world, members)
 
 
 def run_checked(command, cwd, env=None):
@@ -188,6 +260,12 @@ def main():
 
     dedupe_env = os.environ.copy()
     dedupe_env["UNSHIM_FAST"] = "1"
+    dedupe_env["UNSHIM_DEDUPE_CACHE_DIR"] = str(
+        target_dir / "unshim-dedupe-cache" / dedupe_cache_key(
+            base_dir,
+            args.scala_binary_version,
+            args.project_version,
+            buildvers))
     dedupe_env["UNSHIMMED_COMMON_FROM_SINGLE_SHIM_TXT"] = str(
         dist_dir / "unshimmed-common-from-single-shim.txt")
     run_checked([str(dist_dir / "scripts" / "binary-dedupe.sh")],

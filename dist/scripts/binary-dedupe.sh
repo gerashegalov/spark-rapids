@@ -50,6 +50,18 @@ if [[ "${UNSHIM_FAST:-0}" == "1" ]]; then
   done < <(find ./parallel-world -maxdepth 1 -mindepth 1 -type d -name 'spark[34]*' | sort)
 fi
 
+DEDUPE_CACHE_DIR="${UNSHIM_DEDUPE_CACHE_DIR:-}"
+DEDUPE_CACHE_SPARK_SHARED_TXT=""
+DEDUPE_CACHE_SHA1_FILES_TXT=""
+DEDUPE_CACHE_SHIM_SHA_PACKAGE_FILES_TXT=""
+DEDUPE_CACHE_COUNT_SHIM_SHA_PACKAGE_FILES_TXT=""
+if [[ -n "$DEDUPE_CACHE_DIR" ]]; then
+  DEDUPE_CACHE_SPARK_SHARED_TXT="$DEDUPE_CACHE_DIR/spark-shared.txt"
+  DEDUPE_CACHE_SHA1_FILES_TXT="$DEDUPE_CACHE_DIR/tmp-sha1-files.txt"
+  DEDUPE_CACHE_SHIM_SHA_PACKAGE_FILES_TXT="$DEDUPE_CACHE_DIR/tmp-shim-sha-package-files.txt"
+  DEDUPE_CACHE_COUNT_SHIM_SHA_PACKAGE_FILES_TXT="$DEDUPE_CACHE_DIR/tmp-count-shim-sha-package-files.txt"
+fi
+
 # This script de-duplicates .class files at the binary level.
 # We could also diff classes using scalap / javap outputs.
 # However, with observed warnings in the output we have no guarantee that the
@@ -65,9 +77,21 @@ fi
 # - put the path starting with /sparkxyz back together for the final list
 echo "Retrieving class files hashing to a single value ..."
 
+CACHE_HIT=0
+if [[ -n "$DEDUPE_CACHE_SPARK_SHARED_TXT" && \
+      -f "$DEDUPE_CACHE_SPARK_SHARED_TXT" && \
+      -f "$DEDUPE_CACHE_SHA1_FILES_TXT" && \
+      -f "$DEDUPE_CACHE_SHIM_SHA_PACKAGE_FILES_TXT" && \
+      -f "$DEDUPE_CACHE_COUNT_SHIM_SHA_PACKAGE_FILES_TXT" ]]; then
+  echo "$((++STEP))/ reusing cached files with unique sha1 > $SPARK_SHARED_TXT"
+  cp "$DEDUPE_CACHE_SPARK_SHARED_TXT" "$SPARK_SHARED_TXT"
+  cp "$DEDUPE_CACHE_SHA1_FILES_TXT" tmp-sha1-files.txt
+  cp "$DEDUPE_CACHE_SHIM_SHA_PACKAGE_FILES_TXT" tmp-shim-sha-package-files.txt
+  cp "$DEDUPE_CACHE_COUNT_SHIM_SHA_PACKAGE_FILES_TXT" tmp-count-shim-sha-package-files.txt
+  CACHE_HIT=1
 # With one shim there is no cross-shim identity proof to perform; every
 # non-META file is the sole representative for its path.
-if [[ "${UNSHIM_FAST:-0}" == "1" && "${#SPARK_SHIM_DIRS[@]}" == "1" ]]; then
+elif [[ "${UNSHIM_FAST:-0}" == "1" && "${#SPARK_SHIM_DIRS[@]}" == "1" ]]; then
   echo "$((++STEP))/ single shim fast path; listing files > $SPARK_SHARED_TXT"
   : > tmp-sha1-files.txt
   : > tmp-shim-sha-package-files.txt
@@ -92,6 +116,14 @@ else
   grep '^\s\+1 .*' tmp-count-shim-sha-package-files.txt | \
     awk '{$1=""; $3=""; print $0 }' | \
     tr -s ' ' | sed 's/\ /\//g' > "$SPARK_SHARED_TXT"
+fi
+
+if [[ "$CACHE_HIT" == "0" && -n "$DEDUPE_CACHE_SPARK_SHARED_TXT" ]]; then
+  mkdir -p "$DEDUPE_CACHE_DIR"
+  cp "$SPARK_SHARED_TXT" "$DEDUPE_CACHE_SPARK_SHARED_TXT"
+  cp tmp-sha1-files.txt "$DEDUPE_CACHE_SHA1_FILES_TXT"
+  cp tmp-shim-sha-package-files.txt "$DEDUPE_CACHE_SHIM_SHA_PACKAGE_FILES_TXT"
+  cp tmp-count-shim-sha-package-files.txt "$DEDUPE_CACHE_COUNT_SHIM_SHA_PACKAGE_FILES_TXT"
 fi
 
 function retain_single_copy() {
