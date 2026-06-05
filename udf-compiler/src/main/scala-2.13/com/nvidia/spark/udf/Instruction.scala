@@ -23,10 +23,10 @@ import com.nvidia.spark.udf.CatalystExpressionBuilder.simplify
 import javassist.bytecode.{CodeIterator, Opcode}
 
 import org.apache.spark.SparkException
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.TypeCoercion
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.types._
+import org.slf4j.LoggerFactory
 
 
 private[udf] object Repr {
@@ -211,7 +211,7 @@ private[udf] object Repr {
  * @param opcode
  * @param operand
  */
-case class Instruction(opcode: Int, operand: Int, instructionStr: String) extends Logging {
+case class Instruction(opcode: Int, operand: Int, instructionStr: String) {
   def makeState(lambdaReflection: LambdaReflection, basicBlock: BB, state: State): State = {
     val st = opcode match {
       case Opcode.ALOAD_0 | Opcode.DLOAD_0 | Opcode.FLOAD_0 |
@@ -322,7 +322,9 @@ case class Instruction(opcode: Int, operand: Int, instructionStr: String) extend
         })
       case _ => throw new SparkException("Unsupported instruction: " + instructionStr)
     }
-    logDebug(s"[Instruction] ${instructionStr} got new state: ${st} from state: ${state}")
+    if (Instruction.log.isDebugEnabled) {
+      Instruction.log.debug(s"[Instruction] ${instructionStr} got new state: ${st} from state: ${state}")
+    }
     st
   }
 
@@ -910,10 +912,10 @@ case class Instruction(opcode: Int, operand: Int, instructionStr: String) extend
       case "getBytes" =>
         if (args.length == 1) {
           checkArgs(methodName, List(StringType), args)
-          Encode(args.head, Literal(Charset.defaultCharset.toString))
+          new Encode(args.head, Literal(Charset.defaultCharset.toString))
         } else if (args.length == 2) {
           checkArgs(methodName, List(StringType, StringType), args)
-          Encode(args.head, args.last)
+          new Encode(args.head, args.last)
         } else {
           throw new SparkException(
             s"String.${methodName} operation expects 1 or 2 argument(s), " +
@@ -979,6 +981,8 @@ case class Instruction(opcode: Int, operand: Int, instructionStr: String) extend
  * Ultimately, every opcode will have to be covered here.
  */
 object Instruction {
+  private val log = LoggerFactory.getLogger(classOf[Instruction])
+
   def apply(codeIterator: CodeIterator, offset: Int, instructionStr: String): Instruction = {
     val opcode: Int = codeIterator.byteAt(offset)
     val operand: Int = opcode match {

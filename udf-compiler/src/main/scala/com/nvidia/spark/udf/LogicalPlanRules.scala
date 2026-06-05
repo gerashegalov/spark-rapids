@@ -19,14 +19,13 @@ package com.nvidia.spark.udf
 import ai.rapids.cudf.{NvtxColor, NvtxRange}
 import com.nvidia.spark.rapids.RapidsConf
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.expressions.{Expression, NamedExpression, ScalaUDF}
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Project}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.rapids.GpuScalaUDF.getRapidsUDFInstance
 
 
-case class LogicalPlanRules() extends Rule[LogicalPlan] with Logging {
+case class LogicalPlanRules() extends Rule[LogicalPlan] {
   def replacePartialFunc(plan: LogicalPlan): PartialFunction[Expression, Expression] = {
     case d: Expression => {
       val nvtx = new NvtxRange("replace UDF", NvtxColor.BLUE)

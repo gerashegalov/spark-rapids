@@ -21,9 +21,9 @@ import scala.annotation.tailrec
 import javassist.CtClass
 
 import org.apache.spark.SparkException
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.types._
+import org.slf4j.LoggerFactory
 
 /**
  * CatalystExpressionBuilder
@@ -42,7 +42,7 @@ import org.apache.spark.sql.types._
  *
  * @param function the original Scala UDF provided by the user
  */
-case class CatalystExpressionBuilder(private val function: AnyRef) extends Logging {
+case class CatalystExpressionBuilder(private val function: AnyRef) {
   final private val lambdaReflection: LambdaReflection = LambdaReflection(function)
 
   final private val cfg = CFG(lambdaReflection)
@@ -72,9 +72,12 @@ case class CatalystExpressionBuilder(private val function: AnyRef) extends Loggi
     // pick first of the Basic Blocks, and start recursing
     val entryBlock = cfg.basicBlocks.head
 
-    logDebug(s"[CatalystExpressionBuilder] Attempting to compile: ${function}, " +
-        s"with children: ${children}, " + s"entry block: ${entryBlock}, and " +
-        s"entry state: ${entryState}")
+    if (CatalystExpressionBuilder.log.isDebugEnabled) {
+      CatalystExpressionBuilder.log.debug(
+        s"[CatalystExpressionBuilder] Attempting to compile: ${function}, " +
+            s"with children: ${children}, " + s"entry block: ${entryBlock}, and " +
+            s"entry state: ${entryState}")
+    }
 
     // start recursing
     val compiled = doCompile(List(entryBlock), Map(entryBlock -> entryState)).map { e =>
@@ -88,7 +91,9 @@ case class CatalystExpressionBuilder(private val function: AnyRef) extends Loggi
     }
 
     if (compiled.isEmpty) {
-      logDebug(s"[CatalystExpressionBuilder] failed to compile")
+      if (CatalystExpressionBuilder.log.isDebugEnabled) {
+        CatalystExpressionBuilder.log.debug(s"[CatalystExpressionBuilder] failed to compile")
+      }
     } else {
       val expr = compiled.get
       val internal = expr.find(_.isInstanceOf[Repr.CompilerInternal])
@@ -96,7 +101,9 @@ case class CatalystExpressionBuilder(private val function: AnyRef) extends Loggi
         throw new IllegalStateException(
           s"compiled UDF has compiler internal expression $e: $expr")
       }
-      logDebug(s"[CatalystExpressionBuilder] compiled expression: $expr")
+      if (CatalystExpressionBuilder.log.isDebugEnabled) {
+        CatalystExpressionBuilder.log.debug(s"[CatalystExpressionBuilder] compiled expression: $expr")
+      }
     }
 
     compiled
@@ -156,7 +163,9 @@ case class CatalystExpressionBuilder(private val function: AnyRef) extends Loggi
     // find the state associated with this BB
     val state: State = states(basicBlock)
 
-    logTrace(s"States for basic block ${basicBlock} => ${state}")
+    if (CatalystExpressionBuilder.log.isTraceEnabled) {
+      CatalystExpressionBuilder.log.trace(s"States for basic block ${basicBlock} => ${state}")
+    }
 
     /**
      * Iterate through the instruction table for the BB:
@@ -274,7 +283,9 @@ case class CatalystExpressionBuilder(private val function: AnyRef) extends Loggi
  * simplify a directly translated catalyst expression (from bytecode) into something simpler
  * that the remaining catalyst optimizations can handle.
  */
-object CatalystExpressionBuilder extends Logging {
+object CatalystExpressionBuilder {
+  private val log = LoggerFactory.getLogger(classOf[CatalystExpressionBuilder])
+
   /** simplify: given a raw converted catalyst expression, attempt to match patterns to simplify
    * before handing it over to catalyst optimizers (the LogicalPlan does this later).
    *
@@ -483,7 +494,9 @@ object CatalystExpressionBuilder extends Logging {
         case If(c, t, f) => If(simplifyExpr(c), simplifyExpr(t), simplifyExpr(f))
         case _ => expr
       }
-      logDebug(s"[CatalystExpressionBuilder] simplify: ${expr} ==> ${res}")
+      if (CatalystExpressionBuilder.log.isDebugEnabled) {
+        CatalystExpressionBuilder.log.debug(s"[CatalystExpressionBuilder] simplify: ${expr} ==> ${res}")
+      }
       res
     }
 
