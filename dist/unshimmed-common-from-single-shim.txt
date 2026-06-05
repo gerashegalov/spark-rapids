@@ -545,7 +545,6 @@ org/apache/iceberg/spark/source/GpuSparkWriteAccess.class
 org/apache/iceberg/spark/source/GpuStructInternalRow.class
 org/apache/spark/sql/rapids/AdaptiveSparkPlanHelperShim*
 org/apache/spark/sql/rapids/BasicColumnarWriteTaskStats.class
-org/apache/spark/sql/rapids/BasicColumnarWriteTaskStats$.class
 org/apache/spark/sql/rapids/ColumnarWriteJobStatsTracker.class
 org/apache/spark/sql/rapids/ColumnarWriteTaskStatsTracker.class
 org/apache/spark/sql/rapids/ExecutionPlanCaptureCallback*

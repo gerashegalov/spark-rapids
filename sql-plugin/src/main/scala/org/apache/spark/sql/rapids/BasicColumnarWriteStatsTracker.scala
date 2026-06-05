@@ -36,19 +36,6 @@ import org.apache.spark.util.SerializableConfiguration
 
 /**
  * Simple metrics collected during an instance of [[GpuFileFormatDataWriter]].
- * These were first introduced in https://github.com/apache/spark/pull/18159 (SPARK-20703).
- */
-case class BasicColumnarWriteTaskStats(
-    partitions: Seq[InternalRow],
-    numFiles: Int,
-    numWriters: Int,
-    numBytes: Long,
-    numRows: Long)
-    extends WriteTaskStats
-
-
-/**
- * Simple metrics collected during an instance of [[GpuFileFormatDataWriter]].
  * This is the columnar version of
  * `org.apache.spark.sql.execution.datasources.BasicWriteTaskStatsTracker`.
  */
@@ -198,7 +185,7 @@ class BasicColumnarWriteTaskStatsTracker(
         "or files being not immediately visible in the filesystem.")
     }
     taskCommitTimeMetric.foreach(_ += taskCommitTime)
-    BasicColumnarWriteTaskStats(partitions.toSeq, numFiles, maxNumWriters, numBytes, numRows)
+    new BasicColumnarWriteTaskStats(partitions.toSeq, numFiles, maxNumWriters, numBytes, numRows)
   }
 }
 
