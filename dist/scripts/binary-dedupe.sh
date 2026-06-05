@@ -262,9 +262,16 @@ function unshimmed_class_needs_shared_identity() {
   # has no methods in the class shell; its companion carries the behavior.
   # CloseableColumnBatchIterator has identical descriptors and code; Scala 2.13 only
   # renames generic Signature-attribute type variables across the Spark 3.5/4.1 compiles.
+  # GpuReadCSVFileFormat and GpuReadJsonFileFormat have identical descriptors and
+  # executable javap output; only ScalaSignature metadata differs across Spark deps.
   if [[ "$class_file_quoted" =~ com/nvidia/spark/rapids/spark[34].*/.*ShuffleManager.class || \
           "$class_file_quoted" == "com/nvidia/spark/ParquetCachedBatchSerializer.class" || \
-          "$class_file_quoted" =~ org/apache/spark/sql/rapids/ProxyRapidsShuffleInternalManagerBase || "$class_file_quoted" == "org/apache/spark/sql/rapids/GpuShuffleDependency.class" || "$class_file_quoted" == "com/nvidia/spark/rapids/parquet/CloseableColumnBatchIterator.class" || "$class_file_quoted" == "org/apache/spark/sql/rapids/execution/python/shims/WindowInPandasExecTypeShim.class" ]]; then
+          "$class_file_quoted" =~ org/apache/spark/sql/rapids/ProxyRapidsShuffleInternalManagerBase || \
+          "$class_file_quoted" == "org/apache/spark/sql/rapids/GpuShuffleDependency.class" || \
+          "$class_file_quoted" == "com/nvidia/spark/rapids/parquet/CloseableColumnBatchIterator.class" || \
+          "$class_file_quoted" == "com/nvidia/spark/rapids/GpuReadCSVFileFormat.class" || \
+          "$class_file_quoted" == "org/apache/spark/sql/catalyst/json/rapids/GpuReadJsonFileFormat.class" || \
+          "$class_file_quoted" == "org/apache/spark/sql/rapids/execution/python/shims/WindowInPandasExecTypeShim.class" ]]; then
       return 1
   fi
   return 0
