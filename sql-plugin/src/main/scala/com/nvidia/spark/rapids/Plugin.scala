@@ -110,7 +110,7 @@ object RapidsPluginUtils {
   private val SPARK_MASTER = "spark.master"
   private val SPARK_RAPIDS_REPO_URL = "https://github.com/NVIDIA/spark-rapids"
 
-  lazy val buildInfoEvent = SparkRapidsBuildInfoEvent(
+  lazy val buildInfoEvent = new SparkRapidsBuildInfoEvent(
     sparkRapidsBuildInfo = loadProps(PLUGIN_PROPS_FILENAME),
     sparkRapidsJniBuildInfo = loadProps(JNI_PROPS_FILENAME),
     cudfBuildInfo = loadProps(CUDF_PROPS_FILENAME),
@@ -612,10 +612,10 @@ class RapidsDriverPlugin extends DriverPlugin {
  * We store the object in concurrent map where the key is the executor task thread.
  * It is `AutoCloseable`, so the caller must close it on task success or failure.
  */
-case class ActiveTaskMetrics(
-    stageId: Int,
-    taskAttemptId: Long,
-    attemptNumber: Int) extends AutoCloseable {
+class ActiveTaskMetrics(
+    val stageId: Int,
+    val taskAttemptId: Long,
+    val attemptNumber: Int) extends AutoCloseable with Serializable {
   private var nvtx = new NvtxRange(
     s"Stage $stageId Task $taskAttemptId-$attemptNumber", NvtxColor.DARK_GREEN)
   private var closed = false
@@ -964,7 +964,7 @@ class RapidsExecutorPlugin extends ExecutorPlugin {
     val attemptNumber = taskCtx.attemptNumber()
     activeTaskInfo.put(
       Thread.currentThread(),
-      ActiveTaskMetrics(stageId, taskAttemptId, attemptNumber))
+      new ActiveTaskMetrics(stageId, taskAttemptId, attemptNumber))
   }
 
   private def endTaskNvtx(): Unit = {

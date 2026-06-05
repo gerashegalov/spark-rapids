@@ -217,7 +217,7 @@ class ShuffleCleanupManager(
 
         try {
           TrampolineUtil.postEvent(sc,
-            SparkRapidsShuffleDiskSavingsEvent(shuffleId, stat.bytesFromMemory, stat.bytesFromDisk,
+            new SparkRapidsShuffleDiskSavingsEvent(shuffleId, stat.bytesFromMemory, stat.bytesFromDisk,
               stat.numExpansions, stat.numSpills, stat.numForcedFileOnly))
         } catch {
           case e: Exception =>

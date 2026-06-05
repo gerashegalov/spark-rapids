@@ -12,7 +12,6 @@ com/nvidia/spark/rapids/SparkShims*
 com/nvidia/spark/rapids/AcquireFailed.class
 com/nvidia/spark/rapids/AcquireFailed$.class
 com/nvidia/spark/rapids/ActiveTaskMetrics.class
-com/nvidia/spark/rapids/ActiveTaskMetrics$.class
 com/nvidia/spark/rapids/AggregateModeInfo.class
 com/nvidia/spark/rapids/AllocationKind.class
 com/nvidia/spark/rapids/AllocationKind$.class
@@ -228,9 +227,7 @@ com/nvidia/spark/rapids/SortEachBatch$.class
 com/nvidia/spark/rapids/SortExecType.class
 com/nvidia/spark/rapids/SingleGpuDataProducer.class
 com/nvidia/spark/rapids/SparkRapidsBuildInfoEvent.class
-com/nvidia/spark/rapids/SparkRapidsBuildInfoEvent$.class
 com/nvidia/spark/rapids/SparkRapidsShuffleDiskSavingsEvent.class
-com/nvidia/spark/rapids/SparkRapidsShuffleDiskSavingsEvent$.class
 com/nvidia/spark/rapids/ScalableTaskCompletion.class
 com/nvidia/spark/rapids/ScalableTaskCompletion$.class
 com/nvidia/spark/rapids/ScalableTaskCompletion$TopLevelTaskCompletion.class
