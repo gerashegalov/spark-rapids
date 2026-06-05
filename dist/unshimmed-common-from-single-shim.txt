@@ -902,6 +902,13 @@ org/apache/spark/rapids/shims/ShuffledBatchRDDUtil.class
 org/apache/spark/shuffle/rapids/RapidsShuffleFetchFailedException.class
 org/apache/spark/shuffle/rapids/RapidsShuffleSendPrepareException.class
 org/apache/spark/shuffle/rapids/RapidsShuffleTimeoutException.class
+org/apache/spark/shuffle/sort/io/RapidsLocalDiskShuffleDataIO.class
+org/apache/spark/shuffle/sort/io/RapidsLocalDiskShuffleExecutorComponents.class
+org/apache/spark/shuffle/sort/io/RapidsLocalDiskShuffleMapOutputWriter$PartitionWriterChannel$$anon$1.class
+org/apache/spark/shuffle/sort/io/RapidsLocalDiskShuffleMapOutputWriter$PartitionWriterChannel.class
+org/apache/spark/shuffle/sort/io/RapidsLocalDiskShuffleMapOutputWriter$PartitionWriterStream.class
+org/apache/spark/shuffle/sort/io/RapidsLocalDiskShuffleMapOutputWriter$RapidsPartitionWriter.class
+org/apache/spark/shuffle/sort/io/RapidsLocalDiskShuffleMapOutputWriter.class
 org/apache/spark/sql/delta/rapids/DeltaCommandShims.class
 org/apache/spark/sql/delta/rapids/DeltaMdcShims$.class
 org/apache/spark/sql/delta/rapids/DeltaMdcShims.class
