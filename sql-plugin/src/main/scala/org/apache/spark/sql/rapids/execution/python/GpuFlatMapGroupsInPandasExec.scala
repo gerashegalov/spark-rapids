@@ -124,9 +124,9 @@ case class GpuFlatMapGroupsInPandasExec(
     val argOffsets = groupArgs.argOffsets
     val groupingOffsets = groupArgs.groupingOffsets
 
-    val runnerFactory = GpuGroupedPythonRunnerFactory(conf, chainedFunc, Array(argOffsets),
+    val runnerFactory = new GpuGroupedPythonRunnerFactory(conf, chainedFunc, Array(argOffsets),
         DataTypeUtilsShim.fromAttributes(dedupAttrs), pythonOutputSchema,
-        udf.evalType)
+        udf.evalType, None)
 
     // Start processing. Map grouped batches to ArrowPythonRunner results.
     child.executeColumnar().mapPartitionsInternal { inputIter =>
