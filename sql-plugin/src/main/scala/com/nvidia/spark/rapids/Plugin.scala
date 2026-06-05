@@ -52,7 +52,7 @@ import org.apache.spark.sql.rapids.execution.TrampolineUtil
 
 class PluginException(msg: String) extends RuntimeException(msg)
 
-case class CudfVersionMismatchException(errorMsg: String) extends PluginException(errorMsg)
+class CudfVersionMismatchException(val errorMsg: String) extends PluginException(errorMsg) with Serializable
 
 case class ColumnarOverrideRules() extends ColumnarRule {
   lazy val overrides: Rule[SparkPlan] = GpuOverrides()
@@ -825,16 +825,16 @@ class RapidsExecutorPlugin extends ExecutorPlugin {
   private def checkCudfVersion(conf: RapidsConf): Unit = {
     try {
       val expectedCudfVersion = buildInfoEvent.sparkRapidsBuildInfo.getOrElse("cudf_version",
-        throw CudfVersionMismatchException("Could not find cudf version in " +
+        throw new CudfVersionMismatchException("Could not find cudf version in " +
             RapidsPluginUtils.PLUGIN_PROPS_FILENAME))
 
       val cudfVersion = buildInfoEvent.cudfBuildInfo.getOrElse("version",
-        throw CudfVersionMismatchException("Could not find cudf version in " +
+        throw new CudfVersionMismatchException("Could not find cudf version in " +
             RapidsPluginUtils.CUDF_PROPS_FILENAME))
 
       // compare cudf version in the classpath with the cudf version expected by plugin
       if (!RapidsExecutorPlugin.cudfVersionSatisfied(expectedCudfVersion, cudfVersion)) {
-        throw CudfVersionMismatchException(s"Found cudf version $cudfVersion, RAPIDS Accelerator " +
+        throw new CudfVersionMismatchException(s"Found cudf version $cudfVersion, RAPIDS Accelerator " +
             s"expects $expectedCudfVersion")
       }
     } catch {
