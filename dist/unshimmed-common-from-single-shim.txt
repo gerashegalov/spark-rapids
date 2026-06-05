@@ -1243,9 +1243,11 @@ com/nvidia/spark/rapids/shuffle/ucx/UCX$.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXActiveMessage$.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXActiveMessage.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXAmCallback.class
+com/nvidia/spark/rapids/shims/PythonMapInArrowExecShims.class
 com/nvidia/spark/rapids/GpuReadCSVFileFormat$.class
 com/nvidia/spark/rapids/GpuReadCSVFileFormat.class
 org/apache/spark/sql/catalyst/json/rapids/GpuReadJsonFileFormat$.class
 org/apache/spark/sql/catalyst/json/rapids/GpuReadJsonFileFormat.class
 com/nvidia/spark/rapids/spill/ChunkedPacker.class
+org/apache/spark/sql/rapids/execution/python/shims/PythonArgumentUtils.class
 rapids/*.py
