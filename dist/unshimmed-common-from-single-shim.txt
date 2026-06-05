@@ -3049,7 +3049,6 @@ com/nvidia/spark/rapids/DateUtils$FormatKeywordToReplace.class
 com/nvidia/spark/rapids/DateUtils$TimestampFormatConversionException$.class
 com/nvidia/spark/rapids/DateUtils$TimestampFormatConversionException.class
 com/nvidia/spark/rapids/DateUtils.class
-com/nvidia/spark/rapids/DecimalUtil$.class
 com/nvidia/spark/rapids/DecimalUtil.class
 com/nvidia/spark/rapids/DeviceBuffersUtils$.class
 com/nvidia/spark/rapids/DeviceBuffersUtils.class
