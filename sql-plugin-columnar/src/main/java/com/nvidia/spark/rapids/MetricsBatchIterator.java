@@ -20,7 +20,6 @@ import scala.collection.Iterator;
 
 import org.apache.spark.TaskContext;
 import org.apache.spark.executor.InputMetrics;
-import org.apache.spark.sql.rapids.execution.TrampolineUtil;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 
 public class MetricsBatchIterator implements Iterator<ColumnarBatch> {
@@ -40,7 +39,7 @@ public class MetricsBatchIterator implements Iterator<ColumnarBatch> {
   @Override
   public ColumnarBatch next() {
     ColumnarBatch batch = iter.next();
-    TrampolineUtil.incInputRecordsRows(inputMetrics, batch.numRows());
+    inputMetrics.incRecordsRead(batch.numRows());
     return batch;
   }
 }
