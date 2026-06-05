@@ -322,11 +322,11 @@ abstract class RapidsShuffleThreadedWriterBase[K, V](
 
   private var shuffleWriteRange: NvtxId = NvtxRegistry.THREADED_WRITER_WRITE.push()
 
-  // Case class for tracking partial sorted files in multi-batch scenario
-  private case class PartialFile(
-      handle: SpillablePartialFileHandle,
-      partitionLengths: Array[Long],
-      mapOutputWriter: ShuffleMapOutputWriter)
+  // Class for tracking partial sorted files in multi-batch scenario
+  private class PartialFile(
+      val handle: SpillablePartialFileHandle,
+      val partitionLengths: Array[Long],
+      val mapOutputWriter: ShuffleMapOutputWriter)
 
   /**
    * Represents a single compressed record ready to be written to disk.
@@ -337,10 +337,10 @@ abstract class RapidsShuffleThreadedWriterBase[K, V](
    * @param compressedSize The actual size of compressed data in buffer
    * @param remainingQuota The quota to release after writing to disk
    */
-  private case class CompressedRecord(
-    buffer: OpenByteArrayOutputStream,
-    compressedSize: Long,
-    remainingQuota: Long)
+  private class CompressedRecord(
+    val buffer: OpenByteArrayOutputStream,
+    val compressedSize: Long,
+    val remainingQuota: Long)
 
   /**
    * Encapsulates all state for processing one GPU batch in the multi-batch shuffle write.
@@ -370,19 +370,19 @@ abstract class RapidsShuffleThreadedWriterBase[K, V](
    * @param mergerSlotNum The merger thread pool slot assigned to this batch.
    * @param mergerFuture Future representing the merger task, used to wait for completion.
    */
-  private case class BatchState(
-    batchId: Int,
-    mapOutputWriter: ShuffleMapOutputWriter,
-    partitionRecords: ConcurrentHashMap[Int,
+  private class BatchState(
+    val batchId: Int,
+    val mapOutputWriter: ShuffleMapOutputWriter,
+    val partitionRecords: ConcurrentHashMap[Int,
       ConcurrentLinkedQueue[Future[CompressedRecord]]],
-    maxPartitionIdQueued: AtomicInteger,
-    mergerCondition: Object,
+    val maxPartitionIdQueued: AtomicInteger,
+    val mergerCondition: Object,
     // Flag for classic wait/notify pattern: set to true when new work is available,
     // reset to false after merger thread wakes up and checks actual data state.
     // This avoids busy-loop polling and provides clear signal for debugging.
-    hasNewWork: AtomicBoolean,
-    mergerSlotNum: Int,
-    mergerFuture: Future[_])
+    val hasNewWork: AtomicBoolean,
+    val mergerSlotNum: Int,
+    val mergerFuture: Future[_])
 
   /**
    * Increment the reference count and get the memory size for a value.
@@ -568,7 +568,7 @@ abstract class RapidsShuffleThreadedWriterBase[K, V](
         null
       })
 
-    BatchState(
+    new BatchState(
       batchId,
       writer,
       partitionRecords,
@@ -763,7 +763,7 @@ abstract class RapidsShuffleThreadedWriterBase[K, V](
               // Return CompressedRecord with buffer and remaining quota for Merger
               // Total released = excessQuota + remainingQuota should equal recordSize
               val remainingQuota = recordSize - excessQuota
-              CompressedRecord(buffer, compressedSize, remainingQuota)
+              new CompressedRecord(buffer, compressedSize, remainingQuota)
             }
           } catch {
             case e: Exception =>
@@ -823,7 +823,7 @@ abstract class RapidsShuffleThreadedWriterBase[K, V](
           // For multi-batch or when using catalog mode, extract handle
           val (handle, partLengths) = extractHandleAndLengthsFromWriter(
             batch.mapOutputWriter)
-          partialFiles += PartialFile(handle, partLengths, batch.mapOutputWriter)
+          partialFiles += new PartialFile(handle, partLengths, batch.mapOutputWriter)
         } else {
           // Single batch without catalog: commit normally
           commitAllPartitions(batch.mapOutputWriter, true)

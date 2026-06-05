@@ -966,7 +966,7 @@ class GpuMergeAggregateIterator(
             s"$firstPassReductionRatioEstimate")
           // if so, skip any aggregation, return the origin batch directly
 
-          realIter = Some(ConcatIterator(firstPassIter, configuredTargetBatchSize))
+          realIter = Some(new ConcatIterator(firstPassIter, configuredTargetBatchSize))
           metrics.numTasksSkippedAgg += 1
           return realIter.get.next()
         } else {
@@ -999,7 +999,7 @@ class GpuMergeAggregateIterator(
         metrics.numTasksRepartitioned += 1
       }
 
-      realIter = Some(ConcatIterator(
+      realIter = Some(new ConcatIterator(
         new CloseableBufferedIterator(buildBucketIterator()), configuredTargetBatchSize))
       realIter.get.next()
     }
@@ -1020,7 +1020,7 @@ class GpuMergeAggregateIterator(
     new AggHelper(inputAttributes, groupingExpressions, aggregateExpressions,
       forceMerge = true, conf, isSorted = false, allMetrics)
 
-  private case class ConcatIterator(
+  private class ConcatIterator(
       input: CloseableBufferedIterator[SpillableColumnarBatch],
       targetSize: Long)
     extends Iterator[ColumnarBatch] {
@@ -1049,7 +1049,7 @@ class GpuMergeAggregateIterator(
     }
   }
 
-  private case class RepartitionAggregateIterator(opTime: GpuMetric)
+  private class RepartitionAggregateIterator(opTime: GpuMetric)
     extends Iterator[SpillableColumnarBatch] {
 
     batchesByBucket = batchesByBucket.filter(_.size() > 0)
@@ -1086,7 +1086,7 @@ class GpuMergeAggregateIterator(
 
   /** Build an iterator merging aggregated batches in each bucket. */
   private def buildBucketIterator(): Iterator[SpillableColumnarBatch] = {
-    bucketIter = Some(RepartitionAggregateIterator(opTime = metrics.opTime))
+    bucketIter = Some(new RepartitionAggregateIterator(metrics.opTime))
     bucketIter.get
   }
 

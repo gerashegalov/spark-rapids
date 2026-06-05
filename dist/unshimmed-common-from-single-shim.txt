@@ -2841,11 +2841,8 @@ org/apache/spark/sql/rapids/RapidsShuffleThreadedReaderBase$RapidsShuffleThreade
 org/apache/spark/sql/rapids/RapidsShuffleThreadedReaderBase$RapidsShuffleThreadedBlockIterator$BlockState.class
 org/apache/spark/sql/rapids/RapidsShuffleThreadedReaderBase$RapidsShuffleThreadedBlockIterator.class
 org/apache/spark/sql/rapids/RapidsShuffleThreadedWriterBase$$anon$1.class
-org/apache/spark/sql/rapids/RapidsShuffleThreadedWriterBase$BatchState$.class
 org/apache/spark/sql/rapids/RapidsShuffleThreadedWriterBase$BatchState.class
-org/apache/spark/sql/rapids/RapidsShuffleThreadedWriterBase$CompressedRecord$.class
 org/apache/spark/sql/rapids/RapidsShuffleThreadedWriterBase$CompressedRecord.class
-org/apache/spark/sql/rapids/RapidsShuffleThreadedWriterBase$PartialFile$.class
 org/apache/spark/sql/rapids/RapidsShuffleThreadedWriterBase$PartialFile.class
 org/apache/spark/sql/rapids/RapidsShuffleThreadedWriterBase.class
 org/apache/spark/sql/rapids/RoundingErrorUtil$.class
@@ -3265,9 +3262,7 @@ com/nvidia/spark/rapids/GpuMapZipExpression$.class
 com/nvidia/spark/rapids/GpuMapZipExpression.class
 com/nvidia/spark/rapids/GpuMapZipWith$.class
 com/nvidia/spark/rapids/GpuMapZipWith.class
-com/nvidia/spark/rapids/GpuMergeAggregateIterator$ConcatIterator$.class
 com/nvidia/spark/rapids/GpuMergeAggregateIterator$ConcatIterator.class
-com/nvidia/spark/rapids/GpuMergeAggregateIterator$RepartitionAggregateIterator$.class
 com/nvidia/spark/rapids/GpuMergeAggregateIterator$RepartitionAggregateIterator.class
 com/nvidia/spark/rapids/GpuMergeAggregateIterator.class
 com/nvidia/spark/rapids/GpuMergeRowsExecMeta.class
