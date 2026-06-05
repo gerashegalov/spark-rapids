@@ -486,7 +486,7 @@ trait GpuAvroReaderBase extends RapidsLocalLog { self: FilePartitionReaderBase =
       // Copy every block without the tailing sync marker if a sync is given. This
       // is for coalescing reader who requires to append this given sync marker
       // to each block. Then we can not merge sequential blocks.
-      blocks.map(b => CopyRange(b.blockStart, b.blockSize - SYNC_SIZE))
+      blocks.map(b => new CopyRange(b.blockStart, b.blockSize - SYNC_SIZE))
     }.getOrElse(computeCopyRanges(blocks))
 
     val copySyncFunc: OutputStream => Unit = if (sync.isEmpty) {
@@ -534,7 +534,7 @@ trait GpuAvroReaderBase extends RapidsLocalLog { self: FilePartitionReaderBase =
     blocks.foreach { block =>
       if (currentCopyEnd != block.blockStart) {
         if (currentCopyEnd != 0) {
-          copyRanges.append(CopyRange(currentCopyStart, currentCopyEnd - currentCopyStart))
+          copyRanges.append(new CopyRange(currentCopyStart, currentCopyEnd - currentCopyStart))
         }
         currentCopyStart = block.blockStart
         currentCopyEnd = currentCopyStart
@@ -543,7 +543,7 @@ trait GpuAvroReaderBase extends RapidsLocalLog { self: FilePartitionReaderBase =
     }
 
     if (currentCopyEnd != currentCopyStart) {
-      copyRanges.append(CopyRange(currentCopyStart, currentCopyEnd - currentCopyStart))
+      copyRanges.append(new CopyRange(currentCopyStart, currentCopyEnd - currentCopyStart))
     }
     copyRanges.toSeq
   }
@@ -695,7 +695,8 @@ class GpuMultiFileCloudAvroPartitionReader(
       closeOnExcept(batchIter) { _ =>
         if (bufsAndSizes.length > 1) {
           val updatedBuffers = bufsAndSizes.drop(1)
-          currentFileHostBuffers = Some(buffer.copy(memBuffersAndSizes = updatedBuffers))
+          currentFileHostBuffers = Some(new AvroHostBuffersWithMeta(
+            buffer.partitionedFile, updatedBuffers, buffer.bytesRead))
         } else {
           currentFileHostBuffers = None
         }
@@ -716,7 +717,7 @@ class GpuMultiFileCloudAvroPartitionReader(
     new ReadBatchRunner(tc, file, config, filters)
 
   /** Two utils classes */
-  private case class AvroHostBuffersWithMeta(
+  private class AvroHostBuffersWithMeta(
     override val partitionedFile: PartitionedFile,
     override val memBuffersAndSizes: Array[SingleHMBAndMeta],
     override val bytesRead: Long) extends HostMemoryBuffersWithMetaDataBase
@@ -736,13 +737,13 @@ class GpuMultiFileCloudAvroPartitionReader(
       } catch {
         case e: FileNotFoundException if ignoreMissingFiles =>
           logWarning(s"Skipped missing file: ${partFile.filePath}", e)
-          AvroHostBuffersWithMeta(partFile, Array(SingleHMBAndMeta.empty()), 0)
+          new AvroHostBuffersWithMeta(partFile, Array(SingleHMBAndMeta.empty()), 0)
         // Throw FileNotFoundException even if `ignoreCorruptFiles` is true
         case e: FileNotFoundException if !ignoreMissingFiles => throw e
         case e @(_: RuntimeException | _: IOException) if ignoreCorruptFiles =>
           logWarning(
             s"Skipped the rest of the content in the corrupted file: ${partFile.filePath}", e)
-          AvroHostBuffersWithMeta(partFile, Array(SingleHMBAndMeta.empty()), 0)
+          new AvroHostBuffersWithMeta(partFile, Array(SingleHMBAndMeta.empty()), 0)
       } finally {
         RmmSpark.poolThreadFinishedForTask(taskContext.taskAttemptId())
         TrampolineUtil.unsetTaskContext()
@@ -753,7 +754,7 @@ class GpuMultiFileCloudAvroPartitionReader(
         arrayBufSize: Array[SingleHMBAndMeta],
         startingBytesRead: Long): HostMemoryBuffersWithMetaDataBase = {
       val bytesRead = fileSystemBytesRead() - startingBytesRead
-      AvroHostBuffersWithMeta(partFile, arrayBufSize, bytesRead)
+      new AvroHostBuffersWithMeta(partFile, arrayBufSize, bytesRead)
     }
 
     private val stopPosition = partFile.start + partFile.length
@@ -1092,7 +1093,7 @@ case class AvroBlockMeta(header: Header, headerSize: Long, blocks: Seq[BlockInfo
  * @param offset from where to copy
  * @param length how many bytes to copy
  */
-private case class CopyRange(offset: Long, length: Long)
+private class CopyRange(val offset: Long, val length: Long)
 
 /** Extra information */
 case class AvroExtraInfo() extends ExtraInfo

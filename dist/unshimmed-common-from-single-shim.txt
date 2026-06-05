@@ -1058,7 +1058,6 @@ org/apache/spark/sql/nvidia/JDFUDF8.class
 org/apache/spark/sql/nvidia/JDFUDF9$.class
 org/apache/spark/sql/nvidia/JDFUDF9.class
 org/apache/spark/sql/rapids/BytesInFlightLimiter.class
-org/apache/spark/sql/rapids/CopyRange$.class
 org/apache/spark/sql/rapids/CopyRange.class
 org/apache/spark/sql/rapids/CorrectedTimeParserPolicy$.class
 org/apache/spark/sql/rapids/CorrectedTimeParserPolicy.class
@@ -2618,7 +2617,6 @@ org/apache/spark/sql/rapids/GpuMultiContains$.class
 org/apache/spark/sql/rapids/GpuMultiContains.class
 org/apache/spark/sql/rapids/GpuMultiFileAvroPartitionReader$AvroCopyBlocksRunner.class
 org/apache/spark/sql/rapids/GpuMultiFileAvroPartitionReader.class
-org/apache/spark/sql/rapids/GpuMultiFileCloudAvroPartitionReader$AvroHostBuffersWithMeta$.class
 org/apache/spark/sql/rapids/GpuMultiFileCloudAvroPartitionReader$AvroHostBuffersWithMeta.class
 org/apache/spark/sql/rapids/GpuMultiFileCloudAvroPartitionReader$ReadBatchRunner.class
 org/apache/spark/sql/rapids/GpuMultiFileCloudAvroPartitionReader.class
