@@ -3280,7 +3280,7 @@ val SHUFFLE_COMPRESSION_LZ4_CHUNK_SIZE = conf("spark.rapids.shuffle.compression.
     val buildSideSelection = JoinBuildSideSelection.withName(buildSideStr)
     val logCardinality = LOG_JOIN_CARDINALITY.get(conf)
     val sizeEstimateThreshold = JOIN_GATHERER_SIZE_ESTIMATE_THRESHOLD.get(conf)
-    JoinOptions(strategy, buildSideSelection, targetSize, logCardinality, sizeEstimateThreshold)
+    new JoinOptions(strategy, buildSideSelection, targetSize, logCardinality, sizeEstimateThreshold)
   }
 }
 
@@ -3385,7 +3385,7 @@ class RapidsConf(conf: Map[String, String]) {
     val buildSideSelection = JoinBuildSideSelection.withName(buildSideStr)
     val logCardinality = get(LOG_JOIN_CARDINALITY)
     val sizeEstimateThreshold = get(JOIN_GATHERER_SIZE_ESTIMATE_THRESHOLD)
-    JoinOptions(strategy, buildSideSelection, targetSize, logCardinality, sizeEstimateThreshold)
+    new JoinOptions(strategy, buildSideSelection, targetSize, logCardinality, sizeEstimateThreshold)
   }
 
   lazy val sizedJoinPartitionAmplification: Double = get(SIZED_JOIN_PARTITION_AMPLIFICATION)
