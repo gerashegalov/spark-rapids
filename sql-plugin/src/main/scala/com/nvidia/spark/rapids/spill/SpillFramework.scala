@@ -27,11 +27,10 @@ import java.util.concurrent.ArrayBlockingQueue
 import scala.collection.mutable
 
 import ai.rapids.cudf._
-import com.nvidia.spark.rapids.{GpuColumnVector, GpuColumnVectorFromBuffer, GpuCompressedColumnVector, GpuDeviceManager, HashedPriorityQueue, HostAlloc, HostMemoryOutputStream, MemoryBufferToHostByteBufferIterator, NvtxId, NvtxRegistry, RapidsConf, RapidsHostColumnVector}
+import com.nvidia.spark.rapids.{GpuColumnVector, GpuColumnVectorFromBuffer, GpuCompressedColumnVector, GpuDeviceManager, HashedPriorityQueue, HostAlloc, HostByteBufferIterator, HostMemoryOutputStream, MemoryBufferToHostByteBufferIterator, NvtxId, NvtxRegistry, RapidsConf, RapidsHostColumnVector}
 import com.nvidia.spark.rapids.Arm.{closeOnExcept, withResource}
 import com.nvidia.spark.rapids.RapidsPluginImplicits.AutoCloseableSeq
 import com.nvidia.spark.rapids.format.TableMeta
-import com.nvidia.spark.rapids.internal.HostByteBufferIterator
 import com.nvidia.spark.rapids.jni.TaskPriority
 import org.apache.commons.io.IOUtils
 
