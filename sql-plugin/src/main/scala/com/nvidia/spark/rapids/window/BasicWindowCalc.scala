@@ -39,15 +39,27 @@ import org.apache.spark.unsafe.types.CalendarInterval
  * groups those two together so we can have a complete picture of how to perform these types of
  * aggregations.
  */
-case class AggAndReplace[T](agg: T, nullReplacePolicy: Option[ReplacePolicy])
+class AggAndReplace[T](val agg: T, val nullReplacePolicy: Option[ReplacePolicy])
 
 /**
  * The class represents a window function and the locations of its deduped inputs after an initial
  * projection.
  */
-case class BoundGpuWindowFunction(
-    windowFunc: GpuWindowFunction,
-    boundInputLocations: Array[Int]) {
+class BoundGpuWindowFunction(
+    val windowFunc: GpuWindowFunction,
+    val boundInputLocations: Array[Int]) {
+
+  override def equals(other: Any): Boolean = other match {
+    case that: BoundGpuWindowFunction =>
+      windowFunc == that.windowFunc && boundInputLocations.eq(that.boundInputLocations)
+    case _ => false
+  }
+
+  override def hashCode(): Int = {
+    var result = windowFunc.##
+    result = 31 * result + System.identityHashCode(boundInputLocations)
+    result
+  }
 
   /**
    * Get the operations to perform a scan aggregation.
@@ -378,7 +390,7 @@ class GroupedAggregations {
       data.getOrElseUpdate(win.normalizedFrameSpec, mutable.HashMap.empty)
     }
 
-    forSpec.getOrElseUpdate(BoundGpuWindowFunction(win.wrappedWindowFunc, inputLocs),
+    forSpec.getOrElseUpdate(new BoundGpuWindowFunction(win.wrappedWindowFunc, inputLocs),
       ArrayBuffer.empty) += outputIndex
   }
 

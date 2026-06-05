@@ -227,7 +227,7 @@ object LazySpillableColumnarBatch {
 
   def spillOnly(wrapped: LazySpillableColumnarBatch): LazySpillableColumnarBatch = wrapped match {
     case alreadyGood: AllowSpillOnlyLazySpillableColumnarBatchImpl => alreadyGood
-    case anythingElse => AllowSpillOnlyLazySpillableColumnarBatchImpl(anythingElse)
+    case anythingElse => new AllowSpillOnlyLazySpillableColumnarBatchImpl(anythingElse)
   }
 }
 
@@ -236,7 +236,7 @@ object LazySpillableColumnarBatch {
  * batch it is only spilled. This is used for cases, like with a streaming hash join
  * where the data itself needs to out live the JoinGatherer it is handed off to.
  */
-case class AllowSpillOnlyLazySpillableColumnarBatchImpl(wrapped: LazySpillableColumnarBatch)
+class AllowSpillOnlyLazySpillableColumnarBatchImpl(val wrapped: LazySpillableColumnarBatch)
     extends LazySpillableColumnarBatch {
   override def getBatch: ColumnarBatch =
     wrapped.getBatch

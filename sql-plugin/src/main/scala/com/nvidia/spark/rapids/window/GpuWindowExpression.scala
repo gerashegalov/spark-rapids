@@ -1941,11 +1941,11 @@ case class GpuRank(children: Seq[Expression]) extends GpuRunningWindowFunction
       isRunningBatched: Boolean): Seq[AggAndReplace[GroupByScanAggregation]] = {
     if (isRunningBatched) {
       // We are computing both rank and row number so we can fix it up at the end
-      Seq(AggAndReplace(GroupByScanAggregation.rank(), None),
-        AggAndReplace(GroupByScanAggregation.sum(), None))
+      Seq(new AggAndReplace(GroupByScanAggregation.rank(), None),
+        new AggAndReplace(GroupByScanAggregation.sum(), None))
     } else {
       // Not batched just do the rank
-      Seq(AggAndReplace(GroupByScanAggregation.rank(), None))
+      Seq(new AggAndReplace(GroupByScanAggregation.rank(), None))
     }
   }
 
@@ -1954,10 +1954,10 @@ case class GpuRank(children: Seq[Expression]) extends GpuRunningWindowFunction
   override def scanAggregation(isRunningBatched: Boolean): Seq[AggAndReplace[ScanAggregation]] = {
     if (isRunningBatched) {
       // We are computing both rank and row number so we can fix it up at the end
-      Seq(AggAndReplace(ScanAggregation.rank(), None), AggAndReplace(ScanAggregation.sum(), None))
+      Seq(new AggAndReplace(ScanAggregation.rank(), None), new AggAndReplace(ScanAggregation.sum(), None))
     } else {
       // Not batched just do the rank
-      Seq(AggAndReplace(ScanAggregation.rank(), None))
+      Seq(new AggAndReplace(ScanAggregation.rank(), None))
     }
   }
 
@@ -2006,13 +2006,13 @@ case class GpuDenseRank(children: Seq[Expression]) extends GpuRunningWindowFunct
 
   override def groupByScanAggregation(
       isRunningBatched: Boolean): Seq[AggAndReplace[GroupByScanAggregation]] =
-    Seq(AggAndReplace(GroupByScanAggregation.denseRank(), None))
+    Seq(new AggAndReplace(GroupByScanAggregation.denseRank(), None))
 
   override def scanInputProjection(isRunningBatched: Boolean): Seq[Expression] =
     groupByScanInputProjection(isRunningBatched)
 
   override def scanAggregation(isRunningBatched: Boolean): Seq[AggAndReplace[ScanAggregation]] =
-    Seq(AggAndReplace(ScanAggregation.denseRank(), None))
+    Seq(new AggAndReplace(ScanAggregation.denseRank(), None))
 
   override def newFixer(): BatchedRunningWindowFixer = new DenseRankFixer()
 }
@@ -2039,14 +2039,14 @@ case object GpuRowNumber extends GpuRunningWindowFunction
 
   override def groupByScanAggregation(
       isRunningBatched: Boolean): Seq[AggAndReplace[GroupByScanAggregation]] =
-    Seq(AggAndReplace(GroupByScanAggregation.sum(), None))
+    Seq(new AggAndReplace(GroupByScanAggregation.sum(), None))
 
   // For regular scans cudf does not support ROW_NUMBER, nor does it support COUNT_ALL
   // so we will do a SUM on a column of 1s
   override def scanInputProjection(isRunningBatched: Boolean): Seq[Expression] =
     groupByScanInputProjection(isRunningBatched)
   override def scanAggregation(isRunningBatched: Boolean): Seq[AggAndReplace[ScanAggregation]] =
-    Seq(AggAndReplace(ScanAggregation.sum(), None))
+    Seq(new AggAndReplace(ScanAggregation.sum(), None))
 
   override def scanCombine(isRunningBatched: Boolean, cols: Seq[ColumnVector]): ColumnVector = {
     cols.head.castTo(DType.INT32)

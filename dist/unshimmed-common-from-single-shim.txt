@@ -826,7 +826,6 @@ com/nvidia/spark/rapids/spill/HandleStore.class
 com/nvidia/spark/rapids/spill/PartialFileStorageMode.class
 com/nvidia/spark/rapids/spill/SpillableHandle.class
 com/nvidia/spark/rapids/spill/StoreHandle.class
-com/nvidia/spark/rapids/window/AggAndReplace$.class
 com/nvidia/spark/rapids/window/AggAndReplace.class
 com/nvidia/spark/rapids/window/BatchedRunningWindowFixer.class
 com/nvidia/spark/rapids/window/BatchedUnboundedToUnboundedWindowFixer.class
@@ -2078,7 +2077,6 @@ com/nvidia/spark/rapids/window/BasicWindowCalc.class
 com/nvidia/spark/rapids/window/BatchedOps.class
 com/nvidia/spark/rapids/window/BatchedRunningWindowBinaryFixer.class
 com/nvidia/spark/rapids/window/BatchedUnboundedToUnboundedBinaryFixer.class
-com/nvidia/spark/rapids/window/BoundGpuWindowFunction$.class
 com/nvidia/spark/rapids/window/BoundGpuWindowFunction.class
 com/nvidia/spark/rapids/window/CountUnboundedToUnboundedFixer.class
 com/nvidia/spark/rapids/window/DenseRankFixer$.class
@@ -2118,7 +2116,6 @@ com/nvidia/spark/rapids/window/GpuSpecifiedWindowFrame.class
 com/nvidia/spark/rapids/window/GpuSpecifiedWindowFrameMetaBase.class
 com/nvidia/spark/rapids/window/GpuUnboundedToUnboundedAggFinalIterator.class
 com/nvidia/spark/rapids/window/GpuUnboundedToUnboundedAggSliceBySizeIterator.class
-com/nvidia/spark/rapids/window/GpuUnboundedToUnboundedAggStages$.class
 com/nvidia/spark/rapids/window/GpuUnboundedToUnboundedAggStages.class
 com/nvidia/spark/rapids/window/GpuUnboundedToUnboundedAggWindowExec$.class
 com/nvidia/spark/rapids/window/GpuUnboundedToUnboundedAggWindowExec.class
@@ -2816,7 +2813,6 @@ com/nvidia/spark/rapids/AggregateUtils$.class
 com/nvidia/spark/rapids/AggregateUtils.class
 com/nvidia/spark/rapids/AllocationRetryCoverageTracker$.class
 com/nvidia/spark/rapids/AllocationRetryCoverageTracker.class
-com/nvidia/spark/rapids/AllowSpillOnlyLazySpillableColumnarBatchImpl$.class
 com/nvidia/spark/rapids/AllowSpillOnlyLazySpillableColumnarBatchImpl.class
 com/nvidia/spark/rapids/AppendDataExecMeta.class
 com/nvidia/spark/rapids/AppendDataExecV1Meta.class
@@ -3146,7 +3142,6 @@ com/nvidia/spark/rapids/GpuHashAggregateExec.class
 com/nvidia/spark/rapids/GpuHashAggregateExecBase$.class
 com/nvidia/spark/rapids/GpuHashAggregateExecBase.class
 com/nvidia/spark/rapids/GpuHashAggregateMeta.class
-com/nvidia/spark/rapids/GpuHashAggregateMetrics$.class
 com/nvidia/spark/rapids/GpuHashAggregateMetrics.class
 com/nvidia/spark/rapids/GpuHashPartitioner.class
 com/nvidia/spark/rapids/GpuHashPartitioningBase$.class

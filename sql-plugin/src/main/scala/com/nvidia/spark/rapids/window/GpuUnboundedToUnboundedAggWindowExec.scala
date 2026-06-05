@@ -943,12 +943,12 @@ class GpuUnboundedToUnboundedAggFinalIterator(
  * @param boundAggregations aggregations to be done. NOTE THIS IS WIP
  * @param boundFinalProject the final project to get the output in the right order
  */
-case class GpuUnboundedToUnboundedAggStages(
-    inputTypes: Seq[DataType],
-    boundPartitionSpec: Seq[GpuExpression],
-    boundRideAlong: Seq[GpuExpression],
-    boundAggregations: Seq[GpuExpression],
-    boundFinalProject: Seq[GpuExpression]) extends Serializable {
+class GpuUnboundedToUnboundedAggStages(
+    val inputTypes: Seq[DataType],
+    val boundPartitionSpec: Seq[GpuExpression],
+    val boundRideAlong: Seq[GpuExpression],
+    val boundAggregations: Seq[GpuExpression],
+    val boundFinalProject: Seq[GpuExpression]) extends Serializable {
 
   val groupingColumnTypes: Seq[DataType] = boundPartitionSpec.map{_.dataType}
   val groupColumnOrdinals: Seq[Int] = boundPartitionSpec.map {
@@ -1108,7 +1108,7 @@ object GpuUnboundedToUnboundedAggWindowIterator {
     val finalProject = computeFinalProject(rideAlongOutput, aggsToRepeatOutput, windowOps,
       metrics)
 
-    GpuUnboundedToUnboundedAggStages(childTypes, boundPartitionSpec, boundRideAlong,
+    new GpuUnboundedToUnboundedAggStages(childTypes, boundPartitionSpec, boundRideAlong,
                                      boundAggregations, finalProject)
   }
 

@@ -315,20 +315,20 @@ object AggregateUtils {
 }
 
 /** Utility class to hold all of the metrics related to hash aggregation */
-case class GpuHashAggregateMetrics(
-    numOutputRows: GpuMetric,
-    numOutputBatches: GpuMetric,
-    numTasksRepartitioned: GpuMetric,
-    numTasksSkippedAgg: GpuMetric,
-    opTime: GpuMetric,
-    computeAggTime: GpuMetric,
-    concatTime: GpuMetric,
-    sortTime: GpuMetric,
-    repartitionTime: GpuMetric,
-    numAggOps: GpuMetric,
-    numPreSplits: GpuMetric,
-    singlePassTasks: GpuMetric,
-    heuristicTime: GpuMetric) {
+class GpuHashAggregateMetrics(
+    val numOutputRows: GpuMetric,
+    val numOutputBatches: GpuMetric,
+    val numTasksRepartitioned: GpuMetric,
+    val numTasksSkippedAgg: GpuMetric,
+    val opTime: GpuMetric,
+    val computeAggTime: GpuMetric,
+    val concatTime: GpuMetric,
+    val sortTime: GpuMetric,
+    val repartitionTime: GpuMetric,
+    val numAggOps: GpuMetric,
+    val numPreSplits: GpuMetric,
+    val singlePassTasks: GpuMetric,
+    val heuristicTime: GpuMetric) {
 }
 
 /**
@@ -1986,7 +1986,7 @@ case class GpuHashAggregateExec(
   }
 
   override def internalDoExecuteColumnar(): RDD[ColumnarBatch] = {
-    val aggMetrics = GpuHashAggregateMetrics(
+    val aggMetrics = new GpuHashAggregateMetrics(
       numOutputRows = gpuLongMetric(NUM_OUTPUT_ROWS),
       numOutputBatches = gpuLongMetric(NUM_OUTPUT_BATCHES),
       numTasksRepartitioned = gpuLongMetric(NUM_TASKS_REPARTITIONED),
