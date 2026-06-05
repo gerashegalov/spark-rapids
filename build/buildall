@@ -74,7 +74,7 @@ function print_usage() {
   echo "   --scala213"
   echo "        build 2.13 shims"
   echo "   --unshim-fast"
-  echo "        skip Maven checks/docs and snapshot refresh for repeated unshim/dist iteration"
+  echo "        skip Maven checks/docs, build metadata, coverage, enforcer, and snapshot refresh for repeated unshim/dist iteration"
   echo "   --parallel-world-only, --unshim-parallel-world-only"
   echo "        stop after dist generate-resources, leaving parallel-world output for dependency analysis"
 }
@@ -213,7 +213,7 @@ MVN=${MVN:-"mvn"}
 export MVN="$MVN -Dmaven.wagon.http.retryHandler.count=3 ${MVN_OPT}"
 if [[ "$UNSHIM_FAST" == "1" ]]; then
   export MAVEN_REFRESH_OPT=""
-  export MVN_FAST_SKIP_OPTS="-Drat.skip=true -Dmaven.scalastyle.skip=true -Dmaven.scaladoc.skip=true -Dmaven.javadoc.skip=true -Ddist.jar.compress=false"
+  export MVN_FAST_SKIP_OPTS="-Drat.skip=true -Dmaven.scalastyle.skip=true -Dmaven.scaladoc.skip=true -Dmaven.javadoc.skip=true -Ddist.jar.compress=false -Djacoco.skip=true -Denforcer.skip=true -Drapids.build.info.skip=true"
 else
   export MAVEN_REFRESH_OPT="-U"
   export MVN_FAST_SKIP_OPTS=""
@@ -275,8 +275,8 @@ else
 fi
 
 if [[ "$UNSHIM_PARALLEL_WORLD_ONLY" == "1" ]]; then
-  echo "Unshim parallel-world-only: stopping at generate-resources and skipping JNI unpack, shimplify, build-info, coverage, enforcer, and jar packaging"
-  MVN_FAST_SKIP_OPTS="$MVN_FAST_SKIP_OPTS -Drapids.jni.unpack.skip=true -Drapids.shimplify.skip=true -Drapids.build.info.skip=true -Djacoco.skip=true -Denforcer.skip=true"
+  echo "Unshim parallel-world-only: stopping at generate-resources and skipping JNI unpack, shimplify, and jar packaging"
+  MVN_FAST_SKIP_OPTS="$MVN_FAST_SKIP_OPTS -Drapids.jni.unpack.skip=true -Drapids.shimplify.skip=true"
 elif [[ "$UNSHIM_FAST" == "1" && -d "$MVN_BASE_DIR/dist/target/jni-deps" ]]; then
   echo "Unshim fast: reusing existing JNI deps from $MVN_BASE_DIR/dist/target/jni-deps"
   MVN_FAST_SKIP_OPTS="$MVN_FAST_SKIP_OPTS -Drapids.jni.unpack.skip=true"
@@ -403,10 +403,14 @@ time (
   # printf a single buildver array element per line
   if [[ "$SKIP_DIST_DEPS" != "1" ]]; then
     # Execute initialize to download a massive jar for spark-rapids-jni in a single thread to
-    # avoid repeating this work in parallel
-    # Initialize sql-plugin-api only to avoid dealing with missing submodule dependencies
-    #
-    $MVN initialize -pl sql-plugin-api -am
+    # avoid repeating this work in parallel. This is unnecessary in unshim-fast modes that skip
+    # JNI unpacking.
+    if [[ "$UNSHIM_FAST" == "1" && "$MVN_FAST_SKIP_OPTS" == *"-Drapids.jni.unpack.skip=true"* ]]; then
+      echo "Unshim fast: skipping serial Maven initialize preflight"
+    else
+      # Initialize sql-plugin-api only to avoid dealing with missing submodule dependencies.
+      $MVN initialize -pl sql-plugin-api -am
+    fi
 
     printf "%s\n" "${SPARK_SHIM_VERSIONS[@]}" | \
       xargs -t -I% -P "$BUILD_PARALLEL" -n 1 \
@@ -417,15 +421,22 @@ time (
       refresh_fast_aggregator_jar "$bv"
     done
   fi
-  # This used to resume from dist. However, without including aggregator in the build
-  # the build does not properly initialize spark.version property via buildver profiles
-  # in the root pom, and we get a missing spark330 dependency even for --profile=330,331
-  # where the build does not require it. Moving it to aggregator resolves this issue with
-  # a negligible increase of the build time by ~2 seconds.
+  # Non-fast builds resume from aggregator so Maven initializes the buildver-derived
+  # spark.version.classifier before dist resolves its aggregator dependency. The unshim-fast
+  # dist path can skip that extra aggregator pass because the per-shim builds above already
+  # installed the base aggregator jar and refreshed all target aggregator jars.
   joinShimBuildFrom="aggregator"
   INCLUDED_BUILDVERS_OPT=-Dincluded_buildvers=$(join_by , "${SPARK_SHIM_VERSIONS[@]}")
-  echo "Resuming from $joinShimBuildFrom build only using $BASE_VER"
-  $MVN $FINAL_OP -rf $joinShimBuildFrom $MODULE_OPT $MVN_PROFILE_OPT $INCLUDED_BUILDVERS_OPT \
+  if [[ "$UNSHIM_FAST" == "1" && "$MODULE" == "dist" ]]; then
+    echo "Resuming at dist only using $BASE_VER"
+    FINAL_RESUME_OPT=""
+    FINAL_MODULE_OPT="--projects dist"
+  else
+    echo "Resuming from $joinShimBuildFrom build only using $BASE_VER"
+    FINAL_RESUME_OPT="-rf $joinShimBuildFrom"
+    FINAL_MODULE_OPT="$MODULE_OPT"
+  fi
+  $MVN $FINAL_OP $FINAL_RESUME_OPT $FINAL_MODULE_OPT $MVN_PROFILE_OPT $INCLUDED_BUILDVERS_OPT \
     -Dbuildver="$BASE_VER" \
     -DskipTests -Dmaven.scaladoc.skip=true -Dmaven.javadoc.skip=true \
     $MVN_FAST_SKIP_OPTS

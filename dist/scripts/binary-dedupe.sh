@@ -150,9 +150,23 @@ rm -rf "$SPARK_SHARED_DIR"
 mkdir -p "$SPARK_SHARED_DIR"
 
 echo "$((++STEP))/ retaining a single copy of spark-shared classes"
-while read -r spark_common_class; do
-  retain_single_copy "$spark_common_class"
-done < "$SPARK_SHARED_TXT"
+awk -F/ "
+  NF >= 3 {
+    shim = \$2
+    package_class = \$0
+    sub(\"^/spark[34][^/]*/\", \"\", package_class)
+    print package_class >> (\"from-\" shim \"-to-spark-shared.txt\")
+  }
+" "$SPARK_SHARED_TXT"
+for pw in ./parallel-world/spark[34]* ; do
+  awk -v pw="$pw" "
+    {
+      package_class = \$0
+      sub(\"^/spark[34][^/]*/\", \"\", package_class)
+      print pw \"/\" package_class
+    }
+  " "$SPARK_SHARED_TXT"
+done >> "$DELETE_DUPLICATES_TXT"
 
 echo "$((++STEP))/ rsyncing common classes to $SPARK_SHARED_DIR"
 for copy_list in from-spark[34]*-to-spark-shared.txt; do
@@ -257,18 +271,15 @@ fi
 # Remove unshimmed classes from parallel worlds
 # TODO rework with low priority, only a few classes.
 echo "$((++STEP))/ removing duplicates of unshimmed classes"
-
-while read -r unshimmed_class; do
-  unshimmed_shared_path="./parallel-world/spark-shared/$unshimmed_class"
-  [[ -f "$unshimmed_shared_path" ]] && echo "$unshimmed_shared_path" || true
+{
+  sed "s|^|./parallel-world/spark-shared/|" "$UNSHIMMED_LIST_TXT"
   for pw in ./parallel-world/spark[34-]* ; do
-    unshimmed_path="$pw/$unshimmed_class"
-    [[ -f "$unshimmed_path" ]] && echo "$unshimmed_path" || true
+    awk -v pw="$pw" "{ print pw \"/\" \$0 }" "$UNSHIMMED_LIST_TXT"
   done
-done < "$UNSHIMMED_LIST_TXT" >> "$DELETE_DUPLICATES_TXT"
+} >> "$DELETE_DUPLICATES_TXT"
 
 echo "$((++STEP))/ deleting all class files listed in $DELETE_DUPLICATES_TXT"
-< "$DELETE_DUPLICATES_TXT" sort -u | xargs rm
+< "$DELETE_DUPLICATES_TXT" sort -u | xargs rm -f
 
 end_time=$(date +%s)
 echo "binary-dedupe completed in $((end_time - start_time)) seconds"
