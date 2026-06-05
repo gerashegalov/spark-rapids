@@ -52,14 +52,18 @@ class RapidsShuffleHeartbeatManager(heartbeatIntervalMillis: Long,
   // exposed so that it can be mocked in the tests
   def getCurrentTimeMillis: Long = System.currentTimeMillis()
 
-  private case class ExecutorRegistration(
-      id: BlockManagerId,
+  private class ExecutorRegistration(
+      val id: BlockManagerId,
       // this is this executor's registration order, as given by this manager
-      registrationOrder: Long,
+      val registrationOrder: Long,
       // this is the last registration order this executor is aware of overall
-      lastRegistrationOrderSeen: MutableLong,
+      val lastRegistrationOrderSeen: MutableLong,
       // last heartbeat received from this executor in millis
-      lastHeartbeatMillis: MutableLong)
+      val lastHeartbeatMillis: MutableLong) {
+    override def toString: String =
+      s"ExecutorRegistration($id,$registrationOrder,$lastRegistrationOrderSeen," +
+        s"$lastHeartbeatMillis)"
+  }
 
   // a counter used to mark each new executor registration with an order
   var registrationOrder = 0L
@@ -89,7 +93,7 @@ class RapidsShuffleHeartbeatManager(heartbeatIntervalMillis: Long,
     require(!executorRegistrations.containsKey(id), s"Executor $id already registered")
     removeDeadExecutors(getCurrentTimeMillis)
     val allExecutors = executors.map(e => e.id).toArray
-    val newReg = ExecutorRegistration(id,
+    val newReg = new ExecutorRegistration(id,
       registrationOrder,
       new MutableLong(registrationOrder),
       new MutableLong(getCurrentTimeMillis))

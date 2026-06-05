@@ -364,7 +364,7 @@ object HostAlloc {
     buff.synchronized {
       val previous = Option(buff.getEventHandler)
       val handlerToSet = previous.map { p =>
-        MultiEventHandler(p, handler)
+        new MultiEventHandler(p, handler)
       }.getOrElse {
         handler
       }
@@ -384,7 +384,7 @@ object HostAlloc {
       case oldA: MultiEventHandler =>
         // From how the MultiEventHandler is set up we know that b cannot be one
         val newA = removeEventHandlerFrom(oldA, handler)
-        MultiEventHandler(newA, multiEventHandler.b)
+        new MultiEventHandler(newA, multiEventHandler.b)
       case _ =>
         multiEventHandler
     }
@@ -420,8 +420,8 @@ object HostAlloc {
     }
   }
 
-  private case class MultiEventHandler(a: MemoryBuffer.EventHandler,
-                                       b: MemoryBuffer.EventHandler)
+  private class MultiEventHandler(val a: MemoryBuffer.EventHandler,
+                                  val b: MemoryBuffer.EventHandler)
     extends MemoryBuffer.EventHandler {
     override def onClosed(i: Int): Unit = {
       var t: Option[Throwable] = None
@@ -464,7 +464,7 @@ object HostAlloc {
     }
     override def remove(addr: Long, amount: Long): Unit = totalMem.add(-amount)
   }
-  private case class MemoryUsageDetail(addr: Long, amount: Long, callStack: String) {
+  private class MemoryUsageDetail(val addr: Long, val amount: Long, val callStack: String) {
     override def toString: String = s"$amount bytes behind address $addr at $callStack"
   }
 
@@ -475,7 +475,7 @@ object HostAlloc {
         s"${details.values.mkString("\n")}"
 
     override def add(addr: Long, amount: Long, callstack: String): Unit =
-      details.put(addr, MemoryUsageDetail(addr, amount, callstack))
+      details.put(addr, new MemoryUsageDetail(addr, amount, callstack))
 
     override def remove(addr: Long, amount: Long): Unit =
       details.remove(addr)

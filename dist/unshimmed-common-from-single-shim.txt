@@ -3735,9 +3735,7 @@ com/nvidia/spark/rapids/HashExprChecks.class
 com/nvidia/spark/rapids/Header$.class
 com/nvidia/spark/rapids/Header.class
 com/nvidia/spark/rapids/HostAlloc$.class
-com/nvidia/spark/rapids/HostAlloc$MemoryUsageDetail$.class
 com/nvidia/spark/rapids/HostAlloc$MemoryUsageDetail.class
-com/nvidia/spark/rapids/HostAlloc$MultiEventHandler$.class
 com/nvidia/spark/rapids/HostAlloc$MultiEventHandler.class
 com/nvidia/spark/rapids/HostAlloc$OnCloseCallback.class
 com/nvidia/spark/rapids/HostAlloc$OnPinnedCloseCallback.class
@@ -3901,7 +3899,6 @@ com/nvidia/spark/rapids/PreProjectSplitIterator$LitMeta.class
 com/nvidia/spark/rapids/PreProjectSplitIterator$LitMetaCollector.class
 com/nvidia/spark/rapids/PreProjectSplitIterator$PreSplitOutSizeEstimator.class
 com/nvidia/spark/rapids/PreProjectSplitIterator.class
-com/nvidia/spark/rapids/PrioritySemaphore$ThreadInfo$.class
 com/nvidia/spark/rapids/PrioritySemaphore$ThreadInfo.class
 com/nvidia/spark/rapids/PrioritySemaphore.class
 com/nvidia/spark/rapids/ProfileWriter.class
@@ -3945,7 +3942,6 @@ com/nvidia/spark/rapids/RapidsShuffleHandle$.class
 com/nvidia/spark/rapids/RapidsShuffleHandle.class
 com/nvidia/spark/rapids/RapidsShuffleHeartbeatEndpoint$HeartbeatTask.class
 com/nvidia/spark/rapids/RapidsShuffleHeartbeatEndpoint.class
-com/nvidia/spark/rapids/RapidsShuffleHeartbeatManager$ExecutorRegistration$.class
 com/nvidia/spark/rapids/RapidsShuffleHeartbeatManager$ExecutorRegistration.class
 com/nvidia/spark/rapids/RapidsShuffleHeartbeatManager.class
 com/nvidia/spark/rapids/ReductionAggExprContext$.class
