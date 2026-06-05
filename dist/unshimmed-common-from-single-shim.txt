@@ -1246,6 +1246,7 @@ com/nvidia/spark/rapids/shuffle/ucx/UCX$.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXActiveMessage$.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXActiveMessage.class
 com/nvidia/spark/rapids/shuffle/ucx/UCXAmCallback.class
+com/nvidia/spark/rapids/shuffle/ucx/UCXConnection$.class
 com/nvidia/spark/rapids/shims/PythonMapInArrowExecShims.class
 com/nvidia/spark/rapids/shims/GpuUnionExecShim.class
 com/nvidia/spark/rapids/GpuReadCSVFileFormat$.class

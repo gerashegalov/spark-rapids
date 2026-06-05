@@ -16,7 +16,7 @@
 
 package com.nvidia.spark.rapids.shuffle.ucx
 
-import java.nio.ByteBuffer
+import java.nio.{Buffer, ByteBuffer}
 import java.util.concurrent.ConcurrentHashMap
 
 import ai.rapids.cudf.MemoryBuffer
@@ -285,7 +285,7 @@ class UCXConnection(peerExecutorId: Long, val ucx: UCX) extends Logging {
   }
 }
 
-object UCXConnection extends Logging {
+object UCXConnection {
   /**
    * 1) client gets upper 28 bits
    * 2) then comes the type, which gets 4 bits
@@ -389,8 +389,8 @@ object UCXConnection extends Logging {
     val rkeys = (0 until numRkeys).map { _ =>
       val rkeySize = buff.getInt
       val rkeySlice = buff.slice()
-      rkeySlice.limit(rkeySize)
-      buff.position(buff.position() + rkeySize)
+      rkeySlice.asInstanceOf[Buffer].limit(rkeySize)
+      buff.asInstanceOf[Buffer].position(buff.position() + rkeySize)
       rkeySlice
     }
     (remoteExecutorId, rkeys)
@@ -419,7 +419,7 @@ object UCXConnection extends Logging {
       hsBuff.putInt(rkey.capacity)
       hsBuff.put(rkey)
     }
-    hsBuff.flip()
+    hsBuff.asInstanceOf[Buffer].flip()
     hsBuff
   }
 }
