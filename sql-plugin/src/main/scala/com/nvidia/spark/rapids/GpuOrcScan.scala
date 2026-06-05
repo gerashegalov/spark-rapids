@@ -2880,7 +2880,7 @@ object MakeOrcTableProducer {
       }
     }
     if (useChunkedReader) {
-      OrcTableReader(conf, chunkSizeByteLimit, maxChunkedReaderMemoryUsageSizeBytes,
+      new OrcTableReader(conf, chunkSizeByteLimit, maxChunkedReaderMemoryUsageSizeBytes,
         parseOpts, buffer, offset, bufferSize, metrics,  isSchemaCaseSensitive, readDataSchema,
         tableSchema, splits, debugDumpPrefix, debugDumpAlways)
     } else {
@@ -2920,7 +2920,7 @@ object MakeOrcTableProducer {
   }
 }
 
-case class OrcTableReader(
+class OrcTableReader(
     conf: Configuration,
     chunkSizeByteLimit: Long,
     maxChunkedReaderMemoryUsageSizeBytes: Long,
@@ -2934,7 +2934,7 @@ case class OrcTableReader(
     tableSchema: TypeDescription,
     splits: Array[PartitionedFile],
     debugDumpPrefix: Option[String],
-    debugDumpAlways: Boolean) extends GpuDataProducer[Table] with RapidsLocalLog {
+    debugDumpAlways: Boolean) extends GpuDataProducer[Table] with RapidsLocalLog with Serializable {
 
   private[this] val reader = new ORCChunkedReader(chunkSizeByteLimit,
     maxChunkedReaderMemoryUsageSizeBytes, parseOpts, buffer, offset, bufferSize)

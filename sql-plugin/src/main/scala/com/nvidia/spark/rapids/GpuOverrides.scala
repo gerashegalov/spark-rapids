@@ -3659,11 +3659,11 @@ object GpuOverrides {
     expr[Murmur3Hash](
       "Murmur3 hash operator",
       HashExprChecks.murmur3ProjectChecks,
-      Murmur3HashExprMeta.apply),
+      ((expr, conf, parent, rule) => new Murmur3HashExprMeta(expr, conf, parent, rule))),
     expr[XxHash64](
       "xxhash64 hash operator",
       HashExprChecks.xxhash64ProjectChecks,
-      XxHash64ExprMeta.apply),
+      ((expr, conf, parent, rule) => new XxHash64ExprMeta(expr, conf, parent, rule))),
     expr[HiveHash](
       "hive hash operator",
       ExprChecks.projectOnly(TypeSig.INT, TypeSig.INT,

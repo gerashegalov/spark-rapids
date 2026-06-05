@@ -1257,8 +1257,8 @@ class GpuDeltaParquetFileFormatBase2(
  * A simple wrapper to adapt the DeletionVector.ParquetChunkedReader to the ChunkedReader interface
  * expected by AbstractParquetTableReader.
  */
-case class DeltaParquetChunkedReader(delegate: DeletionVector.ParquetChunkedReader)
-  extends ChunkedReader {
+class DeltaParquetChunkedReader(val delegate: DeletionVector.ParquetChunkedReader)
+  extends ChunkedReader with Serializable {
   override def hasNext: Boolean = delegate.hasNext
   override def next: Table = delegate.readChunk()
   override def close(): Unit = delegate.close()
@@ -1267,7 +1267,7 @@ case class DeltaParquetChunkedReader(delegate: DeletionVector.ParquetChunkedRead
 /**
  * A chunked reader for Parquet files with deletion vectors.
  */
-case class DeltaParquetTableReader(
+class DeltaParquetTableReader(
     conf: Configuration,
     chunkSizeByteLimit: Long,
     maxChunkedReaderMemoryUsageSizeBytes: Long,
@@ -1287,11 +1287,11 @@ case class DeltaParquetTableReader(
   conf, chunkSizeByteLimit, maxChunkedReaderMemoryUsageSizeBytes, opts, buffers, metrics,
   dateRebaseMode, timestampRebaseMode, isSchemaCaseSensitive, useFieldId, readDataSchema,
   clippedParquetSchema, splits, debugDumpPrefix, debugDumpAlways
-) {
+) with Serializable {
 
   logDebug("Using DeltaParquetTableReader for reading Parquet with deletion vectors")
 
-  override protected val reader = DeltaParquetChunkedReader(
+  override protected val reader = new DeltaParquetChunkedReader(
     DeletionVector.newParquetChunkedReader(chunkSizeByteLimit,
       maxChunkedReaderMemoryUsageSizeBytes, opts, buffers, dvInfos)
   )
@@ -1337,7 +1337,7 @@ object MakeParquetTableWithDVProducer extends RapidsLocalLog {
       }
     }
     if (useChunkedReader) {
-      DeltaParquetTableReader(conf, chunkSizeByteLimit, maxChunkedReaderMemoryUsageSizeBytes,
+      new DeltaParquetTableReader(conf, chunkSizeByteLimit, maxChunkedReaderMemoryUsageSizeBytes,
         opts, buffers, metrics, dateRebaseMode, timestampRebaseMode,
         isSchemaCaseSensitive, useFieldId, readDataSchema, clippedParquetSchema,
         splits, debugDumpPrefix, debugDumpAlways, deletionVectorInfos)

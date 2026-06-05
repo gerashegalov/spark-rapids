@@ -204,7 +204,7 @@ case class GpuHiveTableScanExec(requestedAttributes: Seq[Attribute],
                           readSchema: StructType,
                           options: Map[String, String]
               ): PartitionedFile => Iterator[InternalRow] = {
-    val readerFactory = GpuHiveTextPartitionReaderFactory(
+    val readerFactory = new GpuHiveTextPartitionReaderFactory(
       sqlConf = sqlConf,
       broadcastConf = broadcastConf,
       inputFileSchema = dataSchema,
@@ -441,18 +441,18 @@ class AlphabeticallyReorderingColumnPartitionReader(fileReader: PartitionReader[
 }
 
 // Factory to build the columnar reader.
-case class GpuHiveTextPartitionReaderFactory(sqlConf: SQLConf,
-                                             broadcastConf: Broadcast[SerializableConfiguration],
-                                             inputFileSchema: StructType,
-                                             partitionSchema: StructType,
-                                             requestedOutputDataSchema: StructType,
-                                             requestedAttributes: Seq[Attribute],
-                                             maxReaderBatchSizeRows: Integer,
-                                             maxReaderBatchSizeBytes: Long,
-                                             maxGpuColumnSizeBytes: Long,
-                                             metrics: Map[String, GpuMetric],
-                                             params: Map[String, String])
-  extends ShimFilePartitionReaderFactory(params) {
+class GpuHiveTextPartitionReaderFactory(val sqlConf: SQLConf,
+                                             val broadcastConf: Broadcast[SerializableConfiguration],
+                                             val inputFileSchema: StructType,
+                                             val partitionSchema: StructType,
+                                             val requestedOutputDataSchema: StructType,
+                                             val requestedAttributes: Seq[Attribute],
+                                             val maxReaderBatchSizeRows: Integer,
+                                             val maxReaderBatchSizeBytes: Long,
+                                             val maxGpuColumnSizeBytes: Long,
+                                             val metrics: Map[String, GpuMetric],
+                                             val params: Map[String, String])
+  extends ShimFilePartitionReaderFactory(params) with Serializable {
 
   override def buildReader(partitionedFile: PartitionedFile): PartitionReader[InternalRow] = {
     throw new IllegalStateException("Row-based text parsing is not supported on GPU.")

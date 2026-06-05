@@ -254,7 +254,6 @@ com/nvidia/spark/rapids/TypeEnum$.class
 com/nvidia/spark/rapids/Uninitialized.class
 com/nvidia/spark/rapids/Uninitialized$.class
 com/nvidia/spark/rapids/UnsupportedMode.class
-com/nvidia/spark/rapids/UnsupportedMode$.class
 com/nvidia/spark/rapids/WithTableBuffer.class
 com/nvidia/spark/rapids/WrappedGpuDataProducer.class
 com/nvidia/spark/rapids/WriteFileOp.class
@@ -701,7 +700,6 @@ com/nvidia/spark/rapids/delta/RapidsProcessDeltaMergeJoinExec.class
 com/nvidia/spark/rapids/delta/RapidsProcessDeltaMergeJoinStrategy$.class
 com/nvidia/spark/rapids/delta/RapidsProcessDeltaMergeJoinStrategy.class
 com/nvidia/spark/rapids/delta/RoaringBitmapIterator.class
-com/nvidia/spark/rapids/delta/common/DeltaParquetChunkedReader$.class
 com/nvidia/spark/rapids/delta/common/DeltaParquetChunkedReader.class
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase$.class
 com/nvidia/spark/rapids/delta/common/GpuDeltaParquetFileFormatBase2$.class
@@ -1148,7 +1146,6 @@ org/apache/spark/sql/rapids/shims/SparkDateTimeExceptionShims.class
 org/apache/spark/sql/rapids/shims/SparkStringUtilsShims$.class
 org/apache/spark/sql/rapids/shims/SparkStringUtilsShims.class
 org/apache/spark/sql/rapids/storage/RapidsStorageUtils.class
-org/apache/spark/sql/rapids/test/CsvWriterWrapper$.class
 org/apache/spark/sql/rapids/test/CsvWriterWrapper.class
 org/apache/spark/sql/rapids/test/GetJsonObjectMask$.class
 org/apache/spark/sql/rapids/test/GetJsonObjectMask.class
@@ -1398,7 +1395,6 @@ org/apache/spark/sql/hive/rapids/GpuHiveTableScanExec$$anonfun$$nestedInanonfun$
 org/apache/spark/sql/hive/rapids/GpuHiveTableScanExec$.class
 org/apache/spark/sql/hive/rapids/GpuHiveTextFileFormat$$anon$2.class
 org/apache/spark/sql/hive/rapids/GpuHiveTextFileFormat.class
-org/apache/spark/sql/hive/rapids/GpuHiveTextPartitionReaderFactory$.class
 org/apache/spark/sql/hive/rapids/GpuHiveTextPartitionReaderFactory.class
 org/apache/spark/sql/hive/rapids/GpuHiveTextWriter.class
 org/apache/spark/sql/hive/rapids/GpuHiveUDFBase.class
@@ -1950,7 +1946,6 @@ com/nvidia/spark/rapids/delta/common/DeltaDynamicPartitionOverwriteCommandMeta.c
 com/nvidia/spark/rapids/delta/common/DeltaDynamicPartitionOverwriteCommandMetaBase.class
 com/nvidia/spark/rapids/delta/common/DeltaMultiFileParquetPartitionReader.class
 com/nvidia/spark/rapids/delta/common/DeltaMultiFileReaderFactory.class
-com/nvidia/spark/rapids/delta/common/DeltaParquetTableReader$.class
 com/nvidia/spark/rapids/delta/common/DeltaParquetTableReader.class
 com/nvidia/spark/rapids/delta/common/DeltaProviderBase.class
 com/nvidia/spark/rapids/delta/common/GpuDelta4xParquetFileFormat$.class
@@ -3771,7 +3766,6 @@ com/nvidia/spark/rapids/MultiJoinGather.class
 com/nvidia/spark/rapids/MultiSegmentFileRegion.class
 com/nvidia/spark/rapids/MultiSegmentInputStream.class
 com/nvidia/spark/rapids/MultithreadedShuffleBufferCatalog.class
-com/nvidia/spark/rapids/Murmur3HashExprMeta$.class
 com/nvidia/spark/rapids/Murmur3HashExprMeta.class
 com/nvidia/spark/rapids/NoopMetric$.class
 com/nvidia/spark/rapids/NoopMetric.class
@@ -3787,7 +3781,6 @@ com/nvidia/spark/rapids/OrcDataStripe.class
 com/nvidia/spark/rapids/OrcPartitionReaderBase.class
 com/nvidia/spark/rapids/OrcSingleStripeMeta.class
 com/nvidia/spark/rapids/OrcStripeWithMeta.class
-com/nvidia/spark/rapids/OrcTableReader$.class
 com/nvidia/spark/rapids/OrcTableReader.class
 com/nvidia/spark/rapids/OrcTools$.class
 com/nvidia/spark/rapids/OrcTools.class
@@ -3983,7 +3976,6 @@ com/nvidia/spark/rapids/WindowSpecCheck$.class
 com/nvidia/spark/rapids/WindowSpecCheck.class
 com/nvidia/spark/rapids/WrappedGpuMetric$.class
 com/nvidia/spark/rapids/WrappedGpuMetric.class
-com/nvidia/spark/rapids/XxHash64ExprMeta$.class
 com/nvidia/spark/rapids/XxHash64ExprMeta.class
 com/nvidia/spark/CurrentBatchIterator.class
 com/nvidia/spark/rapids/delta/AcceptAllConfigChecker$.class
