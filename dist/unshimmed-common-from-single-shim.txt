@@ -2728,6 +2728,7 @@ org/apache/spark/sql/rapids/InterpretedBridgeUnsafeProjection.class
 org/apache/spark/sql/rapids/MonthsBetweenExprMeta.class
 org/apache/spark/sql/rapids/PCBSSchemaHelper$.class
 org/apache/spark/sql/rapids/PCBSSchemaHelper.class
+org/apache/spark/sql/rapids/RapidsCachingReader.class
 org/apache/spark/sql/rapids/RapidsCachingReader$$anon$1.class
 org/apache/spark/sql/rapids/RapidsCachingWriter.class
 org/apache/spark/sql/rapids/RapidsDiskBlockManager.class
