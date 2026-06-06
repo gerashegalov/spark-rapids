@@ -1228,6 +1228,8 @@ org/apache/spark/sql/execution/datasources/rapids/DataSourceStrategyUtils$.class
 org/apache/spark/sql/execution/datasources/rapids/DataSourceStrategyUtils.class
 org/apache/spark/sql/hive/rapids/shims/FileSinkDescShim$.class
 org/apache/spark/sql/hive/rapids/shims/FileSinkDescShim.class
+org/apache/spark/sql/hive/rapids/shims/HiveFileUtil$.class
+org/apache/spark/sql/hive/rapids/shims/HiveFileUtil.class
 org/apache/spark/sql/hive/rapids/shims/HiveInspectorsShim.class
 org/apache/spark/sql/rapids/execution/ShimTrampolineUtil$.class
 org/apache/spark/sql/rapids/execution/ShimTrampolineUtil.class
