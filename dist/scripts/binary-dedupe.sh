@@ -221,6 +221,7 @@ function keep_in_spark_shared() {
   while IFS= read -r pattern; do
     [[ -n "$pattern" ]] || continue
     [[ "$pattern" =~ ^[[:space:]]*# ]] && continue
+    # shellcheck disable=SC2053
     if [[ "$class_file" == $pattern ]]; then
       return 0
     fi
