@@ -657,7 +657,7 @@ class GpuCoalesceBatchesSuite extends SparkQueryCompareTestSuite {
     withResource(codec.createBatchCompressor(0, Cuda.DEFAULT_STREAM)) { compressor =>
       compressor.addTableToCompress(buildContiguousTable(start, numRows))
       withResource(compressor.finish()) { compressed =>
-        GpuCompressedColumnVector.from(compressed.head)
+        GpuCompressedColumnVector.from(compressed.head.buffer, compressed.head.meta)
       }
     }
   }

@@ -135,7 +135,8 @@ class MetaUtilsSuite extends AnyFunSuite {
         val uncompressedMeta = MetaUtils.buildDegenerateTableMeta(uncompressedBatch)
         withResource(DeviceMemoryBuffer.allocate(0)) { buffer =>
           val compressedTable = new CompressedTable(0, uncompressedMeta, buffer)
-          withResource(GpuCompressedColumnVector.from(compressedTable)) { batch =>
+          withResource(GpuCompressedColumnVector.from(
+              compressedTable.buffer, compressedTable.meta)) { batch =>
             val meta = MetaUtils.buildDegenerateTableMeta(batch)
             assertResult(null)(meta.bufferMeta)
             assertResult(0)(meta.rowCount)
