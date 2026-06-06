@@ -4070,6 +4070,7 @@ com/nvidia/spark/rapids/shims/GpuWindowGroupLimitExec$.class
 com/nvidia/spark/rapids/shims/GpuWindowGroupLimitExec.class
 com/nvidia/spark/rapids/shims/GpuWindowGroupLimitExecMeta$$anonfun$findMatchingRankExpression$1.class
 com/nvidia/spark/rapids/shims/GpuWindowGroupLimitExecMeta.class
+com/nvidia/spark/rapids/shims/GpuWindowGroupLimitingIterator.class
 com/nvidia/spark/rapids/shims/GpuWindowInPandasExec$.class
 com/nvidia/spark/rapids/shims/GpuWindowInPandasExec.class
 com/nvidia/spark/rapids/shims/GpuWindowUtil$.class
