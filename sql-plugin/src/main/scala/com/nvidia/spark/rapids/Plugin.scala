@@ -52,7 +52,8 @@ import org.apache.spark.sql.rapids.execution.TrampolineUtil
 
 class PluginException(msg: String) extends RuntimeException(msg)
 
-class CudfVersionMismatchException(val errorMsg: String) extends PluginException(errorMsg) with Serializable
+class CudfVersionMismatchException(val errorMsg: String)
+    extends PluginException(errorMsg) with Serializable
 
 class ColumnarOverrideRules extends ColumnarRule {
   lazy val overrides: Rule[SparkPlan] = GpuOverrides()
@@ -834,7 +835,8 @@ class RapidsExecutorPlugin extends ExecutorPlugin {
 
       // compare cudf version in the classpath with the cudf version expected by plugin
       if (!RapidsExecutorPlugin.cudfVersionSatisfied(expectedCudfVersion, cudfVersion)) {
-        throw new CudfVersionMismatchException(s"Found cudf version $cudfVersion, RAPIDS Accelerator " +
+        throw new CudfVersionMismatchException(
+            s"Found cudf version $cudfVersion, RAPIDS Accelerator " +
             s"expects $expectedCudfVersion")
       }
     } catch {

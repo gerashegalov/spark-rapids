@@ -34,7 +34,8 @@ import org.apache.spark.sql.catalyst.expressions.{GetJsonObject, Literal}
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.unsafe.types.UTF8String
 
-class CsvWriterWrapper(val filePath: String, val conf: Configuration) extends AutoCloseable with Serializable {
+class CsvWriterWrapper(val filePath: String, val conf: Configuration) extends AutoCloseable
+    with Serializable {
 
   // This is implemented as a method to make it easier to subclass
   // ColumnarOutputWriter in the tests, and override this behavior.

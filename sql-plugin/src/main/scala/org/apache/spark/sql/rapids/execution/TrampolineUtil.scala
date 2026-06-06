@@ -19,8 +19,8 @@ package org.apache.spark.sql.rapids.execution
 import java.util.concurrent.{ExecutorService, ScheduledExecutorService, ThreadPoolExecutor}
 
 import org.apache.avro.Schema
-
 import org.apache.hadoop.conf.Configuration
+
 import org.apache.spark.{SparkConf, SparkContext, SparkEnv, SparkMasterRegex, SparkUpgradeException, TaskContext}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.deploy.SparkHadoopUtil

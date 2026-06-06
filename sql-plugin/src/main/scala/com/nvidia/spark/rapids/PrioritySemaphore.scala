@@ -81,7 +81,8 @@ class PrioritySemaphore[T](val maxPermits: Long, val maxConcurrentGpuTasksLimit:
       val numPermitsNow = computePermits()
       if (!tryAcquire(numPermitsNow, priority, wasOnGpuBefore, taskAttemptId)) {
         val condition = lock.newCondition()
-        val info = new ThreadInfo(priority, condition, computePermits, wasOnGpuBefore, taskAttemptId)
+        val info = new ThreadInfo(
+          priority, condition, computePermits, wasOnGpuBefore, taskAttemptId)
         try {
           waitingQueue.add(info)
           // only count tasks that had held semaphore before,

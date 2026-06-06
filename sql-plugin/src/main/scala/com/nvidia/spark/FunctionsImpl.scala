@@ -208,5 +208,6 @@ class FunctionsImpl extends Functions {
    * API `UserDefinedFunction.asNondeterministic()`.
    */
   override def df_udf(f: UDF10[Column, Column, Column, Column, Column, Column,
-    Column, Column, Column, Column, Column]): UserDefinedFunction = sp_udf(new JDFUDF10(f), LongType)
+    Column, Column, Column, Column, Column]): UserDefinedFunction =
+    sp_udf(new JDFUDF10(f), LongType)
 }

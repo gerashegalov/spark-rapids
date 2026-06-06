@@ -21,13 +21,12 @@ import java.nio.charset.Charset
 import com.nvidia.spark.rapids.shims.ShimExpression
 import com.nvidia.spark.udf.CatalystExpressionBuilder.simplify
 import javassist.bytecode.{CodeIterator, Opcode}
+import org.slf4j.LoggerFactory
 
 import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.analysis.TypeCoercion
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.types._
-import org.slf4j.LoggerFactory
-
 
 private[udf] object Repr {
 
@@ -323,7 +322,8 @@ case class Instruction(opcode: Int, operand: Int, instructionStr: String) {
       case _ => throw new SparkException("Unsupported instruction: " + instructionStr)
     }
     if (Instruction.log.isDebugEnabled) {
-      Instruction.log.debug(s"[Instruction] ${instructionStr} got new state: ${st} from state: ${state}")
+      Instruction.log.debug(
+        s"[Instruction] ${instructionStr} got new state: ${st} from state: ${state}")
     }
     st
   }

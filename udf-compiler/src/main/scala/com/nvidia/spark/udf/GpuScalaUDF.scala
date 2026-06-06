@@ -19,9 +19,9 @@ package com.nvidia.spark.udf
 import scala.util.control.NonFatal
 
 import com.nvidia.spark.rapids.shims.ShimExpression
+import org.slf4j.LoggerFactory
 
 import org.apache.spark.SparkException
-import org.slf4j.LoggerFactory
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{Expression, ScalaUDF}
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}

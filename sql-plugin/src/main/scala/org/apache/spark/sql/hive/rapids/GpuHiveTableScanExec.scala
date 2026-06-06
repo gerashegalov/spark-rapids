@@ -441,17 +441,18 @@ class AlphabeticallyReorderingColumnPartitionReader(fileReader: PartitionReader[
 }
 
 // Factory to build the columnar reader.
-class GpuHiveTextPartitionReaderFactory(val sqlConf: SQLConf,
-                                             val broadcastConf: Broadcast[SerializableConfiguration],
-                                             val inputFileSchema: StructType,
-                                             val partitionSchema: StructType,
-                                             val requestedOutputDataSchema: StructType,
-                                             val requestedAttributes: Seq[Attribute],
-                                             val maxReaderBatchSizeRows: Integer,
-                                             val maxReaderBatchSizeBytes: Long,
-                                             val maxGpuColumnSizeBytes: Long,
-                                             val metrics: Map[String, GpuMetric],
-                                             val params: Map[String, String])
+class GpuHiveTextPartitionReaderFactory(
+    val sqlConf: SQLConf,
+    val broadcastConf: Broadcast[SerializableConfiguration],
+    val inputFileSchema: StructType,
+    val partitionSchema: StructType,
+    val requestedOutputDataSchema: StructType,
+    val requestedAttributes: Seq[Attribute],
+    val maxReaderBatchSizeRows: Integer,
+    val maxReaderBatchSizeBytes: Long,
+    val maxGpuColumnSizeBytes: Long,
+    val metrics: Map[String, GpuMetric],
+    val params: Map[String, String])
   extends ShimFilePartitionReaderFactory(params) with Serializable {
 
   override def buildReader(partitionedFile: PartitionedFile): PartitionReader[InternalRow] = {

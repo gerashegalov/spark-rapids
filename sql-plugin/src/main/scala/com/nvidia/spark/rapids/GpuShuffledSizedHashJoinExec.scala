@@ -967,7 +967,8 @@ object GpuShuffledAsymmetricHashJoinExec {
                 } else {
                   metrics(BUILD_DATA_SIZE).set(streamSize)
                   val flippedSide = flipped(buildSide)
-                  new JoinInfo(joinType, flippedSide, singleStreamIter, streamSize, Some(streamStats),
+                  new JoinInfo(
+                    joinType, flippedSide, singleStreamIter, streamSize, Some(streamStats),
                     buildIter, exprs.flipped(joinType, flippedSide, condition,
                       leftOutput, rightOutput, metrics))
                 }

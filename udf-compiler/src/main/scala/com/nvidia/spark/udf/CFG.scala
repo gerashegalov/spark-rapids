@@ -22,9 +22,9 @@ import scala.collection.immutable.{HashMap, SortedMap, SortedSet}
 import CatalystExpressionBuilder.simplify
 import javassist.bytecode.{CodeIterator, ConstPool, InstructionPrinter, Opcode}
 import javassist.bytecode.analysis.Util
+import org.slf4j.LoggerFactory
 
 import org.apache.spark.SparkException
-import org.slf4j.LoggerFactory
 import org.apache.spark.sql.catalyst.expressions._
 
 /**

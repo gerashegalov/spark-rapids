@@ -178,8 +178,9 @@ class GpuIcebergSpecPartitioner(val spec: PartitionSpec,
   }
 }
 
-class ColumnarBatchWithPartition(val batch: SpillableColumnarBatch, val partition: StructLike) extends
-  AutoCloseable {
+class ColumnarBatchWithPartition(
+    val batch: SpillableColumnarBatch,
+    val partition: StructLike) extends AutoCloseable {
   override def close(): Unit = {
     batch.close()
   }

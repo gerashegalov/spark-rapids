@@ -19,11 +19,11 @@ package com.nvidia.spark.udf
 import scala.annotation.tailrec
 
 import javassist.CtClass
+import org.slf4j.LoggerFactory
 
 import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.types._
-import org.slf4j.LoggerFactory
 
 /**
  * CatalystExpressionBuilder
@@ -102,7 +102,8 @@ case class CatalystExpressionBuilder(private val function: AnyRef) {
           s"compiled UDF has compiler internal expression $e: $expr")
       }
       if (CatalystExpressionBuilder.log.isDebugEnabled) {
-        CatalystExpressionBuilder.log.debug(s"[CatalystExpressionBuilder] compiled expression: $expr")
+        CatalystExpressionBuilder.log.debug(
+          s"[CatalystExpressionBuilder] compiled expression: $expr")
       }
     }
 
@@ -495,7 +496,8 @@ object CatalystExpressionBuilder {
         case _ => expr
       }
       if (CatalystExpressionBuilder.log.isDebugEnabled) {
-        CatalystExpressionBuilder.log.debug(s"[CatalystExpressionBuilder] simplify: ${expr} ==> ${res}")
+        CatalystExpressionBuilder.log.debug(
+          s"[CatalystExpressionBuilder] simplify: ${expr} ==> ${res}")
       }
       res
     }

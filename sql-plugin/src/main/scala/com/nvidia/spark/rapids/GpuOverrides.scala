@@ -2902,8 +2902,14 @@ object GpuOverrides {
       // Java's split API produces different behaviors than cudf when splitting with empty pattern
       ExprChecks.projectOnly(TypeSig.MAP.nested(TypeSig.STRING), TypeSig.MAP.nested(TypeSig.STRING),
         Seq(new ParamCheck("str", TypeSig.STRING, TypeSig.STRING),
-          new ParamCheck("pairDelim", TypeSig.lit(TypeEnum.STRING), TypeSig.lit(TypeEnum.STRING)),
-          new ParamCheck("keyValueDelim", TypeSig.lit(TypeEnum.STRING), TypeSig.lit(TypeEnum.STRING)))),
+          new ParamCheck(
+            "pairDelim",
+            TypeSig.lit(TypeEnum.STRING),
+            TypeSig.lit(TypeEnum.STRING)),
+          new ParamCheck(
+            "keyValueDelim",
+            TypeSig.lit(TypeEnum.STRING),
+            TypeSig.lit(TypeEnum.STRING)))),
       (in, conf, p, r) => new GpuStringToMapMeta(in, conf, p, r)),
     expr[ArrayMin](
       "Returns the minimum value in the array",
@@ -4286,7 +4292,10 @@ object GpuOverrides {
           TypeSig.DATE),
           new ParamCheck("stop", TypeSig.integral, TypeSig.integral + TypeSig.TIMESTAMP +
             TypeSig.DATE)),
-        Some(new RepeatingParamCheck("step", TypeSig.integral, TypeSig.integral + TypeSig.CALENDAR))),
+        Some(new RepeatingParamCheck(
+          "step",
+          TypeSig.integral,
+          TypeSig.integral + TypeSig.CALENDAR))),
       (a, conf, p, r) => new GpuSequenceMeta(a, conf, p, r)
     ),
     expr[BitLength](

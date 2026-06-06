@@ -94,7 +94,9 @@ class GpuSemaphoreSuite extends AnyFunSuite
     case SemaphoreAcquired =>
       fail("The Semaphore was acquired when we didn't expect it")
     case failed: AcquireFailed =>
-      assert(failed.numWaitingTasks == numExpectedWaiting, "The number of waiting tasks didn't match")
+      assert(
+        failed.numWaitingTasks == numExpectedWaiting,
+        "The number of waiting tasks didn't match")
   }
 
   test("multi tryAcquire") {

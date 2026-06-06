@@ -1468,7 +1468,8 @@ private case class GpuOrcFileFilterHandler(
         sargApp, sargColumns, OrcConf.IGNORE_NON_UTF8_BLOOM_FILTERS.getBoolean(conf),
         orcReader.getWriterVersion, updatedReadSchema,
         resolveMemFileIncluded(fileIncluded, requestedMapping))
-      new OrcPartitionReaderContext(filePath, conf, orcReader.getSchema, updatedReadSchema, evolution,
+      new OrcPartitionReaderContext(
+        filePath, conf, orcReader.getSchema, updatedReadSchema, evolution,
         orcReader.getFileTail, orcReader.getCompressionSize, orcReader.getCompressionKind,
         readerOpts, stripes.iterator.buffered, requestedMapping)
     }

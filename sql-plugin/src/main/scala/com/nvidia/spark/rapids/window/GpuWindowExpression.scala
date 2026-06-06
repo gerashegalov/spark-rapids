@@ -1954,7 +1954,9 @@ case class GpuRank(children: Seq[Expression]) extends GpuRunningWindowFunction
   override def scanAggregation(isRunningBatched: Boolean): Seq[AggAndReplace[ScanAggregation]] = {
     if (isRunningBatched) {
       // We are computing both rank and row number so we can fix it up at the end
-      Seq(new AggAndReplace(ScanAggregation.rank(), None), new AggAndReplace(ScanAggregation.sum(), None))
+      Seq(
+        new AggAndReplace(ScanAggregation.rank(), None),
+        new AggAndReplace(ScanAggregation.sum(), None))
     } else {
       // Not batched just do the rank
       Seq(new AggAndReplace(ScanAggregation.rank(), None))
