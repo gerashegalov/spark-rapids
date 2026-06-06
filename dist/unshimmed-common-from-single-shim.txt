@@ -2224,6 +2224,7 @@ org/apache/spark/sql/rapids/BridgeGenerateUnsafeProjection.class
 org/apache/spark/sql/rapids/BridgeUnsafeProjection$.class
 org/apache/spark/sql/rapids/BridgeUnsafeProjection.class
 org/apache/spark/sql/rapids/BridgeUnsafeProjectionCodegen$.class
+org/apache/spark/sql/rapids/BridgeUnsafeProjectionCodegen.class
 org/apache/spark/sql/rapids/BucketIdMetaUtils$.class
 org/apache/spark/sql/rapids/BucketIdMetaUtils.class
 org/apache/spark/sql/rapids/ContainsCombiner.class

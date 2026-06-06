@@ -16,6 +16,8 @@
 
 package org.apache.spark.sql.rapids
 
+import scala.util.control.NonFatal
+
 import com.nvidia.spark.rapids.RapidsHostColumnBuilder
 
 import org.apache.spark.sql.catalyst.InternalRow
@@ -89,17 +91,24 @@ object BridgeUnsafeProjection {
   }
 }
 
-private object BridgeUnsafeProjectionCodegen
-  extends CodeGeneratorWithInterpretedFallback[Seq[Expression], BridgeUnsafeProjection] {
+private object BridgeUnsafeProjectionCodegen {
+  private[this] val log = org.slf4j.LoggerFactory.getLogger(getClass)
 
-  override protected def createCodeGeneratedObject(in: Seq[Expression]): BridgeUnsafeProjection = {
-    // Just call generate directly - let any exceptions propagate naturally
-    // The CodeGeneratorWithInterpretedFallback base class will catch exceptions 
-    // and fall back to createInterpretedObject
+  private def createObject(in: Seq[Expression]): BridgeUnsafeProjection = {
+    try {
+      createCodeGeneratedObject(in)
+    } catch {
+      case NonFatal(e) =>
+        log.warn("Expr codegen error and falling back to interpreter mode", e)
+        createInterpretedObject(in)
+    }
+  }
+
+  private def createCodeGeneratedObject(in: Seq[Expression]): BridgeUnsafeProjection = {
     BridgeGenerateUnsafeProjection.generate(in, SQLConf.get.subexpressionEliminationEnabled)
   }
 
-  override protected def createInterpretedObject(in: Seq[Expression]): BridgeUnsafeProjection = {
+  private def createInterpretedObject(in: Seq[Expression]): BridgeUnsafeProjection = {
     new InterpretedBridgeUnsafeProjection(in)
   }
 
