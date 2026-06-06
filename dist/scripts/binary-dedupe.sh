@@ -40,6 +40,8 @@ export SPARK_SHARED_COPY_LIST="$PWD/spark-shared-copy-list.txt"
 export DELETE_DUPLICATES_TXT="$PWD/delete-duplicates.txt"
 export SPARK_SHARED_DIR="$PWD/spark-shared"
 export UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST="$PWD/unshimmed-from-spark-shared-copy-list.txt"
+export ROOT_SAFE_SPARK_SHARED_TXT="$PWD/root-safe-spark-shared.txt"
+export DEFAULT_UNSHIMMED_SPARK_SHARED_TXT="$PWD/default-unshimmed-spark-shared.txt"
 export UNSHIMMED_NEED_SHARED_TXT="$PWD/unshimmed-need-shared.txt"
 export UNSHIMMED_MISSING_SHARED_TXT="$PWD/unshimmed-missing-shared.txt"
 
@@ -152,9 +154,10 @@ function retain_single_copy() {
   done >> "$DELETE_DUPLICATES_TXT" || exit 255
 }
 
-function copy_unshimmed_from_spark_shared() {
+function append_matching_spark_shared_patterns() {
   set -e
-  local unshimmed_patterns_txt="${UNSHIMMED_COMMON_FROM_SINGLE_SHIM_TXT:-}"
+  local unshimmed_patterns_txt="$1"
+  local output_txt="$2"
 
   [[ -n "$unshimmed_patterns_txt" ]] || return 0
   [[ -f "$unshimmed_patterns_txt" ]] || {
@@ -162,7 +165,6 @@ function copy_unshimmed_from_spark_shared() {
     exit 255
   }
 
-  : > "$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST"
   local shared_dir="./parallel-world/spark-shared"
   local pattern
   while IFS= read -r pattern; do
@@ -171,20 +173,93 @@ function copy_unshimmed_from_spark_shared() {
     case "$pattern" in
       *[\*\?\[]*)
         find "$shared_dir" -type f -path "$shared_dir/$pattern" |
-          sed "s|^\./parallel-world/spark-shared/||" >> \
-            "$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST"
+          sed "s|^\./parallel-world/spark-shared/||" >> "$output_txt"
         ;;
       *)
-        [[ -f "$shared_dir/$pattern" ]] && \
-          echo "$pattern" >> "$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST"
+        if [[ -f "$shared_dir/$pattern" ]]; then
+          echo "$pattern" >> "$output_txt"
+        fi
         ;;
     esac
   done < "$unshimmed_patterns_txt"
+}
 
-  sort -u -o "$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST" \
-    "$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST"
+function write_root_safe_spark_shared_classes() {
+  set -e
+  local analyzer_script="${UNSHIM_ANALYZER_SCRIPT:-}"
+  if [[ -z "$analyzer_script" && -n "${UNSHIMMED_COMMON_FROM_SINGLE_SHIM_TXT:-}" ]]; then
+    analyzer_script="$(dirname "$UNSHIMMED_COMMON_FROM_SINGLE_SHIM_TXT")/scripts/analyze-parallel-world-deps.py"
+  fi
+  [[ -n "$analyzer_script" && -f "$analyzer_script" ]] || {
+    echo >&2 "Cannot locate analyze-parallel-world-deps.py for default unshim analysis"
+    exit 255
+  }
+
+  echo "$((++STEP))/ analyzing spark-shared dependency paths > $ROOT_SAFE_SPARK_SHARED_TXT"
+  python3 "$analyzer_script" ./parallel-world \
+    --write-safe-paths "$ROOT_SAFE_SPARK_SHARED_TXT"
+}
+
+function write_default_unshimmed_spark_shared_classes() {
+  set -e
+  echo "$((++STEP))/ selecting all bitwise-identical spark-shared classes > $DEFAULT_UNSHIMMED_SPARK_SHARED_TXT"
+  sed -E "s|^/spark[^/]*/||" "$SPARK_SHARED_TXT" | \
+    grep '\.class$' | sort -u > "$DEFAULT_UNSHIMMED_SPARK_SHARED_TXT"
+}
+
+function keep_in_spark_shared() {
+  set -e
+  local class_file="$1"
+  local keep_patterns_txt="${KEEP_IN_SPARK_SHARED_TXT:-}"
+  [[ -n "$keep_patterns_txt" ]] || return 1
+  [[ -f "$keep_patterns_txt" ]] || {
+    echo >&2 "Keep-in-spark-shared list does not exist: $keep_patterns_txt"
+    exit 255
+  }
+
+  local pattern
+  while IFS= read -r pattern; do
+    [[ -n "$pattern" ]] || continue
+    [[ "$pattern" =~ ^[[:space:]]*# ]] && continue
+    if [[ "$class_file" == $pattern ]]; then
+      return 0
+    fi
+  done < "$keep_patterns_txt"
+  return 1
+}
+
+function filter_keep_in_spark_shared() {
+  set -e
+  local input_txt="$1"
+  local output_txt="$2"
+  local class_file
+  : > "$output_txt"
+  while IFS= read -r class_file; do
+    [[ -n "$class_file" ]] || continue
+    if keep_in_spark_shared "$class_file"; then
+      continue
+    fi
+    echo "$class_file"
+  done < "$input_txt" > "$output_txt.tmp"
+  mv "$output_txt.tmp" "$output_txt"
+}
+
+function copy_unshimmed_from_spark_shared() {
+  set -e
+  local raw_copy_list="$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST.raw"
+  local sorted_copy_list="$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST.sorted"
+
+  : > "$raw_copy_list"
+  write_root_safe_spark_shared_classes
+  write_default_unshimmed_spark_shared_classes
+  cat "$DEFAULT_UNSHIMMED_SPARK_SHARED_TXT" >> "$raw_copy_list"
+  append_matching_spark_shared_patterns \
+    "${UNSHIMMED_COMMON_FROM_SINGLE_SHIM_TXT:-}" "$raw_copy_list"
+
+  sort -u "$raw_copy_list" > "$sorted_copy_list"
+  filter_keep_in_spark_shared "$sorted_copy_list" "$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST"
   if [[ -s "$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST" ]]; then
-    echo "Promoting root-layout files from spark-shared via $unshimmed_patterns_txt"
+    echo "Promoting root-layout files from spark-shared by default"
     rsync --files-from="$UNSHIMMED_FROM_SPARK_SHARED_COPY_LIST" \
       ./parallel-world/spark-shared ./parallel-world
   fi
@@ -229,7 +304,7 @@ done
 
 mv "$SPARK_SHARED_DIR" parallel-world/
 
-echo "$((++STEP))/ promoting allowlisted spark-shared files to root layout"
+echo "$((++STEP))/ promoting default spark-shared files to root layout"
 copy_unshimmed_from_spark_shared
 
 # Verify that all class files in the conventional jar location are bitwise

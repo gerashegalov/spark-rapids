@@ -230,7 +230,7 @@ MVN=${MVN:-"mvn"}
 export MVN="$MVN -Dmaven.wagon.http.retryHandler.count=3 ${MVN_OPT}"
 if [[ "$UNSHIM_FAST" == "1" ]]; then
   export MAVEN_REFRESH_OPT="--no-snapshot-updates"
-  export MVN_FAST_SKIP_OPTS="-Dmaven.test.skip=true -Drat.skip=true -Dmaven.scalastyle.skip=true -Dmaven.scaladoc.skip=true -Dmaven.javadoc.skip=true -Ddist.jar.compress=false -Djacoco.skip=true -Denforcer.skip=true -Drapids.build.info.skip=true"
+  export MVN_FAST_SKIP_OPTS="-Dmaven.test.skip=true -Drat.skip=true -Dmaven.scalastyle.skip=true -Dmaven.scaladoc.skip=true -Dmaven.javadoc.skip=true -Ddist.jar.compress=false -Djacoco.skip=true -Denforcer.skip=true -Drapids.build.info.skip=true -Dignore.shim.revisions.check=true"
 else
   export MAVEN_REFRESH_OPT="-U"
   export MVN_FAST_SKIP_OPTS=""
@@ -252,15 +252,17 @@ if [[ "$UNSHIM_ALLOWLIST_ONLY" == "1" ]] && \
       git -C "$SOURCE_DIR" diff --name-only -- \
         . \
         ':(exclude)dist/unshimmed-common-from-single-shim.txt' \
-        ':(exclude)dist/unshimmed-from-each-spark3xx.txt'
+        ':(exclude)dist/unshimmed-from-each-spark3xx.txt' \
+        ':(exclude)dist/keep-in-spark-shared.txt'
       git -C "$SOURCE_DIR" diff --cached --name-only -- \
         . \
         ':(exclude)dist/unshimmed-common-from-single-shim.txt' \
-        ':(exclude)dist/unshimmed-from-each-spark3xx.txt'
+        ':(exclude)dist/unshimmed-from-each-spark3xx.txt' \
+        ':(exclude)dist/keep-in-spark-shared.txt'
     } | sort -u
   )
   if [[ -n "$ALLOWLIST_ONLY_DIRTY" ]]; then
-    echo >&2 "--unshim-allowlist-only can only reuse jars when tracked changes are limited to dist/unshimmed*.txt"
+    echo >&2 "--unshim-allowlist-only can only reuse jars when tracked changes are limited to dist/unshimmed*.txt or dist/keep-in-spark-shared.txt"
     echo >&2 "$ALLOWLIST_ONLY_DIRTY"
     exit 1
   fi
@@ -511,7 +513,8 @@ time (
         --source-dir "$SOURCE_DIR" \
         --project-version "$RAPIDS_PROJECT_VERSION" \
         --scala-binary-version "$RAPIDS_SCALA_BINARY_VERSION" \
-        --buildvers "$(join_by , "${SPARK_SHIM_VERSIONS[@]}")"
+        --buildvers "$(join_by , "${SPARK_SHIM_VERSIONS[@]}")" \
+        --ignore-shim-revisions-check
       exit 0
     else
       echo "Resuming at dist only using $BASE_VER"

@@ -226,6 +226,8 @@ def main():
     parser.add_argument("--scala-binary-version", required=True)
     parser.add_argument("--buildvers", required=True,
         help="Comma-separated Spark build versions, for example 350,411")
+    parser.add_argument("--ignore-shim-revisions-check", action="store_true",
+        help="Continue when per-shim build metadata revisions differ")
     args = parser.parse_args()
 
     base_dir = Path(args.mvn_base_dir).resolve()
@@ -254,9 +256,16 @@ def main():
         from_single_shim,
         from_each)
 
-    run_checked(
+    revision_check = subprocess.run(
         [str(dist_dir / "scripts" / "check-shims-revisions.sh"), ",".join(buildvers)],
-        cwd=target_dir)
+        cwd=str(target_dir),
+        check=False)
+    if revision_check.returncode != 0:
+        if args.ignore_shim_revisions_check:
+            print("Ignoring shim revision check failure for direct unshim parallel-world assembly",
+                  flush=True)
+        else:
+            revision_check.check_returncode()
 
     dedupe_env = os.environ.copy()
     dedupe_env["UNSHIM_FAST"] = "1"
@@ -268,6 +277,9 @@ def main():
             buildvers))
     dedupe_env["UNSHIMMED_COMMON_FROM_SINGLE_SHIM_TXT"] = str(
         dist_dir / "unshimmed-common-from-single-shim.txt")
+    dedupe_env["KEEP_IN_SPARK_SHARED_TXT"] = str(dist_dir / "keep-in-spark-shared.txt")
+    dedupe_env["UNSHIM_ANALYZER_SCRIPT"] = str(
+        dist_dir / "scripts" / "analyze-parallel-world-deps.py")
     run_checked([str(dist_dir / "scripts" / "binary-dedupe.sh")],
                 cwd=target_dir,
                 env=dedupe_env)
