@@ -3993,6 +3993,7 @@ com/nvidia/spark/rapids/shims/AnsiUtil$.class
 com/nvidia/spark/rapids/shims/AnsiUtil.class
 com/nvidia/spark/rapids/shims/BatchScanExecMetaBase$$anonfun$$nestedInanonfun$runtimeFilters$2$1.class
 com/nvidia/spark/rapids/shims/BloomFilterConstantsShims.class
+com/nvidia/spark/rapids/shims/BloomFilterConstantsShims$.class
 com/nvidia/spark/rapids/shims/BloomFilterShims$$anon$1.class
 com/nvidia/spark/rapids/shims/BloomFilterShims$$anon$2.class
 com/nvidia/spark/rapids/shims/BloomFilterShims$.class
