@@ -4023,6 +4023,7 @@ com/nvidia/spark/rapids/shims/DecimalArithmeticOverrides$$anon$4.class
 com/nvidia/spark/rapids/shims/DecimalArithmeticOverrides$.class
 com/nvidia/spark/rapids/shims/DecimalArithmeticOverrides.class
 com/nvidia/spark/rapids/shims/DecimalMultiply128.class
+com/nvidia/spark/rapids/shims/DecimalMultiply128$.class
 com/nvidia/spark/rapids/shims/DeltaInsertFilter.class
 com/nvidia/spark/rapids/shims/DistributionUtil$.class
 com/nvidia/spark/rapids/shims/DistributionUtil.class
