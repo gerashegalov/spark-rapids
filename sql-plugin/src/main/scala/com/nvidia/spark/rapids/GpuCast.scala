@@ -25,7 +25,7 @@ import ai.rapids.cudf.{BinaryOp, CaptureGroups, ColumnVector, ColumnView, DType,
 import com.nvidia.spark.rapids.Arm.{closeOnExcept, withResource}
 import com.nvidia.spark.rapids.RapidsPluginImplicits._
 import com.nvidia.spark.rapids.jni.{Arithmetic, CastException, CastStrings, DecimalUtils, GpuTimeZoneDB, RoundMode}
-import com.nvidia.spark.rapids.shims.{AnsiUtil, GpuCastShims, GpuIntervalUtils, GpuTypeShims, NullIntolerantShim, SparkShimImpl}
+import com.nvidia.spark.rapids.shims.{AnsiUtil, CastTimeToIntShim, GpuCastShims, GpuIntervalUtils, GpuTypeShims, NullIntolerantShim, SparkShimImpl}
 import org.apache.commons.text.StringEscapeUtils
 
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
@@ -205,17 +205,8 @@ object CastOptions {
     override val useHexFormatForBinary: Boolean = true
   }
 
-  @transient private[this] lazy val castTimeToIntShimModule = {
-    Class.forName("com.nvidia.spark.rapids.shims.CastTimeToIntShim" + "$")
-      .getField("MODULE" + "$")
-      .get(null)
-  }
-
-  @transient private[this] lazy val ifNullifyOverflowsMethod =
-    castTimeToIntShimModule.getClass.getMethod("ifNullifyOverflows")
-
   private def defaultNullifyOverflows: Boolean =
-    ifNullifyOverflowsMethod.invoke(castTimeToIntShimModule).asInstanceOf[Boolean]
+    CastTimeToIntShim.ifNullifyOverflows
 }
 
 /**

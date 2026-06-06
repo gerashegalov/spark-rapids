@@ -4004,6 +4004,7 @@ com/nvidia/spark/rapids/shims/BucketingUtilsShim.class
 com/nvidia/spark/rapids/shims/CastCheckShims$.class
 com/nvidia/spark/rapids/shims/CastCheckShims.class
 com/nvidia/spark/rapids/shims/CastTimeToIntShim.class
+com/nvidia/spark/rapids/shims/CastTimeToIntShim$.class
 com/nvidia/spark/rapids/shims/CheckOverflowInTableInsertShims$$anon$1.class
 com/nvidia/spark/rapids/shims/CheckOverflowInTableInsertShims$.class
 com/nvidia/spark/rapids/shims/CheckOverflowInTableInsertShims.class
