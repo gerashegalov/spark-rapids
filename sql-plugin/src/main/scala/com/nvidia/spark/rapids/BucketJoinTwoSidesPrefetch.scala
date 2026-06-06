@@ -15,7 +15,6 @@
  */
 package com.nvidia.spark.rapids
 
-import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.exchange.Exchange
 import org.apache.spark.sql.rapids.GpuFileSourceScanExec
@@ -28,7 +27,7 @@ import org.apache.spark.sql.rapids.GpuFileSourceScanExec
  *
  * NOTE: This is postShimPlanRule which should be applied after GpuOverrides.
  */
-object BucketJoinTwoSidesPrefetch extends Rule[SparkPlan] {
+object BucketJoinTwoSidesPrefetch {
 
   // Traverse through the plan tree and enable IO prefetch for all GpuFileSourceScanExec
   // which are directly connected to this join node without any shuffle.
@@ -44,7 +43,7 @@ object BucketJoinTwoSidesPrefetch extends Rule[SparkPlan] {
     }
   }
 
-  override def apply(plan: SparkPlan): SparkPlan = {
+  def apply(plan: SparkPlan): SparkPlan = {
     // Enable IO prefetch by a mutable operation on target nodes instead of re-generating
     // the plan tree. By doing so, it saves a lot of trouble.
     if (RapidsConf.BUCKET_JOIN_IO_PREFETCH.get(plan.conf)) {

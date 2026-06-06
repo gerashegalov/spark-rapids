@@ -2826,6 +2826,7 @@ com/nvidia/spark/rapids/BoolUtils$.class
 com/nvidia/spark/rapids/BoolUtils.class
 com/nvidia/spark/rapids/BoundExpressionsModeAggregates.class
 com/nvidia/spark/rapids/BucketJoinTwoSidesPrefetch$$anonfun$1.class
+com/nvidia/spark/rapids/BucketJoinTwoSidesPrefetch.class
 com/nvidia/spark/rapids/BucketJoinTwoSidesPrefetch$.class
 com/nvidia/spark/rapids/BuildSidePartitioner.class
 com/nvidia/spark/rapids/CSVPartitionReader$.class
