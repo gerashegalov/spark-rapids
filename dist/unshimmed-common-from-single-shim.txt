@@ -1094,6 +1094,7 @@ org/apache/spark/sql/rapids/execution/JoinImpl.class
 org/apache/spark/sql/rapids/execution/ShuffledBatchRDDPartition.class
 org/apache/spark/sql/rapids/execution/python/BatchProducer$.class
 org/apache/spark/sql/rapids/execution/python/GpuPythonFunction$.class
+org/apache/spark/sql/rapids/execution/python/GpuPythonFunction.class
 org/apache/spark/sql/rapids/execution/python/GroupArgs.class
 org/apache/spark/sql/rapids/execution/python/StreamToBufferProvider.class
 org/apache/spark/sql/rapids/isTimestampNTZ$.class
