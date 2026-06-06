@@ -2378,6 +2378,7 @@ org/apache/spark/sql/rapids/GpuDecimalMultiply$.class
 org/apache/spark/sql/rapids/GpuDecimalMultiply.class
 org/apache/spark/sql/rapids/GpuDecimalMultiplyBase.class
 org/apache/spark/sql/rapids/GpuDecimalRemainder$.class
+org/apache/spark/sql/rapids/GpuDecimalRemainder.class
 org/apache/spark/sql/rapids/GpuDivModLike$.class
 org/apache/spark/sql/rapids/GpuDivModLike.class
 org/apache/spark/sql/rapids/GpuDivide$.class
