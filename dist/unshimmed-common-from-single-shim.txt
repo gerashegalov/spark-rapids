@@ -4161,6 +4161,7 @@ com/nvidia/spark/rapids/shims/spark411/SparkShimServiceProvider$.class
 com/nvidia/spark/rapids/shims/spark411/SparkShimServiceProvider.class
 org/apache/spark/sql/execution/rapids/shims/FilePartitionShims.class
 org/apache/spark/sql/execution/rapids/shims/SplitFiles.class
+org/apache/spark/sql/rapids/shims/ArrayInvalidArgumentErrorUtils.class
 org/apache/spark/sql/rapids/shims/AvroUtils$.class
 org/apache/spark/sql/rapids/shims/AvroUtils.class
 org/apache/spark/sql/rapids/shims/FileCommitProtocolShims.class

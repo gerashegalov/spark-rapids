@@ -14,16 +14,12 @@
  * limitations under the License.
  */
 
-/*** spark-rapids-shim-json-lines
-{"spark": "350db143"}
-{"spark": "400"}
-{"spark": "400db173"}
-{"spark": "401"}
-{"spark": "402"}
-{"spark": "411"}
-spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.rapids.shims
 
+import com.nvidia.spark.rapids.VersionUtils
+
+import org.apache.spark.{QueryContext, SparkRuntimeException}
+import org.apache.spark.sql.catalyst.util.quoteIdentifier
 import org.apache.spark.sql.errors.QueryExecutionErrors
 
 trait ArrayInvalidArgumentErrorUtils {
@@ -33,6 +29,23 @@ trait ArrayInvalidArgumentErrorUtils {
 
   def unexpectedValueForLengthInFunctionError(prettyName: String,
       length: Int): RuntimeException = {
-    QueryExecutionErrors.unexpectedValueForLengthInFunctionError(prettyName, length)
+    if (VersionUtils.cmpSparkVersion(4, 1, 0) >= 0) {
+      new SparkRuntimeException(
+        "INVALID_PARAMETER_VALUE.LENGTH",
+        Map(
+          "parameter" -> quoteIdentifier("length"),
+          "length" -> length.toString,
+          "functionName" -> quoteIdentifier(prettyName)),
+        null,
+        Array.empty[QueryContext],
+        "")
+    } else {
+      new SparkRuntimeException(
+        "_LEGACY_ERROR_TEMP_2158",
+        Map("prettyName" -> prettyName),
+        null,
+        Array.empty[QueryContext],
+        "")
+    }
   }
 }
