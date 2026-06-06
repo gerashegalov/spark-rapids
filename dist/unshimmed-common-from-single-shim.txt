@@ -4032,6 +4032,7 @@ com/nvidia/spark/rapids/shims/ExternalSourceShim$.class
 com/nvidia/spark/rapids/shims/ExternalSourceShim.class
 com/nvidia/spark/rapids/shims/FileSourceScanExecMeta$$anonfun$$nestedInanonfun$partitionFilters$2$1.class
 com/nvidia/spark/rapids/shims/GetJsonObjectShim.class
+com/nvidia/spark/rapids/shims/GetJsonObjectShim$.class
 com/nvidia/spark/rapids/shims/GetMapValueMeta.class
 com/nvidia/spark/rapids/shims/GetSequenceSize.class
 com/nvidia/spark/rapids/shims/GlobalLimitShims$.class
