@@ -4244,4 +4244,6 @@ org/apache/spark/sql/delta/rapids/delta33x/GpuOptimisticTransaction.class
 org/apache/spark/sql/delta/rapids/delta33x/GpuUpdateCommand$.class
 org/apache/spark/sql/delta/rapids/delta33x/GpuUpdateCommand.class
 com/nvidia/spark/rapids/fileio/hadoop/PerfIOS3Reader.class
+com/nvidia/spark/rapids/delta/RapidsDeletionVectorRowCountUtils$.class
+com/nvidia/spark/rapids/delta/RapidsDeletionVectorRowCountUtils.class
 rapids/*.py
