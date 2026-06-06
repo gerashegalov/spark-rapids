@@ -328,7 +328,7 @@ class GpuHashAggregateMetrics(
     val numAggOps: GpuMetric,
     val numPreSplits: GpuMetric,
     val singlePassTasks: GpuMetric,
-    val heuristicTime: GpuMetric) {
+    val heuristicTime: GpuMetric) extends Serializable {
 }
 
 /**
