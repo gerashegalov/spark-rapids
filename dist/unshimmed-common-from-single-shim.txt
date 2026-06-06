@@ -1853,8 +1853,6 @@ org/apache/spark/sql/rapids/execution/python/GpuPythonHelper.class
 org/apache/spark/sql/rapids/execution/python/GpuPythonRunnerCommon.class
 org/apache/spark/sql/rapids/execution/python/GpuPythonUDAF$.class
 org/apache/spark/sql/rapids/execution/python/GpuPythonUDAF.class
-org/apache/spark/sql/rapids/execution/python/GpuPythonUDF$.class
-org/apache/spark/sql/rapids/execution/python/GpuPythonUDF.class
 org/apache/spark/sql/rapids/execution/python/GpuWindowInPandasExecBase$BoundedWindow$.class
 org/apache/spark/sql/rapids/execution/python/GpuWindowInPandasExecBase$UnboundedWindow$.class
 org/apache/spark/sql/rapids/execution/python/GpuWindowInPandasExecBase$WindowBoundType$.class
@@ -4164,7 +4162,6 @@ com/nvidia/spark/rapids/shims/spark411/SparkShimServiceProvider$.class
 com/nvidia/spark/rapids/shims/spark411/SparkShimServiceProvider.class
 org/apache/spark/sql/execution/rapids/shims/FilePartitionShims.class
 org/apache/spark/sql/execution/rapids/shims/SplitFiles.class
-org/apache/spark/sql/rapids/shims/ArrayInvalidArgumentErrorUtils.class
 org/apache/spark/sql/rapids/shims/AvroUtils$.class
 org/apache/spark/sql/rapids/shims/AvroUtils.class
 org/apache/spark/sql/rapids/shims/FileCommitProtocolShims.class

@@ -25,6 +25,7 @@ import com.nvidia.spark.rapids.window.GpuAggregateWindowFunction
 
 import org.apache.spark.api.python._
 import org.apache.spark.sql.catalyst.expressions._
+import org.apache.spark.sql.catalyst.util.toPrettySQL
 import org.apache.spark.sql.rapids.aggregate.{CudfAggregate, GpuAggregateFunction}
 import org.apache.spark.sql.types._
 
@@ -57,22 +58,22 @@ object GpuPythonUDF {
  * dedicated physical operator to execute it, and thus can't be pushed down to data sources.
  */
 abstract class GpuPythonFunction(
-    val name: String,
+    name: String,
     val func: PythonFunction,
     dataType: DataType,
     children: Seq[Expression],
-    val evalType: Int,
-    val udfDeterministic: Boolean,
+    evalType: Int,
+    udfDeterministic: Boolean,
     val resultId: ExprId = NamedExpression.newExprId)
-  extends Expression with GpuUnevaluable with PythonFuncExpression
-    with GpuAggregateWindowFunction with Serializable {
+  extends Expression with GpuUnevaluable with NonSQLExpression
+    with UserDefinedExpression with GpuAggregateWindowFunction with Serializable {
 
   override lazy val deterministic: Boolean = udfDeterministic && children.forall(_.deterministic)
   override val selfNonDeterministic: Boolean = !udfDeterministic
 
   override def toString: String = s"$name(${children.mkString(", ")})"
 
-  lazy val resultAttribute: Attribute = AttributeReference(sql, dataType, nullable)(
+  lazy val resultAttribute: Attribute = AttributeReference(toPrettySQL(this), dataType, nullable)(
     exprId = resultId)
 
   override def nullable: Boolean = true
@@ -87,12 +88,12 @@ abstract class GpuPythonFunction(
 }
 
 case class GpuPythonUDF(
-    override val name: String,
+    name: String,
     override val func: PythonFunction,
     dataType: DataType,
     children: Seq[Expression],
-    override val evalType: Int,
-    override val udfDeterministic: Boolean,
+    evalType: Int,
+    udfDeterministic: Boolean,
     override val resultId: ExprId = NamedExpression.newExprId)
   extends GpuPythonFunction(name, func, dataType, children, evalType, udfDeterministic, resultId) {
   override lazy val canonicalized: Expression = {
@@ -103,12 +104,12 @@ case class GpuPythonUDF(
 }
 
 case class GpuPythonUDAF(
-    override val name: String,
+    name: String,
     override val func: PythonFunction,
     dataType: DataType,
     children: Seq[Expression],
-    override val evalType: Int,
-    override val udfDeterministic: Boolean,
+    evalType: Int,
+    udfDeterministic: Boolean,
     override val resultId: ExprId = NamedExpression.newExprId)
   extends GpuPythonFunction(name, func, dataType, children, evalType, udfDeterministic, resultId)
     with GpuAggregateFunction {
