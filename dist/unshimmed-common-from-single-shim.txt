@@ -2663,8 +2663,11 @@ org/apache/spark/sql/rapids/GpuStringToMapMeta.class
 org/apache/spark/sql/rapids/GpuStringTranslate$.class
 org/apache/spark/sql/rapids/GpuStringTranslate.class
 org/apache/spark/sql/rapids/GpuStringTrim$.class
+org/apache/spark/sql/rapids/GpuStringTrim.class
 org/apache/spark/sql/rapids/GpuStringTrimLeft$.class
+org/apache/spark/sql/rapids/GpuStringTrimLeft.class
 org/apache/spark/sql/rapids/GpuStringTrimRight$.class
+org/apache/spark/sql/rapids/GpuStringTrimRight.class
 org/apache/spark/sql/rapids/GpuStructsToJson$.class
 org/apache/spark/sql/rapids/GpuStructsToJson.class
 org/apache/spark/sql/rapids/GpuStructsToJsonMeta.class

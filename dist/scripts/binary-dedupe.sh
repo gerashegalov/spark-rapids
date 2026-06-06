@@ -300,6 +300,10 @@ function unshimmed_class_needs_shared_identity() {
   # executable bytecode; only source-file metadata differs across shim source names.
   # GpuUnionExecShim and RapidsErrorUtils class shells have identical executable
   # bytecode; only ScalaSignature metadata differs.
+  # GpuStringTrim* differs after Spark 4.1 because String2TrimExpression adds
+  # collation/context-independent foldability methods. The case-class fields,
+  # product surface, and Spark 3.5-callable methods remain compatible; Spark 3.x
+  # does not invoke the added methods.
   # GpuAtomicCreateTableAsSelectExec companion has identical executable bytecode;
   # only line-number debug metadata differs across shim sources.
   if [[ "$class_file_quoted" =~ com/nvidia/spark/rapids/spark[34].*/.*ShuffleManager.class || \
@@ -312,6 +316,9 @@ function unshimmed_class_needs_shared_identity() {
           "$class_file_quoted" == "com/nvidia/spark/rapids/shims/PythonMapInArrowExecShims.class" || \
           "$class_file_quoted" == "org/apache/spark/sql/rapids/execution/python/shims/PythonArgumentUtils.class" || \
           "$class_file_quoted" == "com/nvidia/spark/rapids/shims/GpuUnionExecShim.class" || \
+          "$class_file_quoted" == "org/apache/spark/sql/rapids/GpuStringTrim.class" || \
+          "$class_file_quoted" == "org/apache/spark/sql/rapids/GpuStringTrimLeft.class" || \
+          "$class_file_quoted" == "org/apache/spark/sql/rapids/GpuStringTrimRight.class" || \
           "$class_file" == "org/apache/spark/sql/execution/datasources/v2/rapids/GpuAtomicCreateTableAsSelectExec$.class" || \
           "$class_file_quoted" == "org/apache/spark/sql/rapids/shims/RapidsErrorUtils.class" || \
           "$class_file_quoted" == "org/apache/spark/sql/rapids/execution/python/shims/WindowInPandasExecTypeShim.class" ]]; then
