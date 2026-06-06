@@ -1254,6 +1254,7 @@ com/nvidia/spark/rapids/python/PythonWorkerSemaphore.class
 com/nvidia/spark/rapids/shuffle/BounceBufferManager$BounceBufferImpl.class
 com/nvidia/spark/rapids/shuffle/BounceBufferManager.class
 com/nvidia/spark/rapids/FoldLocalAggregate$$anonfun$apply$1.class
+com/nvidia/spark/rapids/FoldLocalAggregate.class
 com/nvidia/spark/rapids/FoldLocalAggregate$.class
 com/nvidia/spark/rapids/LocalAggregatePattern$.class
 com/nvidia/spark/rapids/LocalAggregatePattern.class
