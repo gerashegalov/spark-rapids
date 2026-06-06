@@ -1494,6 +1494,7 @@ com/nvidia/spark/rapids/shuffle/RapidsShuffleClient$ShuffleClientOps$IssueBuffer
 com/nvidia/spark/rapids/shuffle/RapidsShuffleClient$ShuffleClientOps$IssueBufferReceives.class
 com/nvidia/spark/rapids/shuffle/RapidsShuffleClient.class
 com/nvidia/spark/rapids/shuffle/RapidsShuffleFetchHandler.class
+com/nvidia/spark/rapids/shuffle/RapidsShuffleIterator.class
 com/nvidia/spark/rapids/shuffle/RapidsShuffleIterator$$anon$1.class
 com/nvidia/spark/rapids/shuffle/RapidsShuffleIterator$.class
 com/nvidia/spark/rapids/shuffle/RapidsShuffleIterator$BlockIdMapIndex$.class
