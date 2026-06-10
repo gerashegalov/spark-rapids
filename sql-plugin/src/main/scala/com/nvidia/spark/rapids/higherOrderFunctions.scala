@@ -29,6 +29,7 @@ import com.nvidia.spark.rapids.shims.ShimExpression
 import org.apache.spark.sql.catalyst.analysis.TypeCoercion
 import org.apache.spark.sql.catalyst.expressions.{Add, And, ArrayAggregate, Attribute, AttributeReference, AttributeSeq, CaseWhen, Cast, Expression, ExprId, Greatest, If, LambdaFunction, Least, Literal, Multiply, NamedExpression, NamedLambdaVariable, Or}
 import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.rapids.GpuMapDedupPolicy
 import org.apache.spark.sql.types.{ArrayType, BooleanType, ByteType, DataType, Decimal, DecimalType, DoubleType, FloatType, IntegerType, LongType, MapType, Metadata, NumericType, ShortType, StructField, StructType}
 import org.apache.spark.sql.vectorized.{ColumnarBatch, ColumnVector}
 
@@ -765,8 +766,7 @@ case class GpuTransformKeys(
   override def prettyName: String = "transform_keys"
 
   // Spark 4.1+ returns an enum value instead of String, so use toString first
-  private def exceptionOnDupKeys =
-    SQLConf.get.getConf(SQLConf.MAP_KEY_DEDUP_POLICY).toString.toUpperCase == "EXCEPTION"
+  private def exceptionOnDupKeys = GpuMapDedupPolicy.isException
 
   override lazy val hasSideEffects: Boolean =
     function.nullable || exceptionOnDupKeys || super.hasSideEffects
@@ -1378,13 +1378,13 @@ case object AnyOp extends AggOp {
  * @param accVarExprId   the accumulator NamedLambdaVariable's exprId
  * @param elemVar        the element NamedLambdaVariable (used to build the g lambda)
  */
-case class ArrayAggregateDecomposition(
-    op: AggOp,
-    g: Expression,
-    accVarExprId: ExprId,
-    elemVar: NamedLambdaVariable)
+class ArrayAggregateDecomposition(
+    val op: AggOp,
+    val g: Expression,
+    val accVarExprId: ExprId,
+    val elemVar: NamedLambdaVariable) extends Serializable
 
-private case class ExtractedG(g: Expression, hasBareAccBranch: Boolean)
+private class ExtractedG(val g: Expression, val hasBareAccBranch: Boolean) extends Serializable
 
 
 /**
@@ -1461,7 +1461,7 @@ object ArrayAggregateDecomposer {
         "that no-contribution branch into an identity value")
     }
 
-    Right(ArrayAggregateDecomposition(op, g, accId, elemVar))
+    Right(new ArrayAggregateDecomposition(op, g, accId, elemVar))
   }
 
   /**
@@ -1484,8 +1484,8 @@ object ArrayAggregateDecomposer {
       accId: ExprId,
       op: AggOp): Option[ExtractedG] = {
     op.matchBinary(unwrapDecimalPatternWrappers(e)).flatMap { case (l, r) =>
-      if (isAccRef(l, accId) && !containsAccRef(r, accId)) Some(ExtractedG(r, false))
-      else if (isAccRef(r, accId) && !containsAccRef(l, accId)) Some(ExtractedG(l, false))
+      if (isAccRef(l, accId) && !containsAccRef(r, accId)) Some(new ExtractedG(r, false))
+      else if (isAccRef(r, accId) && !containsAccRef(l, accId)) Some(new ExtractedG(l, false))
       else None
     }
   }
@@ -1502,7 +1502,7 @@ object ArrayAggregateDecomposer {
       op: AggOp,
       accType: DataType): Option[ExtractedG] = {
     if (isAccRef(branch, accId)) {
-      Some(ExtractedG(op.identityLiteral(accType), true))
+      Some(new ExtractedG(op.identityLiteral(accType), true))
     } else {
       extractG(branch, accId, op, accType)
     }
@@ -1517,7 +1517,7 @@ object ArrayAggregateDecomposer {
       for {
         tG <- extractBranch(t, accId, op, accType)
         fG <- extractBranch(f, accId, op, accType)
-      } yield ExtractedG(If(cond, tG.g, fG.g), tG.hasBareAccBranch || fG.hasBareAccBranch)
+      } yield new ExtractedG(If(cond, tG.g, fG.g), tG.hasBareAccBranch || fG.hasBareAccBranch)
 
     case CaseWhen(branches, Some(elseValue))
         if branches.forall { case (c, _) => !containsAccRef(c, accId) } =>
@@ -1530,7 +1530,7 @@ object ArrayAggregateDecomposer {
         val gBranches = branchDecs.map { case (c, dec) => (c, dec.get.g) }
         val hasBareAccBranch = branchDecs.exists(_._2.exists(_.hasBareAccBranch)) ||
           elseDec.exists(_.hasBareAccBranch)
-        Some(ExtractedG(CaseWhen(gBranches, Some(elseDec.get.g)), hasBareAccBranch))
+        Some(new ExtractedG(CaseWhen(gBranches, Some(elseDec.get.g)), hasBareAccBranch))
       }
 
     case _ => None
