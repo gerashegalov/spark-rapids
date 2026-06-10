@@ -90,6 +90,8 @@ case class GpuHiveTableScanExec(requestedAttributes: Seq[Attribute],
 
   val partitionAttributes: Seq[AttributeReference] = hiveTableRelation.partitionCols
 
+  private def shimSparkSession: SparkSession = sparkSession.asInstanceOf[SparkSession]
+
   // CPU expression to prune Hive partitions, based on [[partitionPruningPredicate]].
   // Bind all partition key attribute references in the partition pruning predicate for later
   // evaluation.
@@ -140,7 +142,7 @@ case class GpuHiveTableScanExec(requestedAttributes: Seq[Attribute],
         prunePartitions(hivePartitions)
       }
     } else {
-      if (sparkSession.sessionState.conf.metastorePartitionPruning &&
+      if (shimSparkSession.sessionState.conf.metastorePartitionPruning &&
         partitionPruningPredicate.nonEmpty) {
         rawPartitions
       } else {
@@ -152,7 +154,7 @@ case class GpuHiveTableScanExec(requestedAttributes: Seq[Attribute],
   // exposed for tests
   @transient lazy val rawPartitions: Seq[HivePartition] = {
     val prunedPartitions =
-      if (sparkSession.sessionState.conf.metastorePartitionPruning &&
+      if (shimSparkSession.sessionState.conf.metastorePartitionPruning &&
         partitionPruningPredicate.nonEmpty) {
         // Retrieve the original attributes based on expression ID so that capitalization matches.
         val normalizedFilters = partitionPruningPredicate.map(_.transform {
@@ -209,7 +211,7 @@ case class GpuHiveTableScanExec(requestedAttributes: Seq[Attribute],
                           readSchema: StructType,
                           options: Map[String, String]
               ): PartitionedFile => Iterator[InternalRow] = {
-    val readerFactory = GpuHiveTextPartitionReaderFactory(
+    val readerFactory = new GpuHiveTextPartitionReaderFactory(
       sqlConf = sqlConf,
       broadcastConf = broadcastConf,
       inputFileSchema = dataSchema,
@@ -336,13 +338,13 @@ case class GpuHiveTableScanExec(requestedAttributes: Seq[Attribute],
     // Assume Delimited text.
     val options                   = hiveTableRelation.tableMeta.properties ++
                                     hiveTableRelation.tableMeta.storage.properties
-    val hadoopConf                = sparkSession.sessionState.newHadoopConf()
+    val hadoopConf                = shimSparkSession.sessionState.newHadoopConf()
     // In the CPU HiveTableScanExec the config will have a bunch of confs set for S3 keys
     // and predicate push down/etc. We don't need this because we are getting that information
     // directly.
-    val broadcastHadoopConf       = sparkSession.sparkContext.broadcast(
+    val broadcastHadoopConf       = shimSparkSession.sparkContext.broadcast(
                                       new SerializableConfiguration(hadoopConf))
-    val sqlConf                   = sparkSession.sessionState.conf
+    val sqlConf                   = shimSparkSession.sessionState.conf
     val rapidsConf                = new RapidsConf(sqlConf)
     val requestedOutputDataSchema = getRequestedOutputDataSchema(hiveTableRelation.tableMeta.schema,
                                                                  partitionAttributes,
@@ -356,10 +358,10 @@ case class GpuHiveTableScanExec(requestedAttributes: Seq[Attribute],
                                                 options)
     val rdd = if (hiveTableRelation.isPartitioned) {
       createReadRDDForPartitions(reader, hiveTableRelation, requestedOutputDataSchema,
-                                 sparkSession, hadoopConf)
+                                 shimSparkSession, hadoopConf)
     } else {
       createReadRDDForTable(reader, hiveTableRelation, requestedOutputDataSchema,
-                            sparkSession, hadoopConf)
+                            shimSparkSession, hadoopConf)
     }
     sendDriverMetrics()
     rdd
@@ -446,18 +448,19 @@ class AlphabeticallyReorderingColumnPartitionReader(fileReader: PartitionReader[
 }
 
 // Factory to build the columnar reader.
-case class GpuHiveTextPartitionReaderFactory(sqlConf: SQLConf,
-                                             broadcastConf: Broadcast[SerializableConfiguration],
-                                             inputFileSchema: StructType,
-                                             partitionSchema: StructType,
-                                             requestedOutputDataSchema: StructType,
-                                             requestedAttributes: Seq[Attribute],
-                                             maxReaderBatchSizeRows: Integer,
-                                             maxReaderBatchSizeBytes: Long,
-                                             maxGpuColumnSizeBytes: Long,
-                                             metrics: Map[String, GpuMetric],
-                                             params: Map[String, String])
-  extends ShimFilePartitionReaderFactory(params) {
+class GpuHiveTextPartitionReaderFactory(
+    val sqlConf: SQLConf,
+    val broadcastConf: Broadcast[SerializableConfiguration],
+    val inputFileSchema: StructType,
+    val partitionSchema: StructType,
+    val requestedOutputDataSchema: StructType,
+    val requestedAttributes: Seq[Attribute],
+    val maxReaderBatchSizeRows: Integer,
+    val maxReaderBatchSizeBytes: Long,
+    val maxGpuColumnSizeBytes: Long,
+    val metrics: Map[String, GpuMetric],
+    val params: Map[String, String])
+  extends ShimFilePartitionReaderFactory(params) with Serializable {
 
   override def buildReader(partitionedFile: PartitionedFile): PartitionReader[InternalRow] = {
     throw new IllegalStateException("Row-based text parsing is not supported on GPU.")
