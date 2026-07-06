@@ -264,8 +264,6 @@ def shortest_path_to_version(graph, start):
 
 
 def tarjan_scc(graph):
-    sys.setrecursionlimit(max(sys.getrecursionlimit(), len(graph) * 2 + 1000))
-
     index = 0
     stack = []
     on_stack = set()
@@ -273,34 +271,49 @@ def tarjan_scc(graph):
     lowlinks = {}
     components = []
 
-    def strongconnect(node):
+    def start_node(node):
         nonlocal index
         indexes[node] = index
         lowlinks[node] = index
         index += 1
         stack.append(node)
         on_stack.add(node)
+        return [node, iter(graph[node])]
 
-        for next_node in graph[node]:
+    def maybe_emit_component(node):
+        if lowlinks[node] != indexes[node]:
+            return
+
+        component = []
+        while True:
+            item = stack.pop()
+            on_stack.remove(item)
+            component.append(item)
+            if item == node:
+                break
+        components.append(component)
+
+    for root in graph:
+        if root in indexes:
+            continue
+
+        call_stack = [start_node(root)]
+        while call_stack:
+            node, child_iter = call_stack[-1]
+            try:
+                next_node = next(child_iter)
+            except StopIteration:
+                call_stack.pop()
+                maybe_emit_component(node)
+                if call_stack:
+                    parent = call_stack[-1][0]
+                    lowlinks[parent] = min(lowlinks[parent], lowlinks[node])
+                continue
+
             if next_node not in indexes:
-                strongconnect(next_node)
-                lowlinks[node] = min(lowlinks[node], lowlinks[next_node])
+                call_stack.append(start_node(next_node))
             elif next_node in on_stack:
                 lowlinks[node] = min(lowlinks[node], indexes[next_node])
-
-        if lowlinks[node] == indexes[node]:
-            component = []
-            while True:
-                item = stack.pop()
-                on_stack.remove(item)
-                component.append(item)
-                if item == node:
-                    break
-            components.append(component)
-
-    for node in graph:
-        if node not in indexes:
-            strongconnect(node)
     return components
 
 

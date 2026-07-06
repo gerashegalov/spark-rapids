@@ -92,12 +92,20 @@ def artifact_jar(base_dir, artifact, scala_binary_version, project_version, buil
     return jar_path
 
 
+def file_sha1(path):
+    checksum = hashlib.sha1()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            checksum.update(chunk)
+    return checksum.hexdigest()
+
+
 def jar_signature(jar_path):
     stat = jar_path.stat()
     return "\n".join((
         "path=%s" % jar_path,
         "size=%s" % stat.st_size,
-        "mtime_ns=%s" % stat.st_mtime_ns,
+        "sha1=%s" % file_sha1(jar_path),
         "",
     ))
 
@@ -172,8 +180,8 @@ def copy_and_extract_jars(
         from_each):
     parallel_world = target_dir / "parallel-world"
     cache_root = target_dir / "unshim-parallel-world-cache"
+    root_buildver = buildvers[0]
     sorted_buildvers = sorted(buildvers, reverse=True)
-    root_buildver = sorted_buildvers[0]
 
     for buildver in sorted_buildvers:
         classifier = "spark%s" % buildver

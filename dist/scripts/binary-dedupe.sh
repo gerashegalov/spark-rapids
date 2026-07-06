@@ -44,6 +44,8 @@ export ROOT_SAFE_SPARK_SHARED_TXT="$PWD/root-safe-spark-shared.txt"
 export DEFAULT_UNSHIMMED_SPARK_SHARED_TXT="$PWD/default-unshimmed-spark-shared.txt"
 export UNSHIMMED_NEED_SHARED_TXT="$PWD/unshimmed-need-shared.txt"
 export UNSHIMMED_MISSING_SHARED_TXT="$PWD/unshimmed-missing-shared.txt"
+KEEP_IN_SPARK_SHARED_PATTERNS=()
+KEEP_IN_SPARK_SHARED_PATTERNS_LOADED=0
 
 SPARK_SHIM_DIRS=()
 if [[ "${UNSHIM_FAST:-0}" == "1" ]]; then
@@ -207,11 +209,13 @@ function write_default_unshimmed_spark_shared_classes() {
     grep '\.class$' | sort -u > "$DEFAULT_UNSHIMMED_SPARK_SHARED_TXT"
 }
 
-function keep_in_spark_shared() {
+function load_keep_in_spark_shared_patterns() {
   set -e
-  local class_file="$1"
+  [[ "$KEEP_IN_SPARK_SHARED_PATTERNS_LOADED" == "0" ]] || return 0
+  KEEP_IN_SPARK_SHARED_PATTERNS_LOADED=1
+
   local keep_patterns_txt="${KEEP_IN_SPARK_SHARED_TXT:-}"
-  [[ -n "$keep_patterns_txt" ]] || return 1
+  [[ -n "$keep_patterns_txt" ]] || return 0
   [[ -f "$keep_patterns_txt" ]] || {
     echo >&2 "Keep-in-spark-shared list does not exist: $keep_patterns_txt"
     exit 255
@@ -221,11 +225,20 @@ function keep_in_spark_shared() {
   while IFS= read -r pattern; do
     [[ -n "$pattern" ]] || continue
     [[ "$pattern" =~ ^[[:space:]]*# ]] && continue
+    KEEP_IN_SPARK_SHARED_PATTERNS+=("$pattern")
+  done < "$keep_patterns_txt"
+}
+
+function keep_in_spark_shared() {
+  set -e
+  local class_file="$1"
+  local pattern
+  for pattern in "${KEEP_IN_SPARK_SHARED_PATTERNS[@]}"; do
     # shellcheck disable=SC2053
     if [[ "$class_file" == $pattern ]]; then
       return 0
     fi
-  done < "$keep_patterns_txt"
+  done
   return 1
 }
 
@@ -234,6 +247,7 @@ function filter_keep_in_spark_shared() {
   local input_txt="$1"
   local output_txt="$2"
   local class_file
+  load_keep_in_spark_shared_patterns
   : > "$output_txt"
   while IFS= read -r class_file; do
     [[ -n "$class_file" ]] || continue
