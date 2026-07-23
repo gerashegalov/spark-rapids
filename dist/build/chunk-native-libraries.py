@@ -39,6 +39,13 @@ def remove_path(path):
         os.remove(path)
 
 
+def remove_path_ignoring_errors(path):
+    try:
+        remove_path(path)
+    except:
+        pass
+
+
 def native_libraries(root_dir, minimum_size):
     candidates = []
     for arch in sorted(os.listdir(root_dir)):
@@ -109,8 +116,8 @@ def split_library(root_dir, library_path, chunk_size):
             chunk_crc32.append(chunk_crc.getValue())
             chunk_count += 1
     except:
-        remove_path(temporary_chunk_dir)
-        remove_path(temporary_manifest)
+        remove_path_ignoring_errors(temporary_chunk_dir)
+        remove_path_ignoring_errors(temporary_manifest)
         raise
     finally:
         source.close()
@@ -138,6 +145,8 @@ def split_library(root_dir, library_path, chunk_size):
         manifest_output.close()
     os.utime(temporary_manifest, (source_stat.st_atime, source_stat.st_mtime))
 
+    # Any failure here aborts the Maven execution before JAR creation. The initialize-phase
+    # cleanup removes partial parallel-world output before the next invocation.
     os.rename(temporary_chunk_dir, chunk_dir)
     os.rename(temporary_manifest, manifest_path)
     os.remove(library_path)

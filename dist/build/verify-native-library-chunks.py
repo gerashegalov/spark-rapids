@@ -75,6 +75,12 @@ try:
         library_crc = long(require_property(properties, "library.crc32", manifest_name), 16)
         chunk_size = long(require_property(properties, "chunk.size", manifest_name))
         chunk_count = int(require_property(properties, "chunk.count", manifest_name))
+        if library_size <= 0:
+            raise RuntimeError("Invalid library.size in %s" % manifest_name)
+        if chunk_size <= 0:
+            raise RuntimeError("Invalid chunk.size in %s" % manifest_name)
+        if chunk_count <= 0:
+            raise RuntimeError("Invalid chunk.count in %s" % manifest_name)
         expected_count = 1 + ((library_size - 1) // chunk_size)
         if chunk_count != expected_count:
             raise RuntimeError("Invalid chunk count in %s" % manifest_name)
