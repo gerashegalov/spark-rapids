@@ -79,7 +79,6 @@ def split_library(root_dir, library_path, chunk_size):
         raise RuntimeError("Chunk output already exists for %s" % relative_library)
     ensure_directory(temporary_chunk_dir)
 
-    crc = CRC32()
     source = FileInputStream(library_path)
     buffer = zeros(COPY_BUFFER_SIZE, "b")
     deflated_entries = []
@@ -102,7 +101,6 @@ def split_library(root_dir, library_path, chunk_size):
                         raise RuntimeError("Unexpected end of native library %s" % relative_library)
                     if count:
                         chunk_output.write(buffer, 0, count)
-                        crc.update(buffer, 0, count)
                         chunk_crc.update(buffer, 0, count)
                         chunk_bytes += count
                         total_bytes += count
@@ -131,10 +129,9 @@ def split_library(root_dir, library_path, chunk_size):
     manifest = (
         "format.version=1\n"
         "library.size=%d\n"
-        "library.crc32=%08x\n"
         "chunk.size=%d\n"
         "chunk.count=%d\n"
-        % (library_size, crc.getValue(), chunk_size, chunk_count))
+        % (library_size, chunk_size, chunk_count))
     manifest += "".join(
         "chunk.%05d.crc32=%08x\n" % (index, value)
         for index, value in enumerate(chunk_crc32))

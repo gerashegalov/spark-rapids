@@ -72,7 +72,6 @@ try:
         if require_property(properties, "format.version", manifest_name) != "1":
             raise RuntimeError("Unsupported chunk manifest version in %s" % manifest_name)
         library_size = long(require_property(properties, "library.size", manifest_name))
-        library_crc = long(require_property(properties, "library.crc32", manifest_name), 16)
         chunk_size = long(require_property(properties, "chunk.size", manifest_name))
         chunk_count = int(require_property(properties, "chunk.count", manifest_name))
         if library_size <= 0:
@@ -90,7 +89,6 @@ try:
             raise RuntimeError(
                 "Conventional native resource still exists beside %s" % manifest_name)
 
-        crc = CRC32()
         total_size = 0
         for index in range(chunk_count):
             chunk_name = "%s.chunks/%05d" % (library_name, index)
@@ -116,7 +114,6 @@ try:
                     if count < 0:
                         break
                     if count:
-                        crc.update(buffer, 0, count)
                         chunk_crc.update(buffer, 0, count)
                         chunk_bytes += count
             finally:
@@ -130,8 +127,9 @@ try:
             total_size += chunk_bytes
             verified_chunks.add(chunk_name)
 
-        if total_size != library_size or crc.getValue() != library_crc:
-            raise RuntimeError("Reconstructed native library mismatch for %s" % library_name)
+        if total_size != library_size:
+            raise RuntimeError(
+                "Reconstructed native library size mismatch for %s" % library_name)
 finally:
     archive.close()
 
