@@ -50,8 +50,8 @@
         <rapids.jni.unpack.skip>false</rapids.jni.unpack.skip>
         <rapids.source.jar.phase>none</rapids.source.jar.phase>
         <dist.native.chunking.enabled>true</dist.native.chunking.enabled>
-        <dist.native.chunking.minimum.size>268435456</dist.native.chunking.minimum.size>
-        <dist.native.chunking.chunk.size>33554432</dist.native.chunking.chunk.size>
+        <dist.native.chunking.minimum.size>256M</dist.native.chunking.minimum.size>
+        <dist.native.chunking.chunk.size>32M</dist.native.chunking.chunk.size>
         <dist.native.chunking.metadata.dir>${project.build.directory}/native-chunks</dist.native.chunking.metadata.dir>
     </properties>
     <profiles>

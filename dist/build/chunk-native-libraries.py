@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import re
 import shutil
 
 from java.io import FileInputStream, FileOutputStream
@@ -25,6 +26,22 @@ MANIFEST_SUFFIX = ".chunks.properties"
 CHUNK_DIRECTORY_SUFFIX = ".chunks"
 NATIVE_SUFFIXES = (".so", ".dylib", ".dll")
 EMPTY_INCLUDE_PATTERN = "__no_native_chunks__"
+BYTE_SIZE_RE = re.compile(r"^\s*(\d+)\s*([KMGT]?)B?\s*$", re.IGNORECASE)
+BYTE_SIZE_MULTIPLIERS = {
+    "": 1,
+    "K": 1024,
+    "M": 1024 ** 2,
+    "G": 1024 ** 3,
+    "T": 1024 ** 4,
+}
+
+
+def parse_byte_size(value):
+    match = BYTE_SIZE_RE.match(str(value))
+    if not match:
+        raise ValueError("Invalid byte size: %r" % value)
+    amount, suffix = match.groups()
+    return long(amount) * BYTE_SIZE_MULTIPLIERS[suffix.upper()]
 
 
 def ensure_directory(path):
@@ -165,8 +182,8 @@ def write_lines(path, values):
 
 root_dir = attributes.get("root_dir")
 metadata_dir = attributes.get("metadata_dir")
-minimum_size = long(attributes.get("minimum_size"))
-chunk_size = long(attributes.get("chunk_size"))
+minimum_size = parse_byte_size(attributes.get("minimum_size"))
+chunk_size = parse_byte_size(attributes.get("chunk_size"))
 
 if minimum_size <= 0 or chunk_size <= 0:
     raise RuntimeError("Native chunk sizes must be positive")
