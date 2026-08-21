@@ -253,6 +253,10 @@
                 <artifactId>maven-antrun-plugin</artifactId>
                 <executions>
                     <execution>
+                        <id>shimplify-shim-sources</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
                         <!-- ensure a phase preceding create-parallel-world and copy-current -->
                         <phase>initialize</phase>
                         <goals>
