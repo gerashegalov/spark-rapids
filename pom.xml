@@ -1144,6 +1144,7 @@
         <maven.clean.plugin.version>3.1.0</maven.clean.plugin.version>
         <maven.scaladoc.skip>false</maven.scaladoc.skip>
         <maven.scalastyle.skip>false</maven.scalastyle.skip>
+        <rapids.shimplify.skip>false</rapids.shimplify.skip>
         <dist.jar.compress>true</dist.jar.compress>
         <!--
         This property is used to in aggregator module to determine the artifactId of iceberg
@@ -1428,6 +1429,7 @@
                         <goals><goal>run</goal></goals>
                         <phase>generate-sources</phase>
                         <configuration>
+                            <skip>${rapids.shimplify.skip}</skip>
                             <target xmlns:ac="antlib:net.sf.antcontrib">
                                 <property name="dyn.shim.buildver" value="all.buildvers"/>
                                 <script language="jython" src="${spark.rapids.source.basedir}/build/dyn_shim_detection.py"/>
