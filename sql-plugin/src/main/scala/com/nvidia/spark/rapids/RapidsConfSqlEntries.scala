@@ -415,10 +415,6 @@ private[rapids] trait RapidsConfSqlEntries extends RapidsConfResourceEntries {
           "(cuDF requires the dictionary size to fit in an int32).")
       .createOptional
 
-  object ParquetFooterReaderType extends Enumeration {
-    val JAVA, NATIVE, AUTO = Value
-  }
-
   val PARQUET_READER_FOOTER_TYPE =
     conf("spark.rapids.sql.format.parquet.reader.footer.type")
       .doc("In some cases reading the footer of the file is very expensive. Typically this " +
@@ -430,8 +426,8 @@ private[rapids] trait RapidsConfSqlEntries extends RapidsConfResourceEntries {
           "filter the footer using C++.")
       .stringConf
       .transform(_.toUpperCase(java.util.Locale.ROOT))
-      .checkValues(ParquetFooterReaderType.values.map(_.toString))
-      .createWithDefault(ParquetFooterReaderType.AUTO.toString)
+      .checkValues(Set("JAVA", "NATIVE", "AUTO"))
+      .createWithDefault("AUTO")
 
   // Deprecated legacy row-based UDF path. CPU bridge is the preferred replacement when it can
   // bridge the expression safely.

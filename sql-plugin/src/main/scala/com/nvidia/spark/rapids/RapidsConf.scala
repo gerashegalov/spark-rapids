@@ -320,6 +320,26 @@ object RapidsReaderType extends Enumeration {
 }
 
 object RapidsConf extends Logging with RapidsConfEntries {
+  object HybridFilterPushdownType extends Enumeration {
+    val CPU, GPU, OFF = Value
+  }
+
+  object RapidsShuffleManagerMode extends Enumeration {
+    val UCX, CACHE_ONLY, MULTITHREADED = Value
+  }
+
+  object ShuffleKudoMode extends Enumeration {
+    val CPU, GPU = Value
+  }
+
+  object AllowMultipleJars extends Enumeration {
+    val ALWAYS, SAME_REVISION, NEVER = Value
+  }
+
+  object ParquetFooterReaderType extends Enumeration {
+    val JAVA, NATIVE, AUTO = Value
+  }
+
   private lazy val registeredConfs = new ListBuffer[ConfEntry[_]]()
 
   private def register(entry: ConfEntry[_]): Unit = {

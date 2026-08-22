@@ -162,10 +162,6 @@ private[rapids] trait RapidsConfEntries extends RapidsConfSqlEntries {
     .booleanConf
     .createWithDefault(false)
 
-  object HybridFilterPushdownType extends Enumeration {
-    val CPU, GPU, OFF = Value
-  }
-
   val PUSH_DOWN_FILTERS_TO_HYBRID = conf("spark.rapids.sql.hybrid.parquet.filterPushDown")
     .doc("Push down all supported filters to CPU if set to CPU. " +
       "If set to GPU, no filters will be pushed down so all filters are on the GPU. " +
@@ -174,8 +170,8 @@ private[rapids] trait RapidsConfEntries extends RapidsConfSqlEntries {
     .internal()
     .stringConf
     .transform(_.toUpperCase(java.util.Locale.ROOT))
-    .checkValues(HybridFilterPushdownType.values.map(_.toString))
-    .createWithDefault(HybridFilterPushdownType.CPU.toString)
+    .checkValues(Set("CPU", "GPU", "OFF"))
+    .createWithDefault("CPU")
 
   val HYBRID_EXPRS_WHITELIST = conf("spark.rapids.sql.hybrid.whitelistExprs")
     .doc("White list of expressions that can be pushed down to CPU. " +
@@ -217,10 +213,6 @@ private[rapids] trait RapidsConfEntries extends RapidsConfSqlEntries {
     .booleanConf
     .createWithDefault(true)
 
-  object RapidsShuffleManagerMode extends Enumeration {
-    val UCX, CACHE_ONLY, MULTITHREADED = Value
-  }
-
   val SHUFFLE_MANAGER_MODE = conf("spark.rapids.shuffle.mode")
     .doc("RAPIDS Shuffle Manager mode. " +
       "\"MULTITHREADED\": shuffle file writes and reads are parallelized using a thread pool. " +
@@ -230,8 +222,8 @@ private[rapids] trait RapidsConfEntries extends RapidsConfSqlEntries {
       "shuffle (for testing purposes).")
     .startupOnly()
     .stringConf
-    .checkValues(RapidsShuffleManagerMode.values.map(_.toString))
-    .createWithDefault(RapidsShuffleManagerMode.MULTITHREADED.toString)
+    .checkValues(Set("UCX", "CACHE_ONLY", "MULTITHREADED"))
+    .createWithDefault("MULTITHREADED")
 
   val MULTITHREADED_SHUFFLE_SKIP_MERGE = conf("spark.rapids.shuffle.multithreaded.skipMerge")
     .doc("When using MULTITHREADED shuffle mode, skip merging partial shuffle files and " +
@@ -475,10 +467,6 @@ val SHUFFLE_COMPRESSION_LZ4_CHUNK_SIZE = conf("spark.rapids.shuffle.compression.
     .booleanConf
     .createWithDefault(true)
 
-  object ShuffleKudoMode extends Enumeration {
-    val CPU, GPU = Value
-  }
-
   val SHUFFLE_KUDO_WRITE_MODE = conf("spark.rapids.shuffle.kudo.serializer.write.mode")
     .doc("Kudo serializer mode. " +
       "\"CPU\": serialize shuffle outputs on the cpu. " +
@@ -486,7 +474,7 @@ val SHUFFLE_COMPRESSION_LZ4_CHUNK_SIZE = conf("spark.rapids.shuffle.compression.
     .internal()
     .startupOnly()
     .stringConf
-    .createWithDefault(ShuffleKudoMode.CPU.toString)
+    .createWithDefault("CPU")
 
   val SHUFFLE_KUDO_READ_MODE = conf("spark.rapids.shuffle.kudo.serializer.read.mode")
     .doc("Kudo serializer read mode. " +
@@ -495,7 +483,7 @@ val SHUFFLE_COMPRESSION_LZ4_CHUNK_SIZE = conf("spark.rapids.shuffle.compression.
     .internal()
     .startupOnly()
     .stringConf
-    .createWithDefault(ShuffleKudoMode.GPU.toString)
+    .createWithDefault("GPU")
 
   val SHUFFLE_KUDO_SERIALIZER_MEASURE_BUFFER_COPY_ENABLED =
     conf("spark.rapids.shuffle.kudo.serializer.measure.buffer.copy.enabled")
@@ -582,10 +570,6 @@ val SHUFFLE_COMPRESSION_LZ4_CHUNK_SIZE = conf("spark.rapids.shuffle.compression.
     .booleanConf
     .createWithDefault(false)
 
-  object AllowMultipleJars extends Enumeration {
-    val ALWAYS, SAME_REVISION, NEVER = Value
-  }
-
   val ALLOW_MULTIPLE_JARS = conf("spark.rapids.sql.allowMultipleJars")
     .startupOnly()
     .doc("Allow multiple rapids-4-spark, spark-rapids-jni, and cudf jars on the classpath. " +
@@ -594,8 +578,8 @@ val SHUFFLE_COMPRESSION_LZ4_CHUNK_SIZE = conf("spark.rapids.shuffle.compression.
       "revision, NEVER: do not allow multiple jars at all.")
     .stringConf
     .transform(_.toUpperCase(java.util.Locale.ROOT))
-    .checkValues(AllowMultipleJars.values.map(_.toString))
-    .createWithDefault(AllowMultipleJars.SAME_REVISION.toString)
+    .checkValues(Set("ALWAYS", "SAME_REVISION", "NEVER"))
+    .createWithDefault("SAME_REVISION")
 
   val ALLOW_DISABLE_ENTIRE_PLAN = conf("spark.rapids.allowDisableEntirePlan")
     .internal()
