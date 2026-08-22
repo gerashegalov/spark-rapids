@@ -21,8 +21,6 @@ import com.nvidia.spark.rapids.shims._
 
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.aggregate._
-import org.apache.spark.sql.internal.SQLConf
-import org.apache.spark.sql.rapids._
 import org.apache.spark.sql.rapids.aggregate._
 import org.apache.spark.sql.types._
 
@@ -37,17 +35,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
           s"decimals with precision ${DecimalType.MAX_PRECISION} are not supported"),
             TypeSig.cpuNumeric),
         ("rhs", (TypeSig.integral + TypeSig.fp), TypeSig.cpuNumeric)),
-      (a, conf, p, r) => new BinaryExprMeta[Pmod](a, conf, p, r) {
-        override def tagExprForGpu(): Unit = {
-          a.dataType match {
-            case dt: DecimalType if dt.precision == DecimalType.MAX_PRECISION =>
-              willNotWorkOnGpu("pmod at maximum decimal precision is not supported")
-            case _ =>
-          }
-        }
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuPmod(lhs, rhs)
-      }),
+      PmodRuleMeta),
     expr[Add](
       "Addition",
       ExprChecks.binaryProjectAndAst(
@@ -58,25 +46,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
             TypeSig.numericAndInterval),
         ("rhs", TypeSig.gpuNumeric + GpuTypeShims.additionalArithmeticSupportedTypes,
             TypeSig.numericAndInterval)),
-      (a, conf, p, r) => new BinaryAstExprMeta[Add](a, conf, p, r) {
-        private val ansiEnabled = SQLConf.get.ansiEnabled
-
-        override def tagExprForGpu(): Unit = {
-          // Check if this Add expression is in TRY mode context
-          if (TryModeShim.isTryMode(a)) {
-            willNotWorkOnGpu("try_add is not supported on GPU")
-          }
-        }
-
-        override def tagSelfForAst(): Unit = {
-          if (ansiEnabled && GpuAnsi.needBasicOpOverflowCheck(a.dataType)) {
-            willNotWorkInAst("AST Addition does not support ANSI mode.")
-          }
-        }
-
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuAdd(lhs, rhs, ansiEnabled)(a.origin)
-      }),
+      AddRuleMeta),
     expr[Subtract](
       "Subtraction",
       ExprChecks.binaryProjectAndAst(
@@ -87,43 +57,19 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
             TypeSig.numericAndInterval),
         ("rhs", TypeSig.gpuNumeric + GpuTypeShims.additionalArithmeticSupportedTypes,
             TypeSig.numericAndInterval)),
-      (a, conf, p, r) => new BinaryAstExprMeta[Subtract](a, conf, p, r) {
-        private val ansiEnabled = SQLConf.get.ansiEnabled
-
-        override def tagExprForGpu(): Unit = {
-          // Check if this Subtract expression is in TRY mode context
-          if (TryModeShim.isTryMode(a)) {
-            willNotWorkOnGpu("try_subtract is not supported on GPU")
-          }
-        }
-
-        override def tagSelfForAst(): Unit = {
-          if (ansiEnabled && GpuAnsi.needBasicOpOverflowCheck(a.dataType)) {
-            willNotWorkInAst("AST Subtraction does not support ANSI mode.")
-          }
-        }
-
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuSubtract(lhs, rhs, ansiEnabled)(a.origin)
-      }),
+      SubtractRuleMeta),
     expr[And](
       "Logical AND",
       ExprChecks.binaryProjectAndAst(TypeSig.BOOLEAN, TypeSig.BOOLEAN, TypeSig.BOOLEAN,
         ("lhs", TypeSig.BOOLEAN, TypeSig.BOOLEAN),
         ("rhs", TypeSig.BOOLEAN, TypeSig.BOOLEAN)),
-      (a, conf, p, r) => new BinaryExprMeta[And](a, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuAnd(lhs, rhs)
-      }),
+      AndRuleMeta),
     expr[Or](
       "Logical OR",
       ExprChecks.binaryProjectAndAst(TypeSig.BOOLEAN, TypeSig.BOOLEAN, TypeSig.BOOLEAN,
         ("lhs", TypeSig.BOOLEAN, TypeSig.BOOLEAN),
         ("rhs", TypeSig.BOOLEAN, TypeSig.BOOLEAN)),
-      (a, conf, p, r) => new BinaryExprMeta[Or](a, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuOr(lhs, rhs)
-      }),
+      OrRuleMeta),
     expr[EqualNullSafe](
       "Check if the values are equal including nulls <=>",
       ExprChecks.binaryProject(
@@ -134,10 +80,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
         ("rhs", (TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128 +
             GpuTypeShims.additionalPredicateSupportedTypes + TypeSig.STRUCT).nested(),
             TypeSig.comparable)),
-      (a, conf, p, r) => new BinaryExprMeta[EqualNullSafe](a, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuEqualNullSafe(lhs, rhs)
-      }),
+      EqualNullSafeRuleMeta),
     expr[EqualTo](
       "Check if the values are equal",
       ExprChecks.binaryProjectAndAst(
@@ -149,10 +92,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
         ("rhs", (TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128 +
             GpuTypeShims.additionalPredicateSupportedTypes + TypeSig.STRUCT).nested(),
             TypeSig.comparable)),
-      (a, conf, p, r) => new BinaryAstExprMeta[EqualTo](a, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuEqualTo(lhs, rhs)
-      }),
+      EqualToRuleMeta),
     expr[GreaterThan](
       "> operator",
       ExprChecks.binaryProjectAndAst(
@@ -164,10 +104,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
         ("rhs", (TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128 +
             GpuTypeShims.additionalPredicateSupportedTypes + TypeSig.STRUCT).nested(),
             TypeSig.orderable)),
-      (a, conf, p, r) => new BinaryAstExprMeta[GreaterThan](a, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuStringInstr.optimizeContains(GpuGreaterThan(lhs, rhs))
-      }),
+      GreaterThanRuleMeta),
     expr[GreaterThanOrEqual](
       ">= operator",
       ExprChecks.binaryProjectAndAst(
@@ -179,10 +116,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
         ("rhs", (TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128 +
             GpuTypeShims.additionalPredicateSupportedTypes + TypeSig.STRUCT).nested(),
             TypeSig.orderable)),
-      (a, conf, p, r) => new BinaryAstExprMeta[GreaterThanOrEqual](a, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuStringInstr.optimizeContains(GpuGreaterThanOrEqual(lhs, rhs))
-      }),
+      GreaterThanOrEqualRuleMeta),
     expr[In](
       "IN operator",
       ExprChecks.projectOnly(TypeSig.BOOLEAN, TypeSig.BOOLEAN,
@@ -191,18 +125,12 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
         Some(RepeatingParamCheck("list",
           (TypeSig.commonCudfTypes + TypeSig.DECIMAL_128).withAllLit(),
           TypeSig.comparable))),
-      (in, conf, p, r) => new ExprMeta[In](in, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression =
-          GpuInSet(childExprs.head.convertToGpu(), in.list.asInstanceOf[Seq[Literal]].map(_.value))
-      }),
+      InRuleMeta),
     expr[InSet](
       "INSET operator",
       ExprChecks.unaryProject(TypeSig.BOOLEAN, TypeSig.BOOLEAN,
         TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128, TypeSig.comparable),
-      (in, conf, p, r) => new ExprMeta[InSet](in, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression =
-          GpuInSet(childExprs.head.convertToGpu(), in.hset.toSeq)
-      }),
+      InSetRuleMeta),
     expr[LessThan](
       "< operator",
       ExprChecks.binaryProjectAndAst(
@@ -214,10 +142,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
         ("rhs", (TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128 +
             GpuTypeShims.additionalPredicateSupportedTypes + TypeSig.STRUCT).nested(),
             TypeSig.orderable)),
-      (a, conf, p, r) => new BinaryAstExprMeta[LessThan](a, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuStringInstr.optimizeContains(GpuLessThan(lhs, rhs))
-      }),
+      LessThanRuleMeta),
     expr[LessThanOrEqual](
       "<= operator",
       ExprChecks.binaryProjectAndAst(
@@ -229,10 +154,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
         ("rhs", (TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128 +
             GpuTypeShims.additionalPredicateSupportedTypes + TypeSig.STRUCT).nested(),
             TypeSig.orderable)),
-      (a, conf, p, r) => new BinaryAstExprMeta[LessThanOrEqual](a, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuStringInstr.optimizeContains(GpuLessThanOrEqual(lhs, rhs))
-      }),
+      LessThanOrEqualRuleMeta),
     expr[CaseWhen](
       "CASE WHEN expression",
       CaseWhenCheck,
@@ -259,10 +181,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
         TypeSig.implicitCastsAstTypes, TypeSig.DOUBLE, TypeSig.DOUBLE,
         ("lhs", TypeSig.DOUBLE, TypeSig.DOUBLE),
         ("rhs", TypeSig.DOUBLE, TypeSig.DOUBLE)),
-      (a, conf, p, r) => new BinaryAstExprMeta[Pow](a, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuPow(lhs, rhs)
-      }),
+      PowRuleMeta),
     expr[AggregateExpression](
       "Aggregate expression",
       // Let the underlying expression checks decide whether this can be on the GPU.
@@ -297,49 +216,14 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
           ParamCheck("valueColumn",
           TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128,
           TypeSig.all))),
-      (pivot, conf, p, r) => new ImperativeAggExprMeta[PivotFirst](pivot, conf, p, r) {
-        override def tagAggForGpu(): Unit = {
-          pivot.pivotColumn.dataType match {
-            // `StringType` is the UTF8_BINARY singleton, while `st` may be another
-            // StringType instance whose collation differs from UTF8_BINARY in Spark 4.x.
-            case st: StringType if st != StringType =>
-              willNotWorkOnGpu(
-                "PivotFirst does not support non-UTF8_BINARY string collations on the GPU")
-            case _ =>
-          }
-          // If pivotColumnValues doesn't have distinct values, fall back to CPU
-          if (pivot.pivotColumnValues.distinct.lengthCompare(pivot.pivotColumnValues.length) != 0) {
-            willNotWorkOnGpu("PivotFirst does not work on the GPU when there are duplicate" +
-                " pivot values provided")
-          }
-        }
-        override def convertToGpu(childExprs: Seq[Expression]): GpuExpression = {
-          val Seq(pivotColumn, valueColumn) = childExprs
-          GpuPivotFirst(pivotColumn, valueColumn, pivot.pivotColumnValues)
-        }
-
-        // Pivot does not overflow, so it doesn't need the ANSI check
-        override val needsAnsiCheck: Boolean = false
-      }),
+      PivotFirstRuleMeta),
     expr[Count](
       "Count aggregate operator",
       ExprChecks.fullAgg(
         TypeSig.LONG, TypeSig.LONG,
         repeatingParamCheck = Some(RepeatingParamCheck(
           "input", TypeSig.all, TypeSig.all))),
-      (count, conf, p, r) => new AggExprMeta[Count](count, conf, p, r) {
-
-        // Spark Count agg returns Long and does not check Ansi mode and overflow
-        override def needsAnsiCheck: Boolean = false
-
-        override def tagAggForGpu(): Unit = {
-          if (count.children.size > 1) {
-            willNotWorkOnGpu("count of multiple columns not supported")
-          }
-        }
-        override def convertToGpu(childExprs: Seq[Expression]): GpuExpression =
-          GpuCount(childExprs)
-      }),
+      CountRuleMeta),
     expr[Max](
       "Max aggregate operator",
       ExprChecksImpl(
@@ -358,13 +242,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
             Seq(ParamCheck("input",
               (TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL),
               TypeSig.orderable))).asInstanceOf[ExprChecksImpl].contexts),
-      (max, conf, p, r) => new AggExprMeta[Max](max, conf, p, r) {
-        override def convertToGpu(childExprs: Seq[Expression]): GpuExpression =
-          GpuMax(childExprs.head)
-
-        // Max does not overflow, so it doesn't need the ANSI check
-        override val needsAnsiCheck: Boolean = false
-      }),
+      MaxRuleMeta),
     expr[Min](
       "Min aggregate operator",
       ExprChecksImpl(
@@ -383,35 +261,14 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
             Seq(ParamCheck("input",
               (TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL),
               TypeSig.orderable))).asInstanceOf[ExprChecksImpl].contexts),
-      (a, conf, p, r) => new AggExprMeta[Min](a, conf, p, r) {
-        override def convertToGpu(childExprs: Seq[Expression]): GpuExpression =
-          GpuMin(childExprs.head)
-
-        // Min does not overflow, so it doesn't need the ANSI check
-        override val needsAnsiCheck: Boolean = false
-      }),
+      MinRuleMeta),
     expr[Sum](
       "Sum aggregate operator",
       ExprChecks.fullAgg(
         TypeSig.LONG + TypeSig.DOUBLE + TypeSig.DECIMAL_128,
         TypeSig.LONG + TypeSig.DOUBLE + TypeSig.DECIMAL_128,
         Seq(ParamCheck("input", TypeSig.gpuNumeric, TypeSig.cpuNumeric))),
-      (a, conf, p, r) => new AggExprMeta[Sum](a, conf, p, r) {
-        override def tagAggForGpu(): Unit = {
-          val inputDataType = a.child.dataType
-          checkAndTagFloatAgg(inputDataType, this.conf, this)
-
-          // Check if this Sum expression is in TRY mode context
-          if (TryModeShim.isTryMode(a)) {
-            willNotWorkOnGpu("try_sum is not supported on GPU")
-          }
-        }
-
-        override def needsAnsiCheck: Boolean = false
-
-        override def convertToGpu(childExprs: Seq[Expression]): GpuExpression =
-          GpuSum(childExprs.head, a.dataType)
-      }),
+      SumRuleMeta),
     expr[NthValue](
       "nth window operator",
       ExprChecks.windowOnly(
@@ -424,13 +281,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
           TypeSig.all),
           ParamCheck("offset", TypeSig.lit(TypeEnum.INT), TypeSig.lit(TypeEnum.INT)))
       ),
-      (a, conf, p, r) => new AggExprMeta[NthValue](a, conf, p, r) {
-        override def convertToGpu(childExprs: Seq[Expression]): GpuExpression =
-          GpuNthValue(childExprs.head, a.offset, a.ignoreNulls)
-
-        // nth does not overflow, so it doesn't need the ANSI check
-        override val needsAnsiCheck: Boolean = false
-      }),
+      NthValueRuleMeta),
     expr[First](
       "first aggregate operator",
       ExprChecks.fullAgg(
@@ -442,13 +293,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
               TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128).nested(),
           TypeSig.all))
       ),
-      (a, conf, p, r) => new AggExprMeta[First](a, conf, p, r) {
-        override def convertToGpu(childExprs: Seq[Expression]): GpuExpression =
-          GpuFirst(childExprs.head, a.ignoreNulls)
-
-        // First does not overflow, so it doesn't need the ANSI check
-        override val needsAnsiCheck: Boolean = false
-      }),
+      FirstRuleMeta),
     expr[Last](
     "last aggregate operator",
       ExprChecks.fullAgg(
@@ -460,13 +305,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
               TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128).nested(),
           TypeSig.all))
       ),
-      (a, conf, p, r) => new AggExprMeta[Last](a, conf, p, r) {
-        override def convertToGpu(childExprs: Seq[Expression]): GpuExpression =
-          GpuLast(childExprs.head, a.ignoreNulls)
-
-        // Last does not overflow, so it doesn't need the ANSI check
-        override val needsAnsiCheck: Boolean = false
-      }),
+      LastRuleMeta),
     expr[MaxBy](
       "MaxBy aggregate operator. It may produce different results than CPU when " +
         "multiple rows in a group have same minimum value in the ordering column and " +
@@ -485,17 +324,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
               TypeSig.NULL + TypeSig.STRUCT + TypeSig.ARRAY),
             TypeSig.orderable))
       ),
-      (maxBy, conf, p, r) => new AggExprMeta[MaxBy](maxBy, conf, p, r) {
-
-        override def convertToGpu(childExprs: Seq[Expression]): GpuExpression = {
-          // Only two children (value expression, ordering expression)
-          require(childExprs.length == 2)
-          GpuMaxBy(childExprs.head, childExprs.last)
-        }
-
-        // MaxBy does not overflow, so it doesn't need the ANSI check
-        override val needsAnsiCheck: Boolean = false
-      }),
+      MaxByRuleMeta),
     expr[MinBy](
       "MinBy aggregate operator. It may produce different results than CPU when " +
         "multiple rows in a group have same minimum value in the ordering column and " +
@@ -514,17 +343,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
               TypeSig.NULL + TypeSig.STRUCT + TypeSig.ARRAY),
             TypeSig.orderable))
       ),
-      (minBy, conf, p, r) => new AggExprMeta[MinBy](minBy, conf, p, r) {
-
-        override def convertToGpu(childExprs: Seq[Expression]): GpuExpression = {
-          // Only two children (value expression, ordering expression)
-          require(childExprs.length == 2)
-          GpuMinBy(childExprs.head, childExprs.last)
-        }
-
-        // MinBy does not overflow, so it doesn't need the ANSI check
-        override val needsAnsiCheck: Boolean = false
-      }),
+      MinByRuleMeta),
     expr[BRound](
       "Round an expression to d decimal places using HALF_EVEN rounding mode",
       ExprChecks.binaryProject(
@@ -534,16 +353,7 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
             TypeSig.psNote(TypeEnum.DOUBLE, "result may round slightly differently"),
             TypeSig.cpuNumeric),
         ("scale", TypeSig.lit(TypeEnum.INT), TypeSig.lit(TypeEnum.INT))),
-      (a, conf, p, r) => new GpuBRoundMeta(a, conf, p, r) {
-        override def tagExprForGpu(): Unit = {
-          a.child.dataType match {
-            case FloatType | DoubleType if !this.conf.isIncompatEnabled =>
-              willNotWorkOnGpu("rounding floating point numbers may be slightly off " +
-                  s"compared to Spark's result, to enable set ${RapidsConf.INCOMPATIBLE_OPS}")
-            case _ => // NOOP
-          }
-        }
-      }),
+      BRoundRuleMeta),
     expr[Round](
       "Round an expression to d decimal places using HALF_UP rounding mode",
       ExprChecks.binaryProject(
@@ -553,15 +363,6 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
             TypeSig.psNote(TypeEnum.DOUBLE, "result may round slightly differently"),
             TypeSig.cpuNumeric),
         ("scale", TypeSig.lit(TypeEnum.INT), TypeSig.lit(TypeEnum.INT))),
-      (a, conf, p, r) => new GpuRoundMeta(a, conf, p, r) {
-        override def tagExprForGpu(): Unit = {
-          a.child.dataType match {
-            case FloatType | DoubleType if !this.conf.isIncompatEnabled =>
-              willNotWorkOnGpu("rounding floating point numbers may be slightly off " +
-                  s"compared to Spark's result, to enable set ${RapidsConf.INCOMPATIBLE_OPS}")
-            case _ => // NOOP
-          }
-        }
-      }),
+      RoundRuleMeta),
   )
 }

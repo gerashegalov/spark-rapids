@@ -17,15 +17,9 @@
 package com.nvidia.spark.rapids
 
 import com.nvidia.spark.rapids.GpuOverrides._
-import com.nvidia.spark.rapids.shims._
 
 import org.apache.spark.sql.catalyst.expressions._
-import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.rapids._
-import org.apache.spark.sql.rapids.catalyst.expressions.GpuRand
-import org.apache.spark.sql.rapids.execution.python.GpuPythonUDF
-import org.apache.spark.sql.types._
-import org.apache.spark.unsafe.types.UTF8String
 
 private[rapids] object GpuCollectionExpressionOverrides {
   val rules: Seq[ExprRule[_ <: Expression]] = Seq(
@@ -46,16 +40,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
           "param",
           (TypeSig.commonCudfTypes + TypeSig.ARRAY + TypeSig.STRUCT).nested(),
           TypeSig.all))),
-      (a, conf, p, r) => new ExprMeta[PythonUDF](a, conf, p, r) {
-        override def replaceMessage: String = "not block GPU acceleration"
-        override def noReplacementPossibleMessage(reasons: String): String =
-          s"blocks running on GPU because $reasons"
-
-        override def convertToGpuImpl(): GpuExpression =
-          GpuPythonUDF(a.name, a.func, a.dataType,
-            childExprs.map(_.convertToGpu()),
-            a.evalType, a.udfDeterministic, a.resultId)
-        }),
+      PythonUDFRuleMeta),
     GpuScalaUDFMeta.exprMeta,
     expr[Rand](
       "Generate a random column with i.i.d. uniformly distributed values in [0, 1)",
@@ -63,54 +48,37 @@ private[rapids] object GpuCollectionExpressionOverrides {
         Seq(ParamCheck("seed",
           (TypeSig.INT + TypeSig.LONG).withAllLit(),
           (TypeSig.INT + TypeSig.LONG).withAllLit()))),
-      (a, conf, p, r) => new UnaryExprMeta[Rand](a, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuExpression =
-          GpuRand(child, this.conf.isRetryContextCheckEnabled)
-      }),
+      RandRuleMeta),
     expr[SparkPartitionID] (
       "Returns the current partition id",
       ExprChecks.projectOnly(TypeSig.INT, TypeSig.INT),
-      (a, conf, p, r) => new ExprMeta[SparkPartitionID](a, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = GpuSparkPartitionID()
-      }),
+      SparkPartitionIDRuleMeta),
     expr[MonotonicallyIncreasingID] (
       "Returns monotonically increasing 64-bit integers",
       ExprChecks.projectOnly(TypeSig.LONG, TypeSig.LONG),
-      (a, conf, p, r) => new ExprMeta[MonotonicallyIncreasingID](a, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = GpuMonotonicallyIncreasingID()
-      }),
+      MonotonicallyIncreasingIDRuleMeta),
     expr[InputFileName] (
       "Returns the name of the file being read, or empty string if not available",
       ExprChecks.projectOnly(TypeSig.STRING, TypeSig.STRING),
-      (a, conf, p, r) => new ExprMeta[InputFileName](a, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = GpuInputFileName()
-      }),
+      InputFileNameRuleMeta),
     expr[InputFileBlockStart] (
       "Returns the start offset of the block being read, or -1 if not available",
       ExprChecks.projectOnly(TypeSig.LONG, TypeSig.LONG),
-      (a, conf, p, r) => new ExprMeta[InputFileBlockStart](a, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = GpuInputFileBlockStart()
-      }),
+      InputFileBlockStartRuleMeta),
     expr[InputFileBlockLength] (
       "Returns the length of the block being read, or -1 if not available",
       ExprChecks.projectOnly(TypeSig.LONG, TypeSig.LONG),
-      (a, conf, p, r) => new ExprMeta[InputFileBlockLength](a, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = GpuInputFileBlockLength()
-      }),
+      InputFileBlockLengthRuleMeta),
     expr[Md5] (
       "MD5 hash operator",
       ExprChecks.unaryProject(TypeSig.STRING, TypeSig.STRING,
         TypeSig.BINARY, TypeSig.BINARY),
-      (a, conf, p, r) => new UnaryExprMeta[Md5](a, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuExpression = GpuMd5(child)
-      }),
+      Md5RuleMeta),
     expr[Sha1] (
       "Sha1 hash operator",
       ExprChecks.unaryProject(TypeSig.STRING, TypeSig.STRING,
         TypeSig.BINARY, TypeSig.BINARY),
-      (a, conf, p, r) => new UnaryExprMeta[Sha1](a, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuExpression = GpuSha1(child)
-      }),
+      Sha1RuleMeta),
     expr[Sha2] (
       "Sha2 hash operator",
       ExprChecks.binaryProject(
@@ -118,21 +86,17 @@ private[rapids] object GpuCollectionExpressionOverrides {
         TypeSig.STRING,
         ("input", TypeSig.BINARY, TypeSig.BINARY),
         ("bitLength", TypeSig.lit(TypeEnum.INT), TypeSig.lit(TypeEnum.INT))),
-      (a, conf, p, r) => new GpuSha2.Meta(a, conf, p, r)
+      GpuSha2.Meta
     ),
     expr[Upper](
       "String uppercase operator",
       ExprChecks.unaryProjectInputMatchesOutput(TypeSig.STRING, TypeSig.STRING),
-      (a, conf, p, r) => new UnaryExprMeta[Upper](a, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuExpression = GpuUpper(child)
-      })
+      UpperRuleMeta)
       .incompat(CASE_MODIFICATION_INCOMPAT),
     expr[Lower](
       "String lowercase operator",
       ExprChecks.unaryProjectInputMatchesOutput(TypeSig.STRING, TypeSig.STRING),
-      (a, conf, p, r) => new UnaryExprMeta[Lower](a, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuExpression = GpuLower(child)
-      })
+      LowerRuleMeta)
       .incompat(CASE_MODIFICATION_INCOMPAT),
     expr[StringLPad](
       "Pad a string on the left",
@@ -140,42 +104,14 @@ private[rapids] object GpuCollectionExpressionOverrides {
         Seq(ParamCheck("str", TypeSig.STRING, TypeSig.STRING),
           ParamCheck("len", TypeSig.lit(TypeEnum.INT), TypeSig.INT),
           ParamCheck("pad", TypeSig.lit(TypeEnum.STRING), TypeSig.STRING))),
-      (in, conf, p, r) => new TernaryExprMeta[StringLPad](in, conf, p, r) {
-        override def tagExprForGpu(): Unit = {
-          extractLit(in.pad).foreach { padLit =>
-            if (padLit.value != null &&
-                padLit.value.asInstanceOf[UTF8String].toString.length != 1) {
-              willNotWorkOnGpu("only a single character is supported for pad")
-            }
-          }
-        }
-        override def convertToGpu(
-            str: Expression,
-            width: Expression,
-            pad: Expression): GpuExpression =
-          GpuStringLPad(str, width, pad)
-      }),
+      StringLPadRuleMeta),
     expr[StringRPad](
       "Pad a string on the right",
       ExprChecks.projectOnly(TypeSig.STRING, TypeSig.STRING,
         Seq(ParamCheck("str", TypeSig.STRING, TypeSig.STRING),
           ParamCheck("len", TypeSig.lit(TypeEnum.INT), TypeSig.INT),
           ParamCheck("pad", TypeSig.lit(TypeEnum.STRING), TypeSig.STRING))),
-      (in, conf, p, r) => new TernaryExprMeta[StringRPad](in, conf, p, r) {
-        override def tagExprForGpu(): Unit = {
-          extractLit(in.pad).foreach { padLit =>
-            if (padLit.value != null &&
-                padLit.value.asInstanceOf[UTF8String].toString.length != 1) {
-              willNotWorkOnGpu("only a single character is supported for pad")
-            }
-          }
-        }
-        override def convertToGpu(
-            str: Expression,
-            width: Expression,
-            pad: Expression): GpuExpression =
-          GpuStringRPad(str, width, pad)
-      }),
+      StringRPadRuleMeta),
     expr[StringSplit](
        "Splits `str` around occurrences that match `regex`",
       // Java's split API produces different behaviors than cudf when splitting with empty pattern
@@ -186,7 +122,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
               .withPsNote(TypeEnum.STRING, "very limited subset of regex supported"),
             TypeSig.STRING),
           ParamCheck("limit", TypeSig.lit(TypeEnum.INT), TypeSig.INT))),
-      (in, conf, p, r) => new GpuStringSplitMeta(in, conf, p, r)),
+      StringSplitConstructorRuleMeta),
     expr[GetStructField](
       "Gets the named field of the struct",
       ExprChecks.unaryProject(
@@ -196,10 +132,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
         TypeSig.STRUCT.nested(TypeSig.commonCudfTypes + TypeSig.ARRAY +
             TypeSig.STRUCT + TypeSig.MAP + TypeSig.NULL + TypeSig.DECIMAL_128 + TypeSig.BINARY),
         TypeSig.STRUCT.nested(TypeSig.all)),
-      (expr, conf, p, r) => new UnaryExprMeta[GetStructField](expr, conf, p, r) {
-        override def convertToGpu(arr: Expression): GpuExpression =
-          GpuGetStructField(arr, expr.ordinal, expr.name)
-      }),
+      GetStructFieldRuleMeta),
     expr[GetArrayItem](
       "Gets the field at `ordinal` in the Array",
       ExprChecks.binaryProject(
@@ -210,10 +143,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
             TypeSig.STRUCT + TypeSig.NULL + TypeSig.DECIMAL_128 + TypeSig.MAP + TypeSig.BINARY),
             TypeSig.ARRAY.nested(TypeSig.all)),
         ("ordinal", TypeSig.integral, TypeSig.integral)),
-      (in, conf, p, r) => new BinaryExprMeta[GetArrayItem](in, conf, p, r) {
-        override def convertToGpu(arr: Expression, ordinal: Expression): GpuExpression =
-          GpuGetArrayItem(arr, ordinal, in.failOnError)
-      }),
+      GetArrayItemRuleMeta),
     expr[GetMapValue](
       "Gets Value from a Map based on a key",
       ExprChecks.binaryProject(
@@ -224,7 +154,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
           TypeSig.NULL + TypeSig.DECIMAL_128 + TypeSig.MAP + TypeSig.BINARY),
           TypeSig.MAP.nested(TypeSig.all)),
         ("key", TypeSig.commonCudfTypes + TypeSig.DECIMAL_128, TypeSig.all)),
-      (in, conf, p, r) => new GetMapValueMeta(in, conf, p, r){}),
+      GetMapValueRuleMeta),
     GpuElementAtMeta.elementAtRule(false),
     expr[MapKeys](
       "Returns an unordered array containing the keys of the map",
@@ -235,10 +165,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
         TypeSig.MAP.nested(TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL +
             TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP + TypeSig.BINARY),
         TypeSig.MAP.nested(TypeSig.all)),
-      (in, conf, p, r) => new UnaryExprMeta[MapKeys](in, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuExpression =
-          GpuMapKeys(child)
-      }),
+      MapKeysRuleMeta),
     expr[MapValues](
       "Returns an unordered array containing the values of the map",
       ExprChecks.unaryProject(
@@ -248,10 +175,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
         TypeSig.MAP.nested(TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL +
             TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP + TypeSig.BINARY),
         TypeSig.MAP.nested(TypeSig.all)),
-      (in, conf, p, r) => new UnaryExprMeta[MapValues](in, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuExpression =
-          GpuMapValues(child)
-      }),
+      MapValuesRuleMeta),
     expr[MapEntries](
       "Returns an unordered array of all entries in the given map",
       ExprChecks.unaryProject(
@@ -262,10 +186,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
         TypeSig.MAP.nested(TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL +
             TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP + TypeSig.BINARY),
         TypeSig.MAP.nested(TypeSig.all)),
-      (in, conf, p, r) => new UnaryExprMeta[MapEntries](in, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuExpression =
-          GpuMapEntries(child)
-      }),
+      MapEntriesRuleMeta),
     expr[MapFromEntries](
       "Creates a map from an array of entries (structs of key-value pairs)",
       ExprChecks.unaryProject(
@@ -277,19 +198,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
         TypeSig.ARRAY.nested(TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 +
             TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP + TypeSig.BINARY),
         TypeSig.ARRAY.nested(TypeSig.all)),
-      (in, conf, p, r) => new UnaryExprMeta[MapFromEntries](in, conf, p, r) {
-        override def tagExprForGpu(): Unit = {
-          // Spark 4.1+ returns an enum value instead of String, so use toString first
-          SQLConf.get.getConf(SQLConf.MAP_KEY_DEDUP_POLICY).toString.toUpperCase match {
-            case "EXCEPTION" | "LAST_WIN" => // Good we can support this
-            case other =>
-              willNotWorkOnGpu(s"$other is not supported for config setting" +
-                  s" ${SQLConf.MAP_KEY_DEDUP_POLICY.key}")
-          }
-        }
-        override def convertToGpu(child: Expression): GpuExpression =
-          GpuMapFromEntries(child)
-      }),
+      MapFromEntriesRuleMeta),
     expr[StringToMap](
       "Creates a map after splitting the input string into pairs of key-value strings",
       // Java's split API produces different behaviors than cudf when splitting with empty pattern
@@ -297,7 +206,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
         Seq(ParamCheck("str", TypeSig.STRING, TypeSig.STRING),
           ParamCheck("pairDelim", TypeSig.lit(TypeEnum.STRING), TypeSig.lit(TypeEnum.STRING)),
           ParamCheck("keyValueDelim", TypeSig.lit(TypeEnum.STRING), TypeSig.lit(TypeEnum.STRING)))),
-      (in, conf, p, r) => new GpuStringToMapMeta(in, conf, p, r)),
+      StringToMapConstructorRuleMeta),
     expr[ArrayMin](
       "Returns the minimum value in the array",
       ExprChecks.unaryProject(
@@ -305,10 +214,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
         TypeSig.orderable,
         TypeSig.ARRAY.nested(TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL),
         TypeSig.ARRAY.nested(TypeSig.orderable)),
-      (in, conf, p, r) => new UnaryExprMeta[ArrayMin](in, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuExpression =
-          GpuArrayMin(child)
-      }),
+      ArrayMinRuleMeta),
     expr[ArrayMax](
       "Returns the maximum value in the array",
       ExprChecks.unaryProject(
@@ -316,10 +222,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
         TypeSig.orderable,
         TypeSig.ARRAY.nested(TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL),
         TypeSig.ARRAY.nested(TypeSig.orderable)),
-      (in, conf, p, r) => new UnaryExprMeta[ArrayMax](in, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuExpression =
-          GpuArrayMax(child)
-      }),
+      ArrayMaxRuleMeta),
     expr[ArrayRepeat](
       "Returns the array containing the given input value (left) count (right) times",
       ExprChecks.binaryProject(
@@ -329,18 +232,12 @@ private[rapids] object GpuCollectionExpressionOverrides {
         ("left", (TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL
           + TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP).nested(), TypeSig.all),
         ("right", TypeSig.integral, TypeSig.integral)),
-      (in, conf, p, r) => new BinaryExprMeta[ArrayRepeat](in, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuArrayRepeat(lhs, rhs)
-      }
+      ArrayRepeatRuleMeta
     ),
     expr[CreateNamedStruct](
       "Creates a struct with the given field names and values",
       CreateNamedStructCheck,
-      (in, conf, p, r) => new ExprMeta[CreateNamedStruct](in, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression =
-          GpuCreateNamedStruct(childExprs.map(_.convertToGpu()))
-      }),
+      CreateNamedStructRuleMeta),
     expr[ArrayContains](
       "Returns a boolean if the array contains the passed in key",
       ExprChecks.binaryProject(
@@ -349,10 +246,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
         ("array", TypeSig.ARRAY.nested(TypeSig.commonCudfTypes + TypeSig.NULL),
           TypeSig.ARRAY.nested(TypeSig.all)),
         ("key", TypeSig.commonCudfTypes, TypeSig.all)),
-      (in, conf, p, r) => new BinaryExprMeta[ArrayContains](in, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuArrayContains(lhs, rhs)
-      }),
+      ArrayContainsRuleMeta),
     expr[ArrayPosition](
       "Returns the (1-based) index of the first matching element of the array as long, " +
         "or 0 if no match is found.",
@@ -365,7 +259,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
         ("key", (TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL +
             TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.BINARY).nested(),
           TypeSig.orderable)),
-      (in, conf, p, r) => new GpuArrayPositionMeta(in, conf, p, r)),
+      ArrayPositionConstructorRuleMeta),
     expr[SortArray](
       "Returns a sorted array with the input array and the ascending / descending order",
       ExprChecks.binaryProject(
@@ -376,11 +270,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
           TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128 + TypeSig.STRUCT),
             TypeSig.ARRAY.nested(TypeSig.all)),
         ("ascendingOrder", TypeSig.lit(TypeEnum.BOOLEAN), TypeSig.lit(TypeEnum.BOOLEAN))),
-      (sortExpression, conf, p, r) => new BinaryExprMeta[SortArray](sortExpression, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression = {
-          GpuSortArray(lhs, rhs)
-        }
-      }
+      SortArrayRuleMeta
     ),
     expr[ArraySort](
       "Sorts the input array in ascending order with nulls last according to the natural " +
@@ -393,23 +283,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
           ParamCheck("array",
             TypeSig.ARRAY.nested(TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128),
             TypeSig.ARRAY.nested(TypeSig.all)))),
-      (in, conf, p, r) => new ExprMeta[ArraySort](in, conf, p, r) {
-        // Wrap only the array; listSortRows applies the default comparator natively, so the
-        // comparator lambda is excluded from children (neither converted nor type-checked).
-        // This must wrap exactly one child to stay 1:1 with the single ParamCheck above, which
-        // the framework pairs to childExprs positionally.
-        override val childExprs: Seq[BaseExprMeta[_]] =
-          Seq(GpuOverrides.wrapExpr(in.arguments.head, this.conf, Some(this)))
-
-        override def tagExprForGpu(): Unit = {
-          if (!GpuArraySort.isDefaultComparator(in)) {
-            willNotWorkOnGpu("array_sort with a custom comparator function is not supported " +
-                "on the GPU; only the default ordering (ascending, nulls last) is supported")
-          }
-        }
-        override def convertToGpuImpl(): GpuExpression =
-          GpuArraySort(childExprs.head.convertToGpu())
-      }),
+      ArraySortRuleMeta),
     expr[CreateArray](
       "Returns an array with the given elements",
       ExprChecks.projectOnly(
@@ -424,20 +298,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
                 TypeSig.BOOLEAN + TypeSig.DATE + TypeSig.TIMESTAMP + TypeSig.STRUCT +
                   TypeSig.ARRAY + TypeSig.BINARY),
           TypeSig.all))),
-      (in, conf, p, r) => new ExprMeta[CreateArray](in, conf, p, r) {
-
-        override def tagExprForGpu(): Unit = {
-          wrapped.dataType match {
-            case ArrayType(ArrayType(ArrayType(_, _), _), _) =>
-              willNotWorkOnGpu("Only support to create array or array of array, Found: " +
-                s"${wrapped.dataType}")
-            case _ =>
-          }
-        }
-
-        override def convertToGpuImpl(): GpuExpression =
-          GpuCreateArray(childExprs.map(_.convertToGpu()), wrapped.useStringTypeWhenEmpty)
-      }),
+      CreateArrayRuleMeta),
     expr[ArrayDistinct](
       "Removes duplicate values from the array",
       ExprChecks.unaryProject(
@@ -453,10 +314,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
         TypeSig.ARRAY.nested(TypeSig.all),
         TypeSig.ARRAY.nested(TypeSig.all),
         TypeSig.ARRAY.nested(TypeSig.all)),
-      (a, conf, p, r) => new UnaryExprMeta[Flatten](a, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuExpression =
-          GpuFlattenArray(child)
-      }),
+      FlattenRuleMeta),
     expr[LambdaFunction](
       "Holds a higher order SQL function",
       ExprChecks.projectOnly(
@@ -471,26 +329,14 @@ private[rapids] object GpuCollectionExpressionOverrides {
           (TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL + TypeSig.BINARY +
               TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP).nested(),
           TypeSig.all))),
-      (in, conf, p, r) => new ExprMeta[LambdaFunction](in, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = {
-          val func = childExprs.head
-          val args = childExprs.tail
-          GpuLambdaFunction(func.convertToGpu(),
-            args.map(_.convertToGpu().asInstanceOf[NamedExpression]),
-            in.hidden)
-        }
-      }),
+      LambdaFunctionRuleMeta),
     expr[NamedLambdaVariable](
       "A parameter to a higher order SQL function",
       ExprChecks.projectOnly(
         (TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL + TypeSig.BINARY +
             TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP).nested(),
         TypeSig.all),
-      (in, conf, p, r) => new ExprMeta[NamedLambdaVariable](in, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = {
-          GpuNamedLambdaVariable(in.name, in.dataType, in.nullable, in.exprId)
-        }
-      }),
+      NamedLambdaVariableRuleMeta),
     expr[ArrayTransform](
       "Transform elements in an array using the transform function. This is similar to a `map` " +
           "in functional programming",
@@ -507,11 +353,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
             (TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL +
                 TypeSig.BINARY + TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP).nested(),
             TypeSig.all))),
-      (in, conf, p, r) => new ExprMeta[ArrayTransform](in, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = {
-          GpuArrayTransform(childExprs.head.convertToGpu(), childExprs(1).convertToGpu())
-        }
-      }),
+      ArrayTransformRuleMeta),
      expr[ArrayExists](
       "Return true if any element satisfies the predicate LambdaFunction",
       ExprChecks.projectOnly(TypeSig.BOOLEAN, TypeSig.BOOLEAN,
@@ -521,15 +363,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
                 TypeSig.BINARY + TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP),
             TypeSig.ARRAY.nested(TypeSig.all)),
           ParamCheck("function", TypeSig.BOOLEAN, TypeSig.BOOLEAN))),
-      (in, conf, p, r) => new ExprMeta[ArrayExists](in, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = {
-          GpuArrayExists(
-            childExprs.head.convertToGpu(),
-            childExprs(1).convertToGpu(),
-            SQLConf.get.getConf(SQLConf.LEGACY_ARRAY_EXISTS_FOLLOWS_THREE_VALUED_LOGIC)
-          )
-        }
-      }),
+      ArrayExistsRuleMeta),
     expr[ArrayFilter](
       "Filter an input array using a given predicate",
       ExprChecks.projectOnly(TypeSig.ARRAY.nested(TypeSig.commonCudfTypes +
@@ -542,14 +376,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
               TypeSig.BINARY + TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP),
             TypeSig.ARRAY.nested(TypeSig.all)),
           ParamCheck("function", TypeSig.BOOLEAN, TypeSig.BOOLEAN))),
-      (in, conf, p, r) => new ExprMeta[ArrayFilter](in, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = {
-          GpuArrayFilter(
-            childExprs.head.convertToGpu(),
-            childExprs(1).convertToGpu()
-          )
-        }
-      }),
+      ArrayFilterRuleMeta),
     expr[ArrayAggregate](
       "Aggregate elements in an array using an accumulator function and finishing " +
           "transformation. Currently only lambdas of the form (acc, x) -> op(acc, g(x)) with " +
@@ -578,7 +405,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
           ParamCheck("finish",
             TypeSig.commonCudfTypes + TypeSig.DECIMAL_128,
             TypeSig.all))),
-      (in, conf, p, r) => new GpuArrayAggregateMeta(in, conf, p, r)),
+      ArrayAggregateConstructorRuleMeta),
     // TODO: fix the signature https://github.com/NVIDIA/spark-rapids/issues/5327
     expr[ArraysZip](
       "Returns a merged array of structs in which the N-th struct contains" +
@@ -591,11 +418,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
           TypeSig.ARRAY.nested(TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL +
             TypeSig.BINARY + TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP),
           TypeSig.ARRAY.nested(TypeSig.all)))),
-      (in, conf, p, r) => new ExprMeta[ArraysZip](in, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = {
-          GpuArraysZip(childExprs.map(_.convertToGpu()))
-        }
-      }
+      ArraysZipRuleMeta
     ),
     expr[ArrayExcept](
       "Returns an array of the elements in array1 but not in array2, without duplicates",
@@ -608,11 +431,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
         ("array2",
             TypeSig.ARRAY.nested(TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL),
             TypeSig.ARRAY.nested(TypeSig.all))),
-      (in, conf, p, r) => new BinaryExprMeta[ArrayExcept](in, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression = {
-          GpuArrayExcept(lhs, rhs)
-        }
-      }
+      ArrayExceptRuleMeta
     ).incompat("the GPU implementation treats -0.0 and 0.0 as equal, but the CPU " +
         "implementation currently does not (see SPARK-39845). Also, Apache Spark " +
         "3.1.3 fixed issue SPARK-36741 where NaNs in these set like operators were " +
@@ -630,11 +449,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
         ("array2",
             TypeSig.ARRAY.nested(TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL),
             TypeSig.ARRAY.nested(TypeSig.all))),
-      (in, conf, p, r) => new BinaryExprMeta[ArrayIntersect](in, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression = {
-          GpuArrayIntersect(lhs, rhs)
-        }
-      }
+      ArrayIntersectRuleMeta
     ).incompat("the GPU implementation treats -0.0 and 0.0 as equal, but the CPU " +
         "implementation currently does not (see SPARK-39845). Also, Apache Spark " +
         "3.1.3 fixed issue SPARK-36741 where NaNs in these set like operators were " +
@@ -651,11 +466,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
         ("array2",
             TypeSig.ARRAY.nested(TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL),
             TypeSig.ARRAY.nested(TypeSig.all))),
-      (in, conf, p, r) => new BinaryExprMeta[ArrayUnion](in, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression = {
-          GpuArrayUnion(lhs, rhs)
-        }
-      }
+      ArrayUnionRuleMeta
     ).incompat("the GPU implementation treats -0.0 and 0.0 as equal, but the CPU " +
         "implementation currently does not (see SPARK-39845). Also, Apache Spark " +
         "3.1.3 fixed issue SPARK-36741 where NaNs in these set like operators were " +
@@ -672,11 +483,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
         ("array2",
             TypeSig.ARRAY.nested(TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL),
             TypeSig.ARRAY.nested(TypeSig.all))),
-      (in, conf, p, r) => new BinaryExprMeta[ArraysOverlap](in, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression = {
-          GpuArraysOverlap(lhs, rhs)
-        }
-      }
+      ArraysOverlapRuleMeta
     ).incompat("the GPU implementation treats -0.0 and 0.0 as equal, but the CPU " +
         "implementation currently does not (see SPARK-39845). Also, Apache Spark " +
         "3.1.3 fixed issue SPARK-36741 where NaNs in these set like operators were " +
@@ -697,10 +504,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
           (TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL +
             TypeSig.STRUCT).nested(),
           TypeSig.all)),
-      (in, conf, p, r) => new BinaryExprMeta[ArrayRemove](in, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuArrayRemove(lhs, rhs)
-      }
+      ArrayRemoveRuleMeta
     ),
     expr[MapFromArrays](
       "Creates a new map from two arrays",
@@ -734,20 +538,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
             // We need to be able to check for duplicate keys (equality)
             TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL,
             TypeSig.all - TypeSig.MAP.nested()))),
-      (in, conf, p, r) => new ExprMeta[TransformKeys](in, conf, p, r) {
-        override def tagExprForGpu(): Unit = {
-          // Spark 4.1+ returns an enum value instead of String, so use toString first
-          SQLConf.get.getConf(SQLConf.MAP_KEY_DEDUP_POLICY).toString.toUpperCase match {
-            case "EXCEPTION"| "LAST_WIN" => // Good we can support this
-            case other =>
-              willNotWorkOnGpu(s"$other is not supported for config setting" +
-                  s" ${SQLConf.MAP_KEY_DEDUP_POLICY.key}")
-          }
-        }
-        override def convertToGpuImpl(): GpuExpression = {
-          GpuTransformKeys(childExprs.head.convertToGpu(), childExprs(1).convertToGpu())
-        }
-      }),
+      TransformKeysRuleMeta),
     expr[TransformValues](
       "Transform values in a map using a transform function",
       ExprChecks.projectOnly(TypeSig.MAP.nested(TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 +
@@ -762,11 +553,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
             (TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL +
                 TypeSig.BINARY + TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP).nested(),
             TypeSig.all))),
-      (in, conf, p, r) => new ExprMeta[TransformValues](in, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = {
-          GpuTransformValues(childExprs.head.convertToGpu(), childExprs(1).convertToGpu())
-        }
-      }),
+      TransformValuesRuleMeta),
     expr[MapZipWith](
       "Filters entries in a map using the function",
       ExprChecks.projectOnly(TypeSig.MAP.nested(TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 +
@@ -785,12 +572,7 @@ private[rapids] object GpuCollectionExpressionOverrides {
             (TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL +
                 TypeSig.BINARY + TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP).nested(),
             TypeSig.all))),
-      (in, conf, p, r) => new ExprMeta[MapZipWith](in, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = {
-          GpuMapZipWith(childExprs.head.convertToGpu(),
-          childExprs(1).convertToGpu(), childExprs(2).convertToGpu())
-        }
-      }),
+      MapZipWithRuleMeta),
     expr[MapFilter](
       "Filters entries in a map using the function",
       ExprChecks.projectOnly(TypeSig.MAP.nested(TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 +
@@ -802,10 +584,6 @@ private[rapids] object GpuCollectionExpressionOverrides {
                 TypeSig.BINARY + TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP),
             TypeSig.MAP.nested(TypeSig.all)),
           ParamCheck("function", TypeSig.BOOLEAN, TypeSig.BOOLEAN))),
-      (in, conf, p, r) => new ExprMeta[MapFilter](in, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = {
-          GpuMapFilter(childExprs.head.convertToGpu(), childExprs(1).convertToGpu())
-        }
-      }),
+      MapFilterRuleMeta),
   )
 }

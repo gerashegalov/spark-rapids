@@ -34,7 +34,6 @@ import org.apache.spark.rapids.hybrid.HybridExecutionUtils
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.rapids.TimeStamp
-import org.apache.spark.sql.catalyst.json.rapids.GpuJsonScan
 import org.apache.spark.sql.catalyst.plans.physical._
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
@@ -319,10 +318,10 @@ class DataWritingCommandRule[INPUT <: DataWritingCommand](
   override val operationName: String = "Output"
 }
 
-final class InsertIntoHadoopFsRelationCommandMeta(
+case class InsertIntoHadoopFsRelationCommandMeta(
     cmd: InsertIntoHadoopFsRelationCommand,
-    conf: RapidsConf,
-    parent: Option[RapidsMeta[_, _, _]],
+    override val conf: RapidsConf,
+    override val parent: Option[RapidsMeta[_, _, _]],
     rule: DataFromReplacementRule)
     extends DataWritingCommandMeta[InsertIntoHadoopFsRelationCommand](cmd, conf, parent, rule) {
 
@@ -944,40 +943,10 @@ object GpuOverrides extends Logging {
   val commonScans: Map[Class[_ <: Scan], ScanRule[_ <: Scan]] = Seq(
     GpuOverrides.scan[CSVScan](
       "CSV parsing",
-      (a, conf, p, r) => new ScanMeta[CSVScan](a, conf, p, r) {
-        override def tagSelfForGpu(): Unit = GpuCSVScan.tagSupport(this)
-
-        override def convertToGpu(): GpuScan =
-          GpuCSVScan(a.sparkSession,
-            a.fileIndex,
-            a.dataSchema,
-            a.readDataSchema,
-            a.readPartitionSchema,
-            a.options,
-            a.partitionFilters,
-            a.dataFilters,
-            this.conf.maxReadBatchSizeRows,
-            this.conf.maxReadBatchSizeBytes,
-            this.conf.maxGpuColumnSizeBytes)
-      }),
+      CSVScanRuleMeta),
     GpuOverrides.scan[JsonScan](
       "Json parsing",
-      (a, conf, p, r) => new ScanMeta[JsonScan](a, conf, p, r) {
-        override def tagSelfForGpu(): Unit = GpuJsonScan.tagSupport(this)
-
-        override def convertToGpu(): GpuScan =
-          GpuJsonScan(a.sparkSession,
-            a.fileIndex,
-            a.dataSchema,
-            a.readDataSchema,
-            a.readPartitionSchema,
-            a.options,
-            a.partitionFilters,
-            a.dataFilters,
-            this.conf.maxReadBatchSizeRows,
-            this.conf.maxReadBatchSizeBytes,
-            this.conf.maxGpuColumnSizeBytes)
-      })).map(r => (r.getClassFor.asSubclass(classOf[Scan]), r)).toMap
+      JsonScanRuleMeta)).map(r => (r.getClassFor.asSubclass(classOf[Scan]), r)).toMap
 
   val scans: Map[Class[_ <: Scan], ScanRule[_ <: Scan]] =
     commonScans ++ SparkShimImpl.getScans ++ ExternalSource.getScans
@@ -1000,75 +969,22 @@ object GpuOverrides extends Logging {
             TypeSig.psNote(TypeEnum.ARRAY, "Arrays of structs are not supported"),
         TypeSig.all)
       ),
-      (hp, conf, p, r) => new PartMeta[HashPartitioning](hp, conf, p, r) {
-        override val childExprs: Seq[BaseExprMeta[_]] =
-          hp.expressions.map(GpuOverrides.wrapExpr(_, this.conf, Some(this)))
-
-        private lazy val hashMode = GpuHashPartitioningBase.hashModeFromCpu(hp, this.conf)
-
-        override def tagPartForGpu(): Unit = {
-          this.hashMode match {
-            case HiveMode =>
-              val hh = HiveHash(hp.expressions)
-              val hfMeta = GpuOverrides.wrapExpr(hh, this.conf, None)
-              hfMeta.tagForGpu()
-              if (!hfMeta.canThisBeReplaced) {
-                willNotWorkOnGpu(s"the hash function: ${hh.getClass.getSimpleName}" +
-                  s" can not run on GPU. Details: ${hfMeta.explain(all = false)}")
-              }
-            case Murmur3Mode =>
-              val arrayWithStructsHashing = hp.expressions.exists(e =>
-                TrampolineUtil.dataTypeExistsRecursively(e.dataType,
-                  {
-                    case ArrayType(_: StructType, _) => true
-                    case _ => false
-                  })
-              )
-              if (arrayWithStructsHashing) {
-                willNotWorkOnGpu("hashing arrays with structs is not supported")
-              }
-            case _ =>
-              willNotWorkOnGpu(s"Hash function $hashMode is not supported on GPU")
-          }
-        }
-
-        override def convertToGpu(): GpuPartitioning =
-          GpuHashPartitioning(childExprs.map(_.convertToGpu()), hp.numPartitions,
-            this.hashMode)
-      }),
+      HashPartitioningRuleMeta),
     part[RangePartitioning](
       "Range partitioning",
       PartChecks(RepeatingParamCheck("order_key",
         pluginSupportedOrderableSig + TypeSig.ARRAY.nested(gpuCommonTypes)
            .withPsNote(TypeEnum.ARRAY, "STRUCT is not supported as a child type for ARRAY"),
         TypeSig.orderable)),
-      (rp, conf, p, r) => new PartMeta[RangePartitioning](rp, conf, p, r) {
-        override val childExprs: Seq[BaseExprMeta[_]] =
-          rp.ordering.map(GpuOverrides.wrapExpr(_, this.conf, Some(this)))
-
-        override def convertToGpu(): GpuPartitioning = {
-          if (rp.numPartitions > 1) {
-            val gpuOrdering = childExprs.map(_.convertToGpu()).asInstanceOf[Seq[SortOrder]]
-            GpuRangePartitioning(gpuOrdering, rp.numPartitions)
-          } else {
-            GpuSinglePartitioning
-          }
-        }
-      }),
+      RangePartitioningRuleMeta),
     part[RoundRobinPartitioning](
       "Round robin partitioning",
       PartChecks(),
-      (rrp, conf, p, r) => new PartMeta[RoundRobinPartitioning](rrp, conf, p, r) {
-        override def convertToGpu(): GpuPartitioning = {
-          GpuRoundRobinPartitioning(rrp.numPartitions)
-        }
-      }),
+      RoundRobinPartitioningRuleMeta),
     part[SinglePartition.type](
       "Single partitioning",
       PartChecks(),
-      (sp, conf, p, r) => new PartMeta[SinglePartition.type](sp, conf, p, r) {
-        override def convertToGpu(): GpuPartitioning = GpuSinglePartitioning
-      })
+      SinglePartitionRuleMeta)
   ).map(r => (r.getClassFor.asSubclass(classOf[Partitioning]), r)).toMap
 
   val parts : Map[Class[_ <: Partitioning], PartRule[_ <: Partitioning]] =
@@ -1086,7 +1002,7 @@ object GpuOverrides extends Logging {
       DataWritingCommandRule[_ <: DataWritingCommand]] = Seq(
     dataWriteCmd[InsertIntoHadoopFsRelationCommand](
       "Write to Hadoop filesystem",
-      (a, conf, p, r) => new InsertIntoHadoopFsRelationCommandMeta(a, conf, p, r))
+      InsertIntoHadoopFsRelationCommandMeta)
   ).map(r => (r.getClassFor.asSubclass(classOf[DataWritingCommand]), r)).toMap
 
   val dataWriteCmds: Map[Class[_ <: DataWritingCommand],
@@ -1117,7 +1033,7 @@ object GpuOverrides extends Logging {
     Seq(
       runnableCmd[SaveIntoDataSourceCommand](
         "Write to a data source",
-        (a, conf, p, r) => new SaveIntoDataSourceCommandMeta(a, conf, p, r))
+        SaveIntoDataSourceCommandConstructorRuleMeta)
     ).map(r => (r.getClassFor.asSubclass(classOf[RunnableCommand]), r)).toMap
 
   val runnableCmds = commonRunnableCmds ++

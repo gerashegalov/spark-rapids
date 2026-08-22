@@ -21,7 +21,6 @@ import com.nvidia.spark.rapids.shims._
 import com.nvidia.spark.rapids.window._
 
 import org.apache.spark.sql.catalyst.expressions._
-import org.apache.spark.sql.rapids._
 
 private[rapids] object GpuCoreExpressionOverrides {
   val rules: Seq[ExprRule[_ <: Expression]] = Seq(
@@ -34,13 +33,11 @@ private[rapids] object GpuCoreExpressionOverrides {
           .nested(TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128 + TypeSig.BINARY +
             TypeSig.ARRAY + TypeSig.MAP + TypeSig.STRUCT),
         TypeSig.all),
-      (lit, conf, p, r) => new LiteralExprMeta(lit, conf, p, r)),
+      LiteralConstructorRuleMeta),
     expr[Signum](
       "Returns -1.0, 0.0 or 1.0 as expr is negative, 0 or positive",
       ExprChecks.mathUnary,
-      (a, conf, p, r) => new UnaryExprMeta[Signum](a, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuExpression = GpuSignum(child)
-      }),
+      SignumRuleMeta),
     expr[Alias](
       "Gives a column a name",
       ExprChecks.unaryProjectAndAstInputMatchesOutput(
@@ -49,10 +46,7 @@ private[rapids] object GpuCoreExpressionOverrides {
             + TypeSig.DECIMAL_128 + TypeSig.BINARY
             + GpuTypeShims.additionalCommonOperatorSupportedTypes).nested(),
         TypeSig.all),
-      (a, conf, p, r) => new UnaryAstExprMeta[Alias](a, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuExpression =
-          GpuAlias(child, a.name)(a.exprId, a.qualifier, a.explicitMetadata)
-      }),
+      AliasRuleMeta),
     expr[BoundReference](
       "Reference to a bound variable",
       ExprChecks.projectAndAst(
@@ -61,14 +55,7 @@ private[rapids] object GpuCoreExpressionOverrides {
           TypeSig.DECIMAL_128 + TypeSig.BINARY +
           GpuTypeShims.additionalCommonOperatorSupportedTypes).nested(),
         TypeSig.all),
-      (currentRow, conf, p, r) => new ExprMeta[BoundReference](currentRow, conf, p, r) {
-        // BoundReference should not be directly wrapped in a bridge (unit test compatibility)
-        override def isBridgeCompatible: Boolean = false
-
-        override def convertToGpuImpl(): GpuExpression = GpuBoundReference(
-          currentRow.ordinal, currentRow.dataType, currentRow.nullable)(
-          NamedExpression.newExprId, "")
-      }),
+      BoundReferenceRuleMeta),
     expr[AttributeReference](
       "References an input column",
       ExprChecks.projectAndAst(
@@ -77,45 +64,26 @@ private[rapids] object GpuCoreExpressionOverrides {
             TypeSig.STRUCT + TypeSig.DECIMAL_128 + TypeSig.BINARY +
             GpuTypeShims.additionalCommonOperatorSupportedTypes).nested(),
         TypeSig.all),
-        (att, conf, p, r) => new BaseExprMeta[AttributeReference](att, conf, p, r) {
-          // This is the only NOOP operator.  It goes away when things are bound
-          override def convertToGpuImpl(): Expression = att
-
-          // There are so many of these that we don't need to print them out, unless it
-          // will not work on the GPU
-          override def print(append: StringBuilder, depth: Int, all: Boolean): Unit = {
-            if (!this.canThisBeReplaced || cannotRunOnGpuBecauseOfSparkPlan) {
-              super.print(append, depth, all)
-            }
-          }
-        }),
+        AttributeReferenceRuleMeta),
 
     expr[ToDegrees](
       "Converts radians to degrees",
       ExprChecks.mathUnary,
-      (a, conf, p, r) => new UnaryExprMeta[ToDegrees](a, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuToDegrees = GpuToDegrees(child)
-      }),
+      ToDegreesRuleMeta),
     expr[ToRadians](
       "Converts degrees to radians",
       ExprChecks.mathUnary,
-      (a, conf, p, r) => new UnaryExprMeta[ToRadians](a, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuToRadians = GpuToRadians(child)
-      }),
+      ToRadiansRuleMeta),
     expr[Bin](
       "Returns the string representation of the long value `expr` represented in binary",
       ExprChecks.unaryProject(TypeSig.STRING, TypeSig.STRING, TypeSig.LONG, TypeSig.LONG),
-      (a, conf, p, r) => new UnaryExprMeta[Bin](a, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuBin = GpuBin(child)
-      }),
+      BinRuleMeta),
     expr[Hex](
       "Returns the hex string representation of a value",
       ExprChecks.unaryProject(TypeSig.STRING, TypeSig.STRING,
         TypeSig.LONG + TypeSig.STRING + TypeSig.BINARY,
         TypeSig.LONG + TypeSig.STRING + TypeSig.BINARY),
-      (a, conf, p, r) => new UnaryExprMeta[Hex](a, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuExpression = GpuHex(child)
-      }),
+      HexRuleMeta),
     expr[WindowExpression](
       "Calculates a return value for every input row of a table based on a group (or " +
         "\"window\") of rows",
@@ -126,7 +94,7 @@ private[rapids] object GpuCoreExpressionOverrides {
           ParamCheck("windowSpec",
             TypeSig.CALENDAR + TypeSig.NULL + TypeSig.integral + TypeSig.DECIMAL_64,
             TypeSig.numericAndInterval))),
-      (windowExpression, conf, p, r) => new GpuWindowExpressionMeta(windowExpression, conf, p, r)),
+      WindowExpressionConstructorRuleMeta),
     expr[SpecifiedWindowFrame](
       "Specification of the width of the group (or \"frame\") of input rows " +
         "around which a window function is evaluated",
@@ -142,34 +110,24 @@ private[rapids] object GpuCoreExpressionOverrides {
             TypeSig.CALENDAR + TypeSig.NULL + TypeSig.integral + TypeSig.DECIMAL_128 +
               TypeSig.FLOAT + TypeSig.DOUBLE,
             TypeSig.numericAndInterval))),
-      (windowFrame, conf, p, r) => new GpuSpecifiedWindowFrameMeta(windowFrame, conf, p, r) ),
+      SpecifiedWindowFrameConstructorRuleMeta ),
     expr[WindowSpecDefinition](
       "Specification of a window function, indicating the partitioning-expression, the row " +
         "ordering, and the width of the window",
       WindowSpecCheck,
-      (windowSpec, conf, p, r) => new GpuWindowSpecDefinitionMeta(windowSpec, conf, p, r)),
+      WindowSpecDefinitionConstructorRuleMeta),
     expr[CurrentRow.type](
       "Special boundary for a window frame, indicating stopping at the current row",
       ExprChecks.projectOnly(TypeSig.NULL, TypeSig.NULL),
-      (currentRow, conf, p, r) => new ExprMeta[CurrentRow.type](currentRow, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = GpuSpecialFrameBoundary(currentRow)
-      }),
+      CurrentRowRuleMeta),
     expr[UnboundedPreceding.type](
       "Special boundary for a window frame, indicating all rows preceding the current row",
       ExprChecks.projectOnly(TypeSig.NULL, TypeSig.NULL),
-      (unboundedPreceding, conf, p, r) =>
-        new ExprMeta[UnboundedPreceding.type](unboundedPreceding, conf, p, r) {
-          override def convertToGpuImpl(): GpuExpression =
-            GpuSpecialFrameBoundary(unboundedPreceding)
-        }),
+      UnboundedPrecedingRuleMeta),
     expr[UnboundedFollowing.type](
       "Special boundary for a window frame, indicating all rows preceding the current row",
       ExprChecks.projectOnly(TypeSig.NULL, TypeSig.NULL),
-      (unboundedFollowing, conf, p, r) =>
-        new ExprMeta[UnboundedFollowing.type](unboundedFollowing, conf, p, r) {
-          override def convertToGpuImpl(): GpuExpression =
-            GpuSpecialFrameBoundary(unboundedFollowing)
-        }),
+      UnboundedFollowingRuleMeta),
     expr[RowNumber](
       "Window function that returns the index for the row within the aggregation window",
       ExprChecks.windowOnly(TypeSig.INT, TypeSig.INT,
@@ -177,9 +135,7 @@ private[rapids] object GpuCoreExpressionOverrides {
           Some(RepeatingParamCheck("ordering",
             TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL,
             TypeSig.all))),
-      (rowNumber, conf, p, r) => new ExprMeta[RowNumber](rowNumber, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = GpuRowNumber
-      }),
+      RowNumberRuleMeta),
     expr[Rank](
       "Window function that returns the rank value within the aggregation window",
       ExprChecks.windowOnly(TypeSig.INT, TypeSig.INT,
@@ -187,9 +143,7 @@ private[rapids] object GpuCoreExpressionOverrides {
           Some(RepeatingParamCheck("ordering",
             TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL,
             TypeSig.all))),
-      (rank, conf, p, r) => new ExprMeta[Rank](rank, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression = GpuRank(childExprs.map(_.convertToGpu()))
-      }),
+      RankRuleMeta),
     expr[DenseRank](
       "Window function that returns the dense rank value within the aggregation window",
       ExprChecks.windowOnly(TypeSig.INT, TypeSig.INT,
@@ -197,10 +151,7 @@ private[rapids] object GpuCoreExpressionOverrides {
           Some(RepeatingParamCheck("ordering",
             TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL,
             TypeSig.all))),
-      (denseRank, conf, p, r) => new ExprMeta[DenseRank](denseRank, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression =
-          GpuDenseRank(childExprs.map(_.convertToGpu()))
-      }),
+      DenseRankRuleMeta),
     expr[PercentRank](
       "Window function that returns the percent rank value within the aggregation window",
       ExprChecks.windowOnly(TypeSig.DOUBLE, TypeSig.DOUBLE,
@@ -208,10 +159,7 @@ private[rapids] object GpuCoreExpressionOverrides {
           Some(RepeatingParamCheck("ordering",
             TypeSig.commonCudfTypes + TypeSig.DECIMAL_128 + TypeSig.NULL,
             TypeSig.all))),
-      (percentRank, conf, p, r) => new ExprMeta[PercentRank](percentRank, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression =
-          GpuPercentRank(childExprs.map(_.convertToGpu()))
-      }),
+      PercentRankRuleMeta),
     expr[NTile](
       "Window function that divides the rows in each partition into buckets",
       ExprChecks.windowOnly(TypeSig.INT, TypeSig.INT,
@@ -235,10 +183,7 @@ private[rapids] object GpuCoreExpressionOverrides {
             TypeSig.all)
         )
       ),
-      (lead, conf, p, r) => new OffsetWindowFunctionMeta[Lead](lead, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression =
-          GpuLead(input.convertToGpu(), offset.convertToGpu(), default.convertToGpu())
-      }),
+      LeadRuleMeta),
     expr[Lag](
       "Window function that returns N entries behind this one",
       ExprChecks.windowOnly(
@@ -257,9 +202,6 @@ private[rapids] object GpuCoreExpressionOverrides {
             TypeSig.all)
         )
       ),
-      (lag, conf, p, r) => new OffsetWindowFunctionMeta[Lag](lag, conf, p, r) {
-        override def convertToGpuImpl(): GpuExpression =
-          GpuLag(input.convertToGpu(), offset.convertToGpu(), default.convertToGpu())
-      }),
+      LagRuleMeta),
   )
 }
