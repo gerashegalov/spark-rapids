@@ -1458,8 +1458,12 @@
                                                   property="rapids.shimplify.detection.checksum"/>
                                         <checksum file="${spark.rapids.source.basedir}/build/shimplify.py"
                                                   property="rapids.shimplify.generator.checksum"/>
+                                        <checksum file="${spark.rapids.source.basedir}/build/get_buildvers.py"
+                                                  property="rapids.shimplify.buildvers.checksum"/>
+                                        <checksum file="${spark.rapids.project.basedir}/pom.xml"
+                                                  property="rapids.shimplify.pom.checksum"/>
                                         <property name="rapids.shimplify.cache.marker"
-                                                  value="${spark.shim.dest}/.shimplify-${rapids.shimplify.sources.checksum}-${rapids.shimplify.detection.checksum}-${rapids.shimplify.generator.checksum}"/>
+                                                  value="${spark.shim.dest}/.shimplify-${rapids.shimplify.sources.checksum}-${rapids.shimplify.detection.checksum}-${rapids.shimplify.generator.checksum}-${rapids.shimplify.buildvers.checksum}-${rapids.shimplify.pom.checksum}"/>
                                         <available file="${rapids.shimplify.cache.marker}"
                                                    property="rapids.shimplify.cache.hit"/>
                                         <property name="dyn.shim.buildver" value="all.buildvers"/>
