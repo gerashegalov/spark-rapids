@@ -123,9 +123,10 @@ private[rapids] object GpuComparisonAndAggregateExpressionOverrides {
         Seq(ParamCheck("value", TypeSig.commonCudfTypes + TypeSig.NULL + TypeSig.DECIMAL_128,
           TypeSig.comparable)),
         Some(RepeatingParamCheck("list",
-          (TypeSig.commonCudfTypes + TypeSig.DECIMAL_128).withAllLit(),
+          TypeSig.commonCudfTypes + TypeSig.DECIMAL_128,
           TypeSig.comparable))),
-      InRuleMeta),
+      InRuleMeta).note(
+        "Non-literal list expressions must be deterministic and side-effect-free"),
     expr[InSet](
       "INSET operator",
       ExprChecks.unaryProject(TypeSig.BOOLEAN, TypeSig.BOOLEAN,

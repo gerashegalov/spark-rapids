@@ -159,8 +159,43 @@ case class InRuleMeta(
     p: Option[RapidsMeta[_, _, _]],
     r: DataFromReplacementRule)
   extends ExprMeta[In](in, conf, p, r) {
-  override def convertToGpuImpl(): GpuExpression =
-    GpuInSet(childExprs.head.convertToGpu(), in.list.asInstanceOf[Seq[Literal]].map(_.value))
+  private val allListItemsAreLiterals = in.list.forall(_.isInstanceOf[Literal])
+  private lazy val dynamicListItems = in.list.zip(childExprs.tail).filterNot {
+    case (expression, _) => expression.isInstanceOf[Literal]
+  }
+  private lazy val gpuDynamicExpressions = dynamicListItems.map(_._2.convertToGpu())
+
+  override def tagExprForGpu(): Unit = {
+    if (!allListItemsAreLiterals) {
+      if (dynamicListItems.length > GpuIn.MAX_DYNAMIC_LIST_SIZE) {
+        willNotWorkOnGpu(
+          s"dynamic IN lists with more than ${GpuIn.MAX_DYNAMIC_LIST_SIZE} " +
+            "non-literal expressions are not supported")
+      } else if (!dynamicListItems.forall(_._1.deterministic)) {
+        willNotWorkOnGpu("dynamic IN list expressions must be deterministic")
+      } else if (!dynamicListItems.forall(_._2.canExprTreeBeReplaced)) {
+        // CPU bridges are inserted after tagging, so verify the entire expression tree
+        // before converting it to inspect side effects.
+        willNotWorkOnGpu("dynamic IN list expressions must run entirely on GPU")
+      } else if (gpuDynamicExpressions.exists {
+          case gpuExpression: GpuExpression => gpuExpression.hasSideEffects
+          case _ => false
+        }) {
+        willNotWorkOnGpu("dynamic IN list expressions with side effects are not supported")
+      }
+    }
+  }
+
+  override def convertToGpuImpl(): GpuExpression = {
+    val gpuValue = childExprs.head.convertToGpu()
+    if (allListItemsAreLiterals) {
+      GpuInSet(gpuValue, in.list.asInstanceOf[Seq[Literal]].map(_.value),
+        useInSetSemantics = false)
+    } else {
+      val literalValues = in.list.collect { case literal: Literal => literal.value }
+      GpuIn(gpuValue, literalValues, gpuDynamicExpressions)
+    }
+  }
 }
 
 case class InSetRuleMeta(

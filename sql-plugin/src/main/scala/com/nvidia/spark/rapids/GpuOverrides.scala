@@ -925,7 +925,7 @@ object GpuOverrides extends Logging {
   ).collect { case r if r != null => (r.getClassFor.asSubclass(classOf[Expression]), r)}.toMap
 
   // Shim expressions should be last to allow overrides with shim-specific versions
-  val expressions: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] =
+  lazy val expressions: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] =
     commonExpressions ++ TimeStamp.getExprs ++ GpuHiveOverrides.exprs ++
         ZOrderRules.exprs ++ DecimalArithmeticOverrides.exprs ++
         BloomFilterShims.exprs ++ StringDecodeShims.exprs ++
@@ -948,7 +948,7 @@ object GpuOverrides extends Logging {
       "Json parsing",
       JsonScanRuleMeta)).map(r => (r.getClassFor.asSubclass(classOf[Scan]), r)).toMap
 
-  val scans: Map[Class[_ <: Scan], ScanRule[_ <: Scan]] =
+  lazy val scans: Map[Class[_ <: Scan], ScanRule[_ <: Scan]] =
     commonScans ++ SparkShimImpl.getScans ++ ExternalSource.getScans
 
   def wrapPart[INPUT <: Partitioning](
@@ -1005,7 +1005,7 @@ object GpuOverrides extends Logging {
       InsertIntoHadoopFsRelationCommandMeta)
   ).map(r => (r.getClassFor.asSubclass(classOf[DataWritingCommand]), r)).toMap
 
-  val dataWriteCmds: Map[Class[_ <: DataWritingCommand],
+  lazy val dataWriteCmds: Map[Class[_ <: DataWritingCommand],
       DataWritingCommandRule[_ <: DataWritingCommand]] =
     commonDataWriteCmds ++ GpuHiveOverrides.dataWriteCmds ++ SparkShimImpl.getDataWriteCmds ++
       ExternalSource.dataWriteCmds
@@ -1036,7 +1036,7 @@ object GpuOverrides extends Logging {
         SaveIntoDataSourceCommandConstructorRuleMeta)
     ).map(r => (r.getClassFor.asSubclass(classOf[RunnableCommand]), r)).toMap
 
-  val runnableCmds = commonRunnableCmds ++
+  lazy val runnableCmds = commonRunnableCmds ++
     GpuHiveOverrides.runnableCmds ++
       ExternalSource.runnableCmds ++
       SparkShimImpl.getRunnableCmds
@@ -1059,7 +1059,7 @@ object GpuOverrides extends Logging {
       SparkShimImpl.getExecs // Shim execs at the end; shims get the last word in substitutions.
 
   def getTimeParserPolicy: TimeParserPolicy = {
-    val policy = SQLConf.get.getConfString(SQLConf.LEGACY_TIME_PARSER_POLICY.key, "EXCEPTION")
+    val policy = SQLConf.get.legacyTimeParserPolicy.toString
     policy.toUpperCase match {
       case "LEGACY" => LegacyTimeParserPolicy
       case "EXCEPTION" => ExceptionTimeParserPolicy
