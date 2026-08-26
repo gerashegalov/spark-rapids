@@ -19,6 +19,7 @@ package org.apache.iceberg.aws.s3;
 import org.apache.iceberg.io.FileIOMetricsContext;
 import org.apache.iceberg.io.InputFile;
 import org.apache.iceberg.metrics.Counter;
+import org.apache.iceberg.metrics.MetricsContext.Unit;
 
 /**
  * Root-loadable bridge for package-private Iceberg S3 APIs.
@@ -56,6 +57,6 @@ public final class IcebergS3InputFileAccess {
     if (!(inputFile instanceof BaseS3File)) {
       return null;
     }
-    return ((BaseS3File) inputFile).metrics().counter(FileIOMetricsContext.READ_BYTES);
+    return ((BaseS3File) inputFile).metrics().counter(FileIOMetricsContext.READ_BYTES, Unit.BYTES);
   }
 }

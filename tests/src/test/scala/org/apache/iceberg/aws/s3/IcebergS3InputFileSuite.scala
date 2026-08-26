@@ -26,6 +26,7 @@ import com.nvidia.spark.rapids.jni.fileio.RapidsInputFile.CopyRange
 import org.apache.iceberg.hadoop.HadoopMetricsContext
 import org.apache.iceberg.io.{FileIOMetricsContext, InputFile}
 import org.apache.iceberg.metrics.{Counter, DefaultMetricsContext}
+import org.apache.iceberg.metrics.MetricsContext.Unit
 import org.mockito.Mockito.{mock, mockStatic, when}
 import org.mockito.invocation.InvocationOnMock
 import org.scalatest.funsuite.AnyFunSuite
@@ -69,7 +70,7 @@ class IcebergS3InputFileSuite extends AnyFunSuite with Matchers {
 
   test("successful PerfIO reads count the bytes delivered by the copier") {
     val metrics = new DefaultMetricsContext
-    val readBytes = metrics.counter(FileIOMetricsContext.READ_BYTES)
+    val readBytes = metrics.counter(FileIOMetricsContext.READ_BYTES, Unit.BYTES)
     val inputFile = newInputFile(readBytes)
     val output = mock(classOf[HostMemoryBuffer])
     val ranges = Collections.singletonList(new CopyRange(0L, 100L, 0L))
@@ -96,7 +97,7 @@ class IcebergS3InputFileSuite extends AnyFunSuite with Matchers {
 
   test("failed PerfIO reads do not update read bytes") {
     val metrics = new DefaultMetricsContext
-    val readBytes = metrics.counter(FileIOMetricsContext.READ_BYTES)
+    val readBytes = metrics.counter(FileIOMetricsContext.READ_BYTES, Unit.BYTES)
     val inputFile = newInputFile(readBytes)
     val output = mock(classOf[HostMemoryBuffer])
     val ranges = Collections.singletonList(new CopyRange(0L, 100L, 0L))
