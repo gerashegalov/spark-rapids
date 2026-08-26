@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025, NVIDIA CORPORATION.
+ * Copyright (c) 2024-2026, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -269,59 +269,68 @@ class PartitionedFirstPassAggResult(firstPassAggResult: FirstPassAggResult,
    * This helper function finds the beginning index (in groupTable) for the last group
    * in `aggResultTable`.
    */
-  private def getStartIndexForLastGroup(aggResultTable: cudf.Table,
+  private def getStartIndexForLastGroup(aggResultsCB: ColumnarBatch,
                                         rideAlongGroupsTable: cudf.Table): Int = {
-    val lastRowIndex = aggResultTable.getRowCount.asInstanceOf[Int] - 1
-    withResource(getTableSlice(aggResultTable,
-      beginRow = lastRowIndex,
-      endRow = lastRowIndex + 1,
-      beginCol = 0,
-      endCol = numGroupingKeys)) { group =>
-      // The grouping keys are always ordered ASC NULLS FIRST,
-      // regardless of how the order-by columns are ordered.
-      // Searching for a group does not involve the order-by columns in any way.
-      // A simple `lowerBound` does the trick.
-      val orderBys = Range(0, numGroupingKeys).map(i => cudf.OrderByArg.asc(i, true))
-      withResource(rideAlongGroupsTable.lowerBound(group, orderBys: _*)) { groupMargin =>
-        withResource(groupMargin.copyToHost()) { groupMarginHost =>
-          groupMarginHost.getInt(0)
+    withResource(GpuColumnVector.from(aggResultsCB)) { aggResultTable =>
+      val lastRowIndex = aggResultTable.getRowCount.asInstanceOf[Int] - 1
+      withResource(getTableSlice(aggResultTable,
+        beginRow = lastRowIndex,
+        endRow = lastRowIndex + 1,
+        beginCol = 0,
+        endCol = numGroupingKeys)) { group =>
+        // The grouping keys are always ordered ASC NULLS FIRST,
+        // regardless of how the order-by columns are ordered.
+        // Searching for a group does not involve the order-by columns in any way.
+        // A simple `lowerBound` does the trick.
+        val orderBys = Range(0, numGroupingKeys).map(i => cudf.OrderByArg.asc(i, true))
+        withResource(rideAlongGroupsTable.lowerBound(group, orderBys: _*)) { groupMargin =>
+          withResource(groupMargin.copyToHost()) { groupMarginHost =>
+            groupMarginHost.getInt(0)
+          }
         }
       }
     }
   }
 
-  withResource(firstPassAggResult.rideAlongColumns.getColumnarBatch()) { rideAlongCB =>
-    withResource(GpuProjectExec.project(rideAlongCB, boundStages.boundPartitionSpec)) { rideGrpCB =>
-      withResource(GpuColumnVector.from(rideGrpCB)) { rideAlongGroupsTable =>
-        withResource(firstPassAggResult.aggResult.getColumnarBatch()) { aggResultsCB =>
-          withResource(GpuColumnVector.from(aggResultsCB)) { aggResultTable =>
-            val lastGroupBeginIdx = getStartIndexForLastGroup(aggResultTable,
-              rideAlongGroupsTable)
-            withResource(GpuColumnVector.from(rideAlongCB)) { rideAlongTable =>
-              // Slice and dice!
-              val aggResultTypes = boundStages.groupingColumnTypes ++ boundStages.aggResultTypes
-              val rideAlongTypes = boundStages.rideAlongColumnTypes
-
-              lastGroupAggResult = Some(sliceAndMakeSpillable(aggResultTable,
-                                                              numGroups - 1,
-                                                              numGroups,
-                                                              aggResultTypes))
-              lastGroupRideAlong = Some(sliceAndMakeSpillable(rideAlongTable,
-                                                              lastGroupBeginIdx,
-                                                              numRideAlongRows,
-                                                              rideAlongTypes))
-              otherGroupAggResult = Some(sliceAndMakeSpillable(aggResultTable,
-                                                               0,
-                                                               numGroups - 1,
-                                                               aggResultTypes))
-              otherGroupRideAlong = Some(sliceAndMakeSpillable(rideAlongTable,
-                                                               0,
-                                                               lastGroupBeginIdx,
-                                                               rideAlongTypes))
+  // Find the boundary before creating output slices so the projected grouping keys and both
+  // input batches are released before either input is reopened and sliced.
+  val lastGroupBeginIdx =
+    withResource(firstPassAggResult.rideAlongColumns.getColumnarBatch()) { rideAlongCB =>
+      withResource(GpuProjectExec.project(rideAlongCB, boundStages.boundPartitionSpec)) {
+        rideGrpCB =>
+          withResource(GpuColumnVector.from(rideGrpCB)) { rideAlongGroupsTable =>
+            withResource(firstPassAggResult.aggResult.getColumnarBatch()) { aggResultsCB =>
+              getStartIndexForLastGroup(aggResultsCB, rideAlongGroupsTable)
             }
           }
-        }
       }
+    }
+
+  val aggResultTypes = boundStages.groupingColumnTypes ++ boundStages.aggResultTypes
+  withResource(firstPassAggResult.aggResult.getColumnarBatch()) { aggResultsCB =>
+    withResource(GpuColumnVector.from(aggResultsCB)) { aggResultTable =>
+      lastGroupAggResult = Some(sliceAndMakeSpillable(aggResultTable,
+                                                     numGroups - 1,
+                                                     numGroups,
+                                                     aggResultTypes))
+      otherGroupAggResult = Some(sliceAndMakeSpillable(aggResultTable,
+                                                      0,
+                                                      numGroups - 1,
+                                                      aggResultTypes))
+    }
+  }
+
+  val rideAlongTypes = boundStages.rideAlongColumnTypes
+  withResource(firstPassAggResult.rideAlongColumns.getColumnarBatch()) { rideAlongCB =>
+    withResource(GpuColumnVector.from(rideAlongCB)) { rideAlongTable =>
+      lastGroupRideAlong = Some(sliceAndMakeSpillable(rideAlongTable,
+                                                     lastGroupBeginIdx,
+                                                     numRideAlongRows,
+                                                     rideAlongTypes))
+      otherGroupRideAlong = Some(sliceAndMakeSpillable(rideAlongTable,
+                                                      0,
+                                                      lastGroupBeginIdx,
+                                                      rideAlongTypes))
     }
   }
 } // class PartitionedFirstPassAggResult.
