@@ -306,31 +306,49 @@ class PartitionedFirstPassAggResult(firstPassAggResult: FirstPassAggResult,
       }
     }
 
-  val aggResultTypes = boundStages.groupingColumnTypes ++ boundStages.aggResultTypes
-  withResource(firstPassAggResult.aggResult.getColumnarBatch()) { aggResultsCB =>
-    withResource(GpuColumnVector.from(aggResultsCB)) { aggResultTable =>
-      lastGroupAggResult = Some(sliceAndMakeSpillable(aggResultTable,
-                                                     numGroups - 1,
-                                                     numGroups,
-                                                     aggResultTypes))
-      otherGroupAggResult = Some(sliceAndMakeSpillable(aggResultTable,
-                                                      0,
-                                                      numGroups - 1,
-                                                      aggResultTypes))
+  locally {
+    val aggResultTypes = boundStages.groupingColumnTypes ++ boundStages.aggResultTypes
+    val aggResults = withResource(firstPassAggResult.aggResult.getColumnarBatch()) {
+      aggResultsCB =>
+        withResource(GpuColumnVector.from(aggResultsCB)) { aggResultTable =>
+          val last = sliceAndMakeSpillable(aggResultTable,
+                                           numGroups - 1,
+                                           numGroups,
+                                           aggResultTypes)
+          closeOnExcept(last) { _ =>
+            val other = sliceAndMakeSpillable(aggResultTable,
+                                              0,
+                                              numGroups - 1,
+                                              aggResultTypes)
+            Array(last, other)
+          }
+        }
     }
-  }
 
-  val rideAlongTypes = boundStages.rideAlongColumnTypes
-  withResource(firstPassAggResult.rideAlongColumns.getColumnarBatch()) { rideAlongCB =>
-    withResource(GpuColumnVector.from(rideAlongCB)) { rideAlongTable =>
-      lastGroupRideAlong = Some(sliceAndMakeSpillable(rideAlongTable,
-                                                     lastGroupBeginIdx,
-                                                     numRideAlongRows,
-                                                     rideAlongTypes))
-      otherGroupRideAlong = Some(sliceAndMakeSpillable(rideAlongTable,
-                                                      0,
-                                                      lastGroupBeginIdx,
-                                                      rideAlongTypes))
+    closeOnExcept(aggResults) { _ =>
+      val rideAlongTypes = boundStages.rideAlongColumnTypes
+      val rideAlongResults = withResource(
+          firstPassAggResult.rideAlongColumns.getColumnarBatch()) { rideAlongCB =>
+        withResource(GpuColumnVector.from(rideAlongCB)) { rideAlongTable =>
+          val last = sliceAndMakeSpillable(rideAlongTable,
+                                           lastGroupBeginIdx,
+                                           numRideAlongRows,
+                                           rideAlongTypes)
+          closeOnExcept(last) { _ =>
+            val other = sliceAndMakeSpillable(rideAlongTable,
+                                              0,
+                                              lastGroupBeginIdx,
+                                              rideAlongTypes)
+            Array(last, other)
+          }
+        }
+      }
+      closeOnExcept(rideAlongResults) { _ =>
+        lastGroupAggResult = Some(aggResults(0))
+        otherGroupAggResult = Some(aggResults(1))
+        lastGroupRideAlong = Some(rideAlongResults(0))
+        otherGroupRideAlong = Some(rideAlongResults(1))
+      }
     }
   }
 } // class PartitionedFirstPassAggResult.

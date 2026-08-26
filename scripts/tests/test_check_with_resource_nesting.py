@@ -58,6 +58,32 @@ class WithResourceNestingLintSuite(unittest.TestCase):
         result = LINT.scan_source("Test.scala", source, 4)
         self.assertEqual((), result.violations)
 
+    def test_ignores_directives_in_block_comments_and_literals(self):
+        source = '''
+          val text = "// with-resource-lint: allow-deep-nesting -- short"
+          /*
+           // with-resource-lint: allow-deep-nesting -- required by https://github.com/NVIDIA/cudf-spark/issues/11713
+          */
+        ''' + nested_source(5)
+        result = LINT.scan_source("Test.scala", source, 4)
+        self.assertEqual(1, len(result.violations))
+        self.assertEqual((), result.directive_errors)
+
+    def test_checks_interpolated_expression_bodies(self):
+        source = """
+          withResource(make0()) { resource0 =>
+            withResource(make1()) { resource1 =>
+              withResource(make2()) { resource2 =>
+                withResource(make3()) { resource3 =>
+                  val text = s"value=${withResource(make4()) { resource4 => resource4 }}"
+                }
+              }
+            }
+          }
+        """
+        result = LINT.scan_source("Test.scala", source, 4)
+        self.assertEqual([5], [violation.depth for violation in result.violations])
+
     def test_handles_blocks_inside_resource_argument(self):
         source = """
           withResource(values.map { value => convert(value) }) { first =>

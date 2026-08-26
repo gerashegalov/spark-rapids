@@ -47,6 +47,14 @@ class Token:
 
 
 @dataclasses.dataclass(frozen=True)
+class LineComment:
+    text: str
+    start: int
+    end: int
+    line: int
+
+
+@dataclasses.dataclass(frozen=True)
 class ResourceCall:
     line: int
     fingerprint: str
@@ -94,13 +102,90 @@ def _consume_quoted(source: str, start: int, quote: str) -> int:
     return len(source)
 
 
-def tokenize(source: str) -> list[Token]:
+def _is_interpolated_quote(source: str, quote_start: int) -> bool:
+    if quote_start == 0:
+        return False
+    offset = quote_start - 1
+    if not (source[offset].isalnum() or source[offset] in "_$"):
+        return False
+    while offset > 0 and (source[offset - 1].isalnum() or source[offset - 1] in "_$"):
+        offset -= 1
+    return source[offset].isalpha() or source[offset] in "_$"
+
+
+def _consume_block_comment(source: str, start: int) -> tuple[int, bool]:
+    depth = 1
+    offset = start + 2
+    while offset < len(source) and depth:
+        if source.startswith("/*", offset):
+            depth += 1
+            offset += 2
+        elif source.startswith("*/", offset):
+            depth -= 1
+            offset += 2
+        else:
+            offset += 1
+    return offset, depth == 0
+
+
+def _matching_interpolation_brace(source: str, open_brace: int) -> int:
+    depth = 1
+    offset = open_brace + 1
+    while offset < len(source):
+        if source.startswith("//", offset):
+            newline = source.find("\n", offset + 2)
+            offset = len(source) if newline < 0 else newline
+        elif source.startswith("/*", offset):
+            offset, _ = _consume_block_comment(source, offset)
+        elif source[offset] in "\"'":
+            if source[offset] == '"' and _is_interpolated_quote(source, offset):
+                offset, _ = _consume_interpolated(source, offset)
+            else:
+                offset = _consume_quoted(source, offset, source[offset])
+        elif source[offset] == "{":
+            depth += 1
+            offset += 1
+        elif source[offset] == "}":
+            depth -= 1
+            if depth == 0:
+                return offset
+            offset += 1
+        else:
+            offset += 1
+    return len(source)
+
+
+def _consume_interpolated(source: str, start: int) -> tuple[int, list[tuple[int, int]]]:
+    delimiter = '\"\"\"' if source.startswith('\"\"\"', start) else '"'
+    offset = start + len(delimiter)
+    expressions: list[tuple[int, int]] = []
+
+    while offset < len(source):
+        if source.startswith(delimiter, offset):
+            return offset + len(delimiter), expressions
+        if delimiter == '"' and source[offset] == "\\":
+            offset += 2
+        elif source.startswith("$$", offset):
+            offset += 2
+        elif source.startswith("${", offset):
+            open_brace = offset + 1
+            close_brace = _matching_interpolation_brace(source, open_brace)
+            expressions.append((open_brace, close_brace))
+            offset = close_brace + 1
+        else:
+            offset += 1
+    return len(source), expressions
+
+
+def _tokenize(source: str) -> tuple[list[Token], list[LineComment]]:
     """Tokenize enough Scala syntax to match calls and lexical blocks.
 
     Comments and literal contents are deliberately opaque. This avoids counting braces or
-    withResource text embedded in comments, regular expressions, and interpolated strings.
+    withResource text embedded in comments and literal text. Executable `${...}` expressions
+    inside interpolated strings are tokenized recursively.
     """
     tokens: list[Token] = []
+    line_comments: list[LineComment] = []
     offset = 0
     line = 1
     length = len(source)
@@ -115,30 +200,43 @@ def tokenize(source: str) -> list[Token]:
             offset += 1
         elif char == "/" and next_char == "/":
             newline = source.find("\n", offset + 2)
-            if newline < 0:
-                break
-            offset = newline
+            end = length if newline < 0 else newline
+            line_comments.append(LineComment(source[offset:end], offset, end, line))
+            offset = end
         elif char == "/" and next_char == "*":
             comment_start = offset
-            depth = 1
-            offset += 2
-            while offset < length and depth:
-                if source.startswith("/*", offset):
-                    depth += 1
-                    offset += 2
-                elif source.startswith("*/", offset):
-                    depth -= 1
-                    offset += 2
-                else:
-                    if source[offset] == "\n":
-                        line += 1
-                    offset += 1
-            if depth:
+            offset, closed = _consume_block_comment(source, offset)
+            line += source[comment_start:offset].count("\n")
+            if not closed:
                 raise ValueError(f"unterminated block comment at offset {comment_start}")
         elif char in "\"'":
-            end = _consume_quoted(source, offset, char)
+            expressions: list[tuple[int, int]] = []
+            if char == '"' and _is_interpolated_quote(source, offset):
+                end, expressions = _consume_interpolated(source, offset)
+            else:
+                end = _consume_quoted(source, offset, char)
             literal = source[offset:end]
             tokens.append(Token("<literal>", offset, end, line))
+            for open_brace, close_brace in expressions:
+                open_line = line + source[offset:open_brace].count("\n")
+                tokens.append(Token("{", open_brace, open_brace + 1, open_line))
+                expression_start = open_brace + 1
+                nested_tokens, nested_comments = _tokenize(
+                    source[expression_start:close_brace])
+                for token in nested_tokens:
+                    tokens.append(Token(
+                        token.value,
+                        token.start + expression_start,
+                        token.end + expression_start,
+                        token.line + open_line - 1))
+                for comment in nested_comments:
+                    line_comments.append(LineComment(
+                        comment.text,
+                        comment.start + expression_start,
+                        comment.end + expression_start,
+                        comment.line + open_line - 1))
+                close_line = line + source[offset:close_brace].count("\n")
+                tokens.append(Token("}", close_brace, close_brace + 1, close_line))
             line += literal.count("\n")
             offset = end
         elif char.isalpha() or char in "_$":
@@ -157,7 +255,11 @@ def tokenize(source: str) -> list[Token]:
             tokens.append(Token(char, offset, offset + 1, line))
             offset += 1
 
-    return tokens
+    return tokens, line_comments
+
+
+def tokenize(source: str) -> list[Token]:
+    return _tokenize(source)[0]
 
 
 def _matching_paren(tokens: Sequence[Token], open_index: int) -> int | None:
@@ -177,16 +279,21 @@ def _canonical_call(tokens: Sequence[Token], start: int, end: int) -> str:
     return "".join(token.value for token in tokens[start:end + 1])
 
 
-def _directive_lines(source: str, path: str) -> tuple[set[int], list[str]]:
+def _directive_lines(
+    source: str,
+    path: str,
+    tokens: Sequence[Token],
+    line_comments: Sequence[LineComment],
+) -> tuple[set[int], list[str]]:
     exempt_lines: set[int] = set()
     errors: list[str] = []
     lines = source.splitlines()
 
-    for index, text in enumerate(lines):
-        if ALLOW_DIRECTIVE not in text:
+    for comment in line_comments:
+        if ALLOW_DIRECTIVE not in comment.text:
             continue
-        match = ALLOW_PATTERN.search(text)
-        line_number = index + 1
+        match = ALLOW_PATTERN.search(comment.text)
+        line_number = comment.line
         if match is None or len(match.group(1).strip()) < 10:
             errors.append(
                 f"{path}:{line_number}: {ALLOW_DIRECTIVE} requires a reason of at least "
@@ -200,7 +307,11 @@ def _directive_lines(source: str, path: str) -> tuple[set[int], list[str]]:
 
         # The directive applies to a withResource call on the same line or the next nonblank line.
         target = line_number
-        if "withResource" not in text[:match.start()]:
+        has_call_before_comment = any(
+            token.value == "withResource" and token.line == line_number and
+            token.start < comment.start
+            for token in tokens)
+        if not has_call_before_comment:
             target += 1
             while target <= len(lines) and not lines[target - 1].strip():
                 target += 1
@@ -211,11 +322,12 @@ def _directive_lines(source: str, path: str) -> tuple[set[int], list[str]]:
 
 def scan_source(path: str, source: str, max_depth: int) -> ScanResult:
     try:
-        tokens = tokenize(source)
+        tokens, line_comments = _tokenize(source)
     except ValueError as error:
         return ScanResult((), (f"{path}: {error}",))
 
-    exempt_lines, directive_errors = _directive_lines(source, path)
+    exempt_lines, directive_errors = _directive_lines(
+        source, path, tokens, line_comments)
     resource_blocks: dict[int, ResourceCall] = {}
 
     for index, token in enumerate(tokens):
