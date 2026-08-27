@@ -338,7 +338,8 @@ def scan_source(path: str, source: str, max_depth: int) -> ScanResult:
         close_index = _matching_paren(tokens, index + 1)
         if close_index is None or close_index + 1 >= len(tokens):
             continue
-        if tokens[close_index + 1].value != "{":
+        scope_open = tokens[close_index + 1].value
+        if scope_open not in {"{", "("}:
             continue
 
         canonical = _canonical_call(tokens, index, close_index)
@@ -350,13 +351,13 @@ def scan_source(path: str, source: str, max_depth: int) -> ScanResult:
             exempt=token.line in exempt_lines)
 
     violations: list[Violation] = []
-    block_stack: list[ResourceCall | None] = []
+    scope_stack: list[ResourceCall | None] = []
     for index, token in enumerate(tokens):
-        if token.value == "{":
+        if token.value in {"{", "("}:
             resource_call = resource_blocks.get(index)
-            block_stack.append(resource_call)
+            scope_stack.append(resource_call)
             if resource_call is not None:
-                resource_ancestors = [call for call in block_stack if call is not None]
+                resource_ancestors = [call for call in scope_stack if call is not None]
                 depth = len(resource_ancestors)
                 exempt = any(call.exempt for call in resource_ancestors)
                 if depth > max_depth and not exempt:
@@ -366,8 +367,8 @@ def scan_source(path: str, source: str, max_depth: int) -> ScanResult:
                         depth=depth,
                         fingerprint=resource_call.fingerprint,
                         resource=resource_call.resource))
-        elif token.value == "}" and block_stack:
-            block_stack.pop()
+        elif token.value in {"}", ")"} and scope_stack:
+            scope_stack.pop()
 
     return ScanResult(tuple(violations), tuple(directive_errors))
 

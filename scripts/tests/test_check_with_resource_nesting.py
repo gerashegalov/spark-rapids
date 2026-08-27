@@ -49,6 +49,35 @@ class WithResourceNestingLintSuite(unittest.TestCase):
         result = LINT.scan_source("Test.scala", nested_source(6), 4)
         self.assertEqual([5, 6], [violation.depth for violation in result.violations])
 
+    def test_checks_parenthesized_callback(self):
+        source = """
+          withResource(make0()) { resource0 =>
+            withResource(make1()) { resource1 =>
+              withResource(make2()) { resource2 =>
+                withResource(make3()) { resource3 =>
+                  withResource(make4())(_ => result)
+                }
+              }
+            }
+          }
+        """
+        result = LINT.scan_source("Test.scala", source, 4)
+        self.assertEqual([5], [violation.depth for violation in result.violations])
+
+    def test_checks_nesting_inside_parenthesized_callback(self):
+        source = """
+          withResource(make0()) { resource0 =>
+            withResource(make1()) { resource1 =>
+              withResource(make2()) { resource2 =>
+                withResource(make3())(_ =>
+                  withResource(make4()) { resource4 => result })
+              }
+            }
+          }
+        """
+        result = LINT.scan_source("Test.scala", source, 4)
+        self.assertEqual([5], [violation.depth for violation in result.violations])
+
     def test_ignores_comments_and_literals(self):
         source = '''
           // withResource(commented()) {

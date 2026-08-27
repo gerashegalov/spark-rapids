@@ -43,6 +43,11 @@
     },
     {
       "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuCast.scala",
+      "fingerprint": "2073d8657c48703de674",
+      "resource": "withResource(ColumnVector.stringConcatenate(emptyScalar,emptyScalar,columns.toArray,false))"
+    },
+    {
+      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuCast.scala",
       "fingerprint": "27fc2acfeb96c0d4259b",
       "resource": "withResource(Scalar.fromString(<literal>))"
     },
