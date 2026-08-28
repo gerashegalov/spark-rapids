@@ -49,6 +49,12 @@ class WithResourceNestingLintSuite(unittest.TestCase):
         result = LINT.scan_source("Test.scala", nested_source(6), 4)
         self.assertEqual([5, 6], [violation.depth for violation in result.violations])
 
+    def test_checks_calls_with_explicit_type_arguments(self):
+        source = nested_source(5).replace(
+            "withResource", "Arm.withResource[AutoCloseable, Any]")
+        result = LINT.scan_source("Test.scala", source, 4)
+        self.assertEqual([5], [violation.depth for violation in result.violations])
+
     def test_checks_parenthesized_callback(self):
         source = """
           withResource(make0()) { resource0 =>

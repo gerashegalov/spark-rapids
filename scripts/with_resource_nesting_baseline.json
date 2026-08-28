@@ -14,34 +14,6 @@
       "resource": "withResource(GpuColumnVector.from(combined,sparkTypes))"
     },
     {
-      "path": "iceberg/common/src/main/scala/com/nvidia/spark/rapids/iceberg/parquet/GpuParquetReaderPostProcessor.scala",
-      "fingerprint": "9e5f65b1533be8698462",
-      "resource": "withResource(CudfColumnVector.makeStruct(newKey,newValue))"
-    },
-    {
-      "path": "iceberg/common/src/main/scala/com/nvidia/spark/rapids/iceberg/parquet/GpuParquetReaderPostProcessor.scala",
-      "fingerprint": "ec8c4c5fa89fdcc50552",
-      "resource": "withResource(col.replaceListChild(kvStruct))"
-    },
-    {
-      "path": "iceberg/common/src/main/scala/org/apache/iceberg/spark/source/GpuSparkPositionDeltaWrite.scala",
-      "fingerprint": "47d961203f1b314cb11d",
-      "resource": "withResource(filteredPartitionValues)",
-      "count": 2
-    },
-    {
-      "path": "iceberg/common/src/main/scala/org/apache/iceberg/spark/source/GpuSparkPositionDeltaWrite.scala",
-      "fingerprint": "8b43a4f2fcafd87acab1",
-      "resource": "withResource(specProjection)",
-      "count": 2
-    },
-    {
-      "path": "iceberg/common/src/main/scala/org/apache/iceberg/spark/source/GpuSparkPositionDeltaWrite.scala",
-      "fingerprint": "d251bb25f9716f26af88",
-      "resource": "withResource(filteredPositionDeletes)",
-      "count": 2
-    },
-    {
       "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuCast.scala",
       "fingerprint": "27fc2acfeb96c0d4259b",
       "resource": "withResource(Scalar.fromString(<literal>))"
@@ -70,21 +42,6 @@
       "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcTimezoneUtils.scala",
       "fingerprint": "0ea0d172ebf76d2b0b78",
       "resource": "withResource(timestamp.lessThan(firstTransition))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcTimezoneUtils.scala",
-      "fingerprint": "7b8572294bf2566b2a28",
-      "resource": "withResource(Scalar.timestampFromLong(DType.TIMESTAMP_MICROSECONDS,firstTransitionUs))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcTimezoneUtils.scala",
-      "fingerprint": "bb40fe4baf0e7ba2f63c",
-      "resource": "withResource(orcTimestamp.lessThan(firstTransition))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcTimezoneUtils.scala",
-      "fingerprint": "e5a829fd4d8cf20a7b32",
-      "resource": "withResource(orcMicros.add(ruleCorrection))"
     },
     {
       "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/RmmRapidsRetryIterator.scala",
@@ -267,39 +224,9 @@
       "resource": "withResource(getNullScalar)"
     },
     {
-      "path": "sql-plugin/src/main/scala/org/apache/spark/sql/rapids/datetimeExpressions.scala",
-      "fingerprint": "3dac34f8814558b1489c",
-      "resource": "withResource(roundedPartialMonth)"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/org/apache/spark/sql/rapids/datetimeExpressions.scala",
-      "fingerprint": "7659050d32284e264f47",
-      "resource": "withResource(partialMonth)"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/org/apache/spark/sql/rapids/datetimeExpressions.scala",
-      "fingerprint": "765f68a8f5363f0b727c",
-      "resource": "withResource(Scalar.fromDouble(DAYS.toSeconds(31)))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/org/apache/spark/sql/rapids/datetimeExpressions.scala",
-      "fingerprint": "7777f2e2c77fd3864d4c",
-      "resource": "withResource(diff)"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/org/apache/spark/sql/rapids/datetimeExpressions.scala",
-      "fingerprint": "7fe4ffa10ac9b04e9636",
-      "resource": "withResource(calcSecondsDiff(converted1,converted2))"
-    },
-    {
       "path": "sql-plugin/src/main/scala/org/apache/spark/sql/rapids/execution/GpuHashJoin.scala",
       "fingerprint": "e94cecefc0efd9c40217",
       "resource": "withResource(builtTable.filter(trackerTab.getColumn(0)))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/org/apache/spark/sql/rapids/predicates.scala",
-      "fingerprint": "23fe05b7f2fd7c22b7e9",
-      "resource": "withResource(rightExpr.columnarEval(leftTrueBatch))"
     },
     {
       "path": "sql-plugin/src/main/scala/org/apache/spark/sql/rapids/predicates.scala",

@@ -263,13 +263,18 @@ def tokenize(source: str) -> list[Token]:
     return _tokenize(source)[0]
 
 
-def _matching_paren(tokens: Sequence[Token], open_index: int) -> int | None:
+def _matching_delimiter(
+    tokens: Sequence[Token],
+    open_index: int,
+    open_value: str,
+    close_value: str,
+) -> int | None:
     depth = 0
     for index in range(open_index, len(tokens)):
         value = tokens[index].value
-        if value == "(":
+        if value == open_value:
             depth += 1
-        elif value == ")":
+        elif value == close_value:
             depth -= 1
             if depth == 0:
                 return index
@@ -334,9 +339,16 @@ def scan_source(path: str, source: str, max_depth: int) -> ScanResult:
     for index, token in enumerate(tokens):
         if token.value != "withResource" or index + 1 >= len(tokens):
             continue
-        if tokens[index + 1].value != "(":
+        argument_open_index = index + 1
+        if tokens[argument_open_index].value == "[":
+            type_args_close = _matching_delimiter(
+                tokens, argument_open_index, "[", "]")
+            if type_args_close is None or type_args_close + 1 >= len(tokens):
+                continue
+            argument_open_index = type_args_close + 1
+        if tokens[argument_open_index].value != "(":
             continue
-        close_index = _matching_paren(tokens, index + 1)
+        close_index = _matching_delimiter(tokens, argument_open_index, "(", ")")
         if close_index is None or close_index + 1 >= len(tokens):
             continue
         scope_open = tokens[close_index + 1].value

@@ -89,14 +89,14 @@ abstract class CudfBinaryPredicateWithSideEffect extends CudfBinaryOperator with
           val colTypes = GpuColumnVector.extractTypes(batch)
           // Process the LHS. It may imply replacing null values (if any) with true.
           withResource(processLHS(lhsBool.getBase)) { lhsNoNulls =>
-            withResource(filterBatch(tbl, lhsNoNulls, colTypes)) { leftTrueBatch =>
-              withResource(rightExpr.columnarEval(leftTrueBatch)) {
-                rEval =>
-                  withResource(gather(lhsNoNulls, rEval)) { combinedVector =>
-                    GpuColumnVector.from(
-                      doColumnar(lhsBool, GpuColumnVector.from(combinedVector, dataType)),
-                      dataType)
-                }
+            val rEval = withResource(filterBatch(tbl, lhsNoNulls, colTypes)) { leftTrueBatch =>
+              rightExpr.columnarEval(leftTrueBatch)
+            }
+            withResource(rEval) { rEval =>
+              withResource(gather(lhsNoNulls, rEval)) { combinedVector =>
+                GpuColumnVector.from(
+                  doColumnar(lhsBool, GpuColumnVector.from(combinedVector, dataType)),
+                  dataType)
               }
             }
           }

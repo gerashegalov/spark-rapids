@@ -304,7 +304,9 @@ class PartitionedFirstPassAggResult(firstPassAggResult: FirstPassAggResult,
                                                 0,
                                                 numGroups - 1,
                                                 aggResultTypes)
-              (lastGroup, Array(last, other))
+              closeOnExcept(other) { _ =>
+                (lastGroup, Array(last, other))
+              }
             }
           }
         }
@@ -331,7 +333,9 @@ class PartitionedFirstPassAggResult(firstPassAggResult: FirstPassAggResult,
                                                 0,
                                                 lastGroupBeginIdx,
                                                 rideAlongTypes)
-              Array(last, other)
+              closeOnExcept(other) { _ =>
+                Array(last, other)
+              }
             }
           }
         }
