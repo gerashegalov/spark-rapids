@@ -43,11 +43,6 @@
     },
     {
       "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuCast.scala",
-      "fingerprint": "2073d8657c48703de674",
-      "resource": "withResource(ColumnVector.stringConcatenate(emptyScalar,emptyScalar,columns.toArray,false))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuCast.scala",
       "fingerprint": "27fc2acfeb96c0d4259b",
       "resource": "withResource(Scalar.fromString(<literal>))"
     },
@@ -70,76 +65,6 @@
       "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuCast.scala",
       "fingerprint": "e8da22f9b3068820cb15",
       "resource": "withResource(valueColumn.isNull)"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcScan.scala",
-      "fingerprint": "08fe82041c9428232218",
-      "resource": "withResource(localAtLookup)"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcScan.scala",
-      "fingerprint": "1c6180c51d2aad6c82f9",
-      "resource": "withResource(doubleMillis.add(half))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcScan.scala",
-      "fingerprint": "25091d1dacb270186b91",
-      "resource": "withResource(offsetMicros.castTo(DType.FLOAT64))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcScan.scala",
-      "fingerprint": "325bda95929c64878e5b",
-      "resource": "withResource(Scalar.fromDouble(0.5))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcScan.scala",
-      "fingerprint": "8c7e7402c1520c2b69c0",
-      "resource": "withResource(Scalar.fromNull(millis.getType))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcScan.scala",
-      "fingerprint": "a417058c89f0bed187df",
-      "resource": "withResource(longVec.castTo(DType.TIMESTAMP_MICROSECONDS))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcScan.scala",
-      "fingerprint": "b1ca406c49eb4cafac5c",
-      "resource": "withResource(doubleMillisPlusHalf.floor())"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcScan.scala",
-      "fingerprint": "b78af1f62ec73c992b97",
-      "resource": "withResource(localMicros.sub(rawOffset))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcScan.scala",
-      "fingerprint": "cc5f2c3a8f9c80e8dd03",
-      "resource": "withResource(localMillis.bitCastTo(DType.TIMESTAMP_MILLISECONDS))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcScan.scala",
-      "fingerprint": "d5a520aafafcce6e0f33",
-      "resource": "withResource(getOverflowFlags(doubleMillis,millis))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcScan.scala",
-      "fingerprint": "f017fb8ce68bd4498b06",
-      "resource": "withResource(localAtLookup.bitCastTo(DType.INT64))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcScan.scala",
-      "fingerprint": "f2dcf67fdecc9ad3f160",
-      "resource": "withResource(offsetSeconds)"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcScan.scala",
-      "fingerprint": "f3097111e830b5755fa4",
-      "resource": "withResource(localAtLookupMicros.sub(offsetLookupMicros))"
-    },
-    {
-      "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcScan.scala",
-      "fingerprint": "f6bf85d4ff495e156643",
-      "resource": "withResource(offsetLookupMicros.castTo(DType.TIMESTAMP_MICROSECONDS))"
     },
     {
       "path": "sql-plugin/src/main/scala/com/nvidia/spark/rapids/GpuOrcTimezoneUtils.scala",

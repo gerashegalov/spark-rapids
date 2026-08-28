@@ -150,6 +150,21 @@ class WithResourceNestingLintSuite(unittest.TestCase):
         result = LINT.scan_source("Test.scala", source, 4)
         self.assertEqual(1, len(result.directive_errors))
 
+    def test_directive_accepts_short_issue_reference(self):
+        source = """
+          // with-resource-lint: allow-deep-nesting -- required by #11713
+        """ + nested_source(5)
+        result = LINT.scan_source("Test.scala", source, 4)
+        self.assertEqual((), result.violations)
+        self.assertEqual((), result.directive_errors)
+
+    def test_directive_rejects_malformed_issue_suffix(self):
+        source = """
+          // with-resource-lint: allow-deep-nesting -- see xhttps://github.com/NVIDIA/cudf-spark/issues/7zzz
+        """ + nested_source(5)
+        result = LINT.scan_source("Test.scala", source, 4)
+        self.assertEqual(1, len(result.directive_errors))
+
     def test_baseline_allows_only_recorded_occurrences(self):
         result = LINT.scan_source("Test.scala", nested_source(5), 4)
         violation = result.violations[0]
@@ -222,6 +237,38 @@ class WithResourceNestingLintSuite(unittest.TestCase):
 
             self.assertEqual(0, exit_code)
             self.assertIn("lint passed", stdout.getvalue())
+
+    def test_command_explains_fingerprint_changes(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source_dir = root / "module" / "src" / "main" / "scala"
+            source_dir.mkdir(parents=True)
+            source = nested_source(5)
+            source_path = source_dir / "Test.scala"
+            source_path.write_text(source, encoding="utf-8")
+            violation = LINT.scan_source("module/src/main/scala/Test.scala", source, 4).violations[0]
+            baseline = root / "baseline.json"
+            baseline.write_text(json.dumps({
+                "version": 1,
+                "maxDepth": 4,
+                "trackingIssue": "https://github.com/NVIDIA/cudf-spark/issues/11713",
+                "entries": [{
+                    "path": violation.path,
+                    "fingerprint": violation.fingerprint,
+                    "resource": violation.resource,
+                }],
+            }), encoding="utf-8")
+            source_path.write_text(source.replace("make4", "renamedMake4"), encoding="utf-8")
+
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                exit_code = LINT.main([
+                    "--root", str(root),
+                    "--baseline", str(baseline),
+                ])
+
+            self.assertEqual(1, exit_code)
+            self.assertIn("baselined call changed text or path", stderr.getvalue())
 
 
 if __name__ == "__main__":

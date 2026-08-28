@@ -35,7 +35,8 @@ DEFAULT_TRACKING_ISSUE = "https://github.com/NVIDIA/cudf-spark/issues/11713"
 ALLOW_DIRECTIVE = "with-resource-lint: allow-deep-nesting"
 ALLOW_PATTERN = re.compile(
     r"//\s*with-resource-lint:\s*allow-deep-nesting\s*--\s*(\S.*)$")
-ISSUE_PATTERN = re.compile(r"https://github\.com/NVIDIA/cudf-spark/issues/\d+")
+ISSUE_PATTERN = re.compile(
+    r"(?<!\w)(?:https://github\.com/NVIDIA/cudf-spark/issues/|#)\d+\b")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -301,8 +302,8 @@ def _directive_lines(
             continue
         if ISSUE_PATTERN.search(match.group(1)) is None:
             errors.append(
-                f"{path}:{line_number}: {ALLOW_DIRECTIVE} reason must link to an "
-                "NVIDIA/cudf-spark GitHub issue")
+                f"{path}:{line_number}: {ALLOW_DIRECTIVE} reason must reference an "
+                "NVIDIA/cudf-spark GitHub issue by URL or #number")
             continue
 
         # The directive applies to a withResource call on the same line or the next nonblank line.
@@ -531,8 +532,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     if unexpected:
         print(
             f"Found {len(unexpected)} new deep withResource scope(s). Shorten resource lifetimes "
-            f"or place '// {ALLOW_DIRECTIVE} -- <reason and issue URL>' immediately before a "
+            f"or place '// {ALLOW_DIRECTIVE} -- <reason and issue reference>' immediately before a "
             "scope whose overlap is necessary.",
+            file=sys.stderr)
+    if unexpected and stale:
+        print(
+            "New and resolved violations together can mean a baselined call changed text or path. "
+            "If review confirms no new deep scope, run with --update-baseline to refresh its "
+            "fingerprint.",
             file=sys.stderr)
     if stale:
         stale_count = sum(stale.values())

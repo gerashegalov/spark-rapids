@@ -41,7 +41,7 @@ python3 scripts/check_with_resource_nesting.py --root . --update-baseline
 When deeper nesting is necessary, place a justified exemption immediately before its outer scope:
 
 ```scala
-// with-resource-lint: allow-deep-nesting -- required by https://github.com/NVIDIA/cudf-spark/issues/11713
+// with-resource-lint: allow-deep-nesting -- required by #11713
 withResource(first) { first =>
   // ...
 }
