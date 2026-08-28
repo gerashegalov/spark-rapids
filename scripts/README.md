@@ -47,4 +47,8 @@ withResource(first) { first =>
 }
 ```
 
+Only hoist values that own their data. Views returned by methods such as `bitCastTo`,
+`getChildColumnView`, `replaceListChild`, and `splitAsViews` must not outlive their owning parent.
+Copy or convert a view to an owning resource before closing its parent.
+
 The check and its unit tests run with the all-modules Scalastyle execution during `mvn verify`.

@@ -472,11 +472,11 @@ object GpuOrcScan {
     val localMillis = withResource(doubleMillis) { doubleMillis =>
       doubleMillis.castTo(DType.INT64)
     }
-    val localMillisTimestamp = withResource(localMillis) { localMillis =>
-      localMillis.bitCastTo(DType.TIMESTAMP_MILLISECONDS)
-    }
-    val localTimestamp = withResource(localMillisTimestamp) { localMillisTimestamp =>
-      localMillisTimestamp.castTo(DType.TIMESTAMP_MICROSECONDS)
+    val localTimestamp = withResource(localMillis) { localMillis =>
+      withResource(localMillis.bitCastTo(DType.TIMESTAMP_MILLISECONDS)) {
+        localMillisTimestamp =>
+          localMillisTimestamp.castTo(DType.TIMESTAMP_MICROSECONDS)
+      }
     }
     val offsetLookupMicros = withResource(localTimestamp) { localTimestamp =>
       withResource(localTimestamp.bitCastTo(DType.INT64)) { localMicros =>
