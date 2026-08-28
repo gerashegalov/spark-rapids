@@ -18,7 +18,7 @@ from pyspark.sql.types import *
 from asserts import assert_gpu_and_cpu_are_equal_collect, assert_cpu_and_gpu_are_equal_collect_with_capture
 from conftest import is_databricks_runtime, is_not_utc
 from data_gen import *
-from spark_session import is_spark_400_or_later
+from spark_session import is_databricks173_or_later, is_spark_400_or_later
 from marks import ignore_order, allow_non_gpu
 from spark_session import with_cpu_session, is_databricks113_or_later, is_databricks_version, is_databricks_version_or_later
 
@@ -26,6 +26,30 @@ from spark_session import with_cpu_session, is_databricks113_or_later, is_databr
 not_utc_aqe_allow=['ShuffleExchangeExec', 'HashAggregateExec'] if is_not_utc() else []
 
 _adaptive_conf = { "spark.sql.adaptive.enabled": "true" }
+
+
+@pytest.mark.skipif(
+    not is_databricks173_or_later(), reason="Databricks 17.3+ AutoOptimizedShuffle")
+@ignore_order(local=True)
+def test_databricks_auto_optimized_shuffle():
+    conf = copy_and_update(_adaptive_conf, {
+        "spark.databricks.adaptive.autoOptimizeShuffle.enabled": "true",
+        "spark.sql.shuffle.partitions": "32",
+    })
+
+    def do_groupby(spark):
+        assert spark.conf.get(
+            "spark.databricks.adaptive.autoOptimizeShuffle.enabled") == "true"
+        return spark.range(0, 4096, 1, 32) \
+            .selectExpr("id % 8 AS key", "id AS value") \
+            .groupBy("key").sum("value")
+
+    assert_cpu_and_gpu_are_equal_collect_with_capture(
+        do_groupby,
+        exist_classes="GpuShuffleExchangeExec",
+        conf=conf,
+        require_non_empty=True)
+
 
 def create_skew_df(spark, length):
     root = spark.range(0, length)
