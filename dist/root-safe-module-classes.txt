@@ -5,3 +5,4 @@
 # still resolve at runtime.
 sql-plugin-format
 iceberg-common
+sql-plugin-fileio
