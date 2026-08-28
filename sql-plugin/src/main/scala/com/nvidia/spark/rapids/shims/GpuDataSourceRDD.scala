@@ -16,14 +16,33 @@
 
 package com.nvidia.spark.rapids.shims
 
-import com.nvidia.spark.rapids.{FileSystemBytesReadTracker, MetricsBatchIterator, PartitionIterator}
+import java.util.concurrent.ConcurrentHashMap
+
+import com.nvidia.spark.rapids.FileSystemBytesReadTracker
 import com.nvidia.spark.rapids.ScalableTaskCompletion.onTaskCompletion
 
 import org.apache.spark.{InterruptibleIterator, Partition, SparkContext, SparkException, TaskContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.connector.read.{InputPartition, PartitionReaderFactory}
+import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
+import org.apache.spark.sql.rapids.execution.TrampolineUtil
 import org.apache.spark.sql.vectorized.ColumnarBatch
+
+private[rapids] trait GpuDataSourceCustomMetrics extends Serializable {
+  def readerOpened(reader: PartitionReader[ColumnarBatch]): Unit
+
+  def readerProgress(reader: PartitionReader[ColumnarBatch]): Unit
+
+  def readerFinished(reader: PartitionReader[ColumnarBatch]): Unit
+}
+
+private object NoopGpuDataSourceCustomMetrics extends GpuDataSourceCustomMetrics {
+  override def readerOpened(reader: PartitionReader[ColumnarBatch]): Unit = {}
+
+  override def readerProgress(reader: PartitionReader[ColumnarBatch]): Unit = {}
+
+  override def readerFinished(reader: PartitionReader[ColumnarBatch]): Unit = {}
+}
 
 /**
  * A replacement for DataSourceRDD that combines task-thread filesystem bytes with explicit
@@ -33,9 +52,14 @@ import org.apache.spark.sql.vectorized.ColumnarBatch
 class GpuDataSourceRDD(
     sc: SparkContext,
     @transient private val inputPartitions: Seq[Seq[InputPartition]],
-    partitionReaderFactory: PartitionReaderFactory
+    partitionReaderFactory: PartitionReaderFactory,
+    customMetricsFactory: () => GpuDataSourceCustomMetrics =
+      () => NoopGpuDataSourceCustomMetrics
 ) extends RDD[InternalRow](sc, Nil) {
   import GpuDataSourceRDD.GpuDataSourceRDDPartition
+
+  @transient private lazy val customMetricsByTask =
+    new ConcurrentHashMap[Long, GpuDataSourceCustomMetrics]()
 
   override protected def getPartitions: Array[Partition] = {
     inputPartitions.zipWithIndex.map { case (parts, index) =>
@@ -54,6 +78,7 @@ class GpuDataSourceRDD(
 
   override def compute(split: Partition, context: TaskContext): Iterator[InternalRow] = {
     val bytesReadTracker = FileSystemBytesReadTracker.forTask(context)
+    val customMetrics = customMetricsForTask(context)
 
     val iterator = new Iterator[Object] {
       private val inputPartitions = castPartition(split).inputPartitions
@@ -87,27 +112,119 @@ class GpuDataSourceRDD(
           currentIndex += 1
 
           // TODO: SPARK-25083 remove the type erasure hack in data source scan
-          val (iter, reader) = {
-            val batchReader = partitionReaderFactory.createColumnarReader(inputPartition)
-            val iter = new MetricsBatchIterator(
-              new PartitionIterator[ColumnarBatch](batchReader))
-            (iter, batchReader)
-          }
-          onTaskCompletion {
-            try {
-              reader.close()
-            } finally {
-              bytesReadTracker.update()
-            }
-          }
-
-          currentIter = Some(iter)
+          val reader = partitionReaderFactory.createColumnarReader(inputPartition)
+          currentIter = Some(new ReaderIterator(reader, context, bytesReadTracker, customMetrics))
           hasNext
         }
       }
     }
 
     new InterruptibleIterator(context, iterator).asInstanceOf[Iterator[InternalRow]]
+  }
+
+  private def customMetricsForTask(context: TaskContext): GpuDataSourceCustomMetrics = {
+    val taskId = context.taskAttemptId()
+    val existing = customMetricsByTask.get(taskId)
+    if (existing != null) {
+      existing
+    } else {
+      val created = customMetricsFactory()
+      val raced = customMetricsByTask.putIfAbsent(taskId, created)
+      if (raced != null) {
+        raced
+      } else {
+        onTaskCompletion {
+          customMetricsByTask.remove(taskId, created)
+          ()
+        }
+        created
+      }
+    }
+  }
+
+  private class ReaderIterator(
+      reader: PartitionReader[ColumnarBatch],
+      context: TaskContext,
+      bytesReadTracker: FileSystemBytesReadTracker,
+      customMetrics: GpuDataSourceCustomMetrics) extends Iterator[Object] {
+    private var valuePrepared = false
+    private var hasMoreInput = true
+    private var closed = false
+
+    try {
+      customMetrics.readerOpened(reader)
+    } catch {
+      case t: Throwable =>
+        try {
+          reader.close()
+        } catch {
+          case closeError: Throwable => t.addSuppressed(closeError)
+        }
+        throw t
+    }
+
+    onTaskCompletion {
+      finish()
+    }
+
+    override def hasNext: Boolean = {
+      if (!valuePrepared && hasMoreInput) {
+        try {
+          hasMoreInput = reader.next()
+          if (!hasMoreInput) {
+            finish()
+          }
+          valuePrepared = hasMoreInput
+        } catch {
+          case t: Throwable =>
+            finishOnError(t)
+            throw t
+        }
+      }
+      valuePrepared
+    }
+
+    override def next(): Object = {
+      if (!hasNext) {
+        throw new NoSuchElementException("No more elements")
+      }
+      valuePrepared = false
+      try {
+        val batch = reader.get()
+        TrampolineUtil.incInputRecordsRows(context.taskMetrics().inputMetrics, batch.numRows())
+        customMetrics.readerProgress(reader)
+        batch
+      } catch {
+        case t: Throwable =>
+          finishOnError(t)
+          throw t
+      } finally {
+        bytesReadTracker.update()
+      }
+    }
+
+    private def finishOnError(original: Throwable): Unit = {
+      try {
+        finish()
+      } catch {
+        case finishError: Throwable => original.addSuppressed(finishError)
+      }
+    }
+
+    private def finish(): Unit = {
+      if (!closed) {
+        closed = true
+        try {
+          customMetrics.readerFinished(reader)
+        } finally {
+          try {
+            reader.close()
+          } finally {
+            bytesReadTracker.update()
+          }
+        }
+      }
+    }
   }
 }
 
