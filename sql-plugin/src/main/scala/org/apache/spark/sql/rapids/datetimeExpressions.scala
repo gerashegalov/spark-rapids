@@ -30,7 +30,7 @@ import com.nvidia.spark.rapids.RapidsPluginImplicits._
 import com.nvidia.spark.rapids.jni.{Arithmetic, CastException, CastStrings, DateTimeUtils,
   GpuTimeZoneDB}
 import com.nvidia.spark.rapids.shims.{NullIntolerantShim, ShimBinaryExpression, ShimExpression,
-  TruncTimestampShims}
+  TruncTimestampShims, YearParseUtil}
 
 import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, ExpectsInputTypes, Expression, FromUnixTime, FromUTCTimestamp, ImplicitCastInputTypes, MonthsBetween, TimeZoneAwareExpression, ToUTCTimestamp, TruncDate, TruncTimestamp}
 import org.apache.spark.sql.catalyst.util.DateTimeConstants
@@ -417,6 +417,10 @@ abstract class UnixTimeExprMeta[A <: BinaryExpression with TimeZoneAwareExpressi
             sparkFormat,
             expr.left.dataType == DataTypes.StringType,
             allowLegacyFormattingOnlyFormats = allowLegacyFormattingOnlyFormats)
+          // The fused parser only accepts an unsigned four-digit year for this packed format.
+          if (expr.left.dataType == DataTypes.StringType && sparkFormat == "yyyyMMdd") {
+            YearParseUtil.tagParseStringAsDate(conf, this)
+          }
         case None =>
           willNotWorkOnGpu("format has to be a string literal")
       }
@@ -617,6 +621,7 @@ object GpuToTimestamp {
     "MM-yyyy",
     "MM/dd/yyyy",
     "MM-dd-yyyy",
+    "yyyyMMdd",
     "MMyyyy"
   )
 
