@@ -35,9 +35,10 @@ import org.apache.spark.sql.types.StructType;
 /**
  * Package-local access to Iceberg Spark write classes.
  *
- * <p>Iceberg keeps SparkWrite and SparkPositionDeltaWrite package-private. Resolve those
- * classes from a conventional-root helper so runtime package access is checked in the same
- * class loader as Iceberg itself.
+ * <p>Iceberg keeps SparkWrite and SparkPositionDeltaWrite package-private. This helper lives
+ * in the conventional root so it can share Iceberg's defining classloader when the cuDF Plugin
+ * and Iceberg runtime jars use the same deployment mechanism. Mixed classloader deployments
+ * remain unsupported for package-private access paths.
  */
 public final class GpuSparkWriteAccess {
   private GpuSparkWriteAccess() {
