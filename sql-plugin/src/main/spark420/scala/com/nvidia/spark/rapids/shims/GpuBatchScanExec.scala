@@ -155,7 +155,7 @@ case class GpuBatchScanExec(
         sparkContext,
         filteredPartitions.map(_.toSeq),
         readerFactory,
-        () => new Spark42GpuDataSourceCustomMetrics(customMetrics))
+        new Spark42GpuDataSourceCustomMetricsFactory(customMetrics))
     }
     postDriverMetrics(scan.reportDriverMetrics())
     rdd

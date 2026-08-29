@@ -25,6 +25,12 @@ import org.apache.spark.sql.connector.read.PartitionReader
 import org.apache.spark.sql.execution.metric.{CustomMetrics, SQLMetric}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+private[rapids] final class Spark4GpuDataSourceCustomMetricsFactory(
+    customMetrics: Map[String, SQLMetric]) extends GpuDataSourceCustomMetricsFactory {
+  override def create(): GpuDataSourceCustomMetrics =
+    new Spark4GpuDataSourceCustomMetrics(customMetrics)
+}
+
 /** Preserves the Spark 4.1.2 and later cumulative custom-metric contract across grouped readers. */
 private[rapids] class Spark4GpuDataSourceCustomMetrics(
     customMetrics: Map[String, SQLMetric]) extends GpuDataSourceCustomMetrics {

@@ -41,7 +41,9 @@ class Spark412GpuDataSourceCustomMetricsSuite extends AnyFunSuite with MockitoSu
     val firstSnapshot = Array(firstMetric)
     when(firstReader.currentMetricsValues()).thenReturn(firstSnapshot)
 
-    val handler = new Spark4GpuDataSourceCustomMetrics(Map("metric" -> sqlMetric))
+    val factory = new Spark4GpuDataSourceCustomMetricsFactory(Map("metric" -> sqlMetric))
+    val handler = factory.create()
+    assert(factory.create() ne handler)
     handler.readerOpened(firstReader)
     handler.readerFinished(firstReader)
     handler.readerOpened(secondReader)

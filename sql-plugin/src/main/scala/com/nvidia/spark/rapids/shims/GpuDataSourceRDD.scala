@@ -18,6 +18,7 @@ package com.nvidia.spark.rapids.shims
 
 import java.util.concurrent.ConcurrentHashMap
 
+import com.nvidia.spark.rapids.Arm.closeOnExcept
 import com.nvidia.spark.rapids.FileSystemBytesReadTracker
 import com.nvidia.spark.rapids.ScalableTaskCompletion.onTaskCompletion
 
@@ -36,12 +37,21 @@ private[rapids] trait GpuDataSourceCustomMetrics extends Serializable {
   def readerFinished(reader: PartitionReader[ColumnarBatch]): Unit
 }
 
+private[rapids] abstract class GpuDataSourceCustomMetricsFactory extends Serializable {
+  def create(): GpuDataSourceCustomMetrics
+}
+
 private object NoopGpuDataSourceCustomMetrics extends GpuDataSourceCustomMetrics {
   override def readerOpened(reader: PartitionReader[ColumnarBatch]): Unit = {}
 
   override def readerProgress(reader: PartitionReader[ColumnarBatch]): Unit = {}
 
   override def readerFinished(reader: PartitionReader[ColumnarBatch]): Unit = {}
+}
+
+private object NoopGpuDataSourceCustomMetricsFactory
+    extends GpuDataSourceCustomMetricsFactory {
+  override def create(): GpuDataSourceCustomMetrics = NoopGpuDataSourceCustomMetrics
 }
 
 /**
@@ -53,8 +63,8 @@ class GpuDataSourceRDD(
     sc: SparkContext,
     @transient private val inputPartitions: Seq[Seq[InputPartition]],
     partitionReaderFactory: PartitionReaderFactory,
-    customMetricsFactory: () => GpuDataSourceCustomMetrics =
-      () => NoopGpuDataSourceCustomMetrics
+    customMetricsFactory: GpuDataSourceCustomMetricsFactory =
+      NoopGpuDataSourceCustomMetricsFactory
 ) extends RDD[InternalRow](sc, Nil) {
   import GpuDataSourceRDD.GpuDataSourceRDDPartition
 
@@ -128,7 +138,7 @@ class GpuDataSourceRDD(
     if (existing != null) {
       existing
     } else {
-      val created = customMetricsFactory()
+      val created = customMetricsFactory.create()
       val raced = customMetricsByTask.putIfAbsent(taskId, created)
       if (raced != null) {
         raced
@@ -190,10 +200,11 @@ class GpuDataSourceRDD(
       }
       valuePrepared = false
       try {
-        val batch = reader.get()
-        TrampolineUtil.incInputRecordsRows(context.taskMetrics().inputMetrics, batch.numRows())
-        customMetrics.readerProgress(reader)
-        batch
+        closeOnExcept(reader.get()) { batch =>
+          TrampolineUtil.incInputRecordsRows(context.taskMetrics().inputMetrics, batch.numRows())
+          customMetrics.readerProgress(reader)
+          batch
+        }
       } catch {
         case t: Throwable =>
           finishOnError(t)

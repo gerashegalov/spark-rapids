@@ -37,7 +37,9 @@ class Spark42GpuDataSourceCustomMetricsSuite extends AnyFunSuite with MockitoSug
     when(firstReader.currentMetricsValues()).thenReturn(Array(metric(3L)))
     when(secondReader.currentMetricsValues()).thenReturn(Array(metric(5L)))
 
-    val handler = new Spark42GpuDataSourceCustomMetrics(Map("metric" -> sqlMetric))
+    val factory = new Spark42GpuDataSourceCustomMetricsFactory(Map("metric" -> sqlMetric))
+    val handler = factory.create()
+    assert(factory.create() ne handler)
     handler.readerOpened(firstReader)
     handler.readerOpened(secondReader)
     handler.readerProgress(firstReader)
