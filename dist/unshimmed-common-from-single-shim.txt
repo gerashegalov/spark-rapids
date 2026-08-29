@@ -25,15 +25,9 @@ com/nvidia/spark/rapids/iceberg/parquet/ThreadConf.class
 com/nvidia/spark/rapids/iceberg/spark/RapidsSparkCatalog.class
 com/nvidia/spark/rapids/iceberg/spark/RapidsSparkSessionCatalog.class
 com/nvidia/spark/rapids/iceberg/spark/source/RapidsSparkTable.class
-org/apache/iceberg/aws/s3/IcebergS3InputFileAccess.class
-org/apache/iceberg/data/GpuFileHelpers.class
-org/apache/iceberg/io/GpuClusteredWriterBridge.class
-org/apache/iceberg/io/GpuFanoutWriterBridge.class
 org/apache/iceberg/io/GpuPositionDeleteFileWriter$.class
-org/apache/iceberg/parquet/GpuParquetIOAccess.class
 org/apache/iceberg/spark/source/GpuBaseReader.class
 org/apache/iceberg/spark/source/GpuSparkPlanningUtil.class
-org/apache/iceberg/spark/source/GpuSparkScanAccess.class
 org/apache/iceberg/spark/source/GpuSparkWriteAccess.class
 org/apache/spark/sql/rapids/AdaptiveSparkPlanHelperShim*
 org/apache/spark/sql/rapids/ExecutionPlanCaptureCallback*
