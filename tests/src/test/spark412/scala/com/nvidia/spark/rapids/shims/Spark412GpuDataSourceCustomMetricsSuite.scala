@@ -15,7 +15,8 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark": "411"}
+{"spark": "412"}
+{"spark": "413"}
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.shims
 
@@ -28,20 +29,24 @@ import org.apache.spark.sql.connector.read.PartitionReader
 import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
-class Spark41GpuDataSourceCustomMetricsSuite extends AnyFunSuite with MockitoSugar {
-  test("updates Spark 4.1.1 custom metrics from the active reader") {
+class Spark412GpuDataSourceCustomMetricsSuite extends AnyFunSuite with MockitoSugar {
+  test("carries cumulative custom metrics into the next grouped reader") {
     val sqlMetric = mock[SQLMetric]
-    val reader = mock[PartitionReader[ColumnarBatch]]
-    val taskMetric = new CustomTaskMetric {
+    val firstReader = mock[PartitionReader[ColumnarBatch]]
+    val secondReader = mock[PartitionReader[ColumnarBatch]]
+    val firstMetric = new CustomTaskMetric {
       override def name(): String = "metric"
       override def value(): Long = 17L
     }
-    when(reader.currentMetricsValues()).thenReturn(Array(taskMetric))
+    val firstSnapshot = Array(firstMetric)
+    when(firstReader.currentMetricsValues()).thenReturn(firstSnapshot)
 
     val handler = new Spark4GpuDataSourceCustomMetrics(Map("metric" -> sqlMetric))
-    handler.readerOpened(reader)
-    handler.readerProgress(reader)
+    handler.readerOpened(firstReader)
+    handler.readerFinished(firstReader)
+    handler.readerOpened(secondReader)
 
     verify(sqlMetric).set(17L)
+    verify(secondReader).initMetricsValues(firstSnapshot)
   }
 }

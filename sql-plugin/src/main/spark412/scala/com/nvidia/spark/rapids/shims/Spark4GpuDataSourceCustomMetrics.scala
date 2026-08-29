@@ -15,18 +15,26 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark": "411"}
+{"spark": "412"}
+{"spark": "413"}
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.shims
 
+import org.apache.spark.sql.connector.metric.CustomTaskMetric
 import org.apache.spark.sql.connector.read.PartitionReader
 import org.apache.spark.sql.execution.metric.{CustomMetrics, SQLMetric}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
-/** Preserves Spark 4.1.1's custom metrics while using the GPU data source RDD. */
+/** Preserves the Spark 4.1.2 and later cumulative custom-metric contract across grouped readers. */
 private[rapids] class Spark4GpuDataSourceCustomMetrics(
     customMetrics: Map[String, SQLMetric]) extends GpuDataSourceCustomMetrics {
-  override def readerOpened(reader: PartitionReader[ColumnarBatch]): Unit = {}
+  private var latestMetrics = Array.empty[CustomTaskMetric]
+
+  override def readerOpened(reader: PartitionReader[ColumnarBatch]): Unit = {
+    if (latestMetrics.nonEmpty) {
+      reader.initMetricsValues(latestMetrics)
+    }
+  }
 
   override def readerProgress(reader: PartitionReader[ColumnarBatch]): Unit = {
     update(reader)
@@ -37,6 +45,7 @@ private[rapids] class Spark4GpuDataSourceCustomMetrics(
   }
 
   private def update(reader: PartitionReader[ColumnarBatch]): Unit = {
-    CustomMetrics.updateMetrics(reader.currentMetricsValues().toSeq, customMetrics)
+    latestMetrics = reader.currentMetricsValues()
+    CustomMetrics.updateMetrics(latestMetrics.toSeq, customMetrics)
   }
 }
