@@ -16,7 +16,6 @@ com/nvidia/spark/rapids/iceberg/parquet/ThreadConf.class
 com/nvidia/spark/rapids/iceberg/spark/RapidsSparkCatalog.class
 com/nvidia/spark/rapids/iceberg/spark/RapidsSparkSessionCatalog.class
 com/nvidia/spark/rapids/iceberg/spark/source/RapidsSparkTable.class
-org/apache/iceberg/io/GpuPositionDeleteFileWriter$.class
 org/apache/iceberg/spark/source/GpuBaseReader.class
 org/apache/iceberg/spark/source/GpuSparkPlanningUtil.class
 org/apache/iceberg/spark/source/GpuSparkWriteAccess.class
