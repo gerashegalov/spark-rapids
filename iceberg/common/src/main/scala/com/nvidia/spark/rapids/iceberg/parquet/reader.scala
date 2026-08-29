@@ -115,10 +115,6 @@ case class IcebergPartitionedFile(
   }
 }
 
-sealed trait ThreadConf
-
-case object SingleFile extends ThreadConf
-
 case class MultiThread(
     poolConfBuilder: ThreadPoolConfBuilder,
     maxNumFilesProcessed: Int,
