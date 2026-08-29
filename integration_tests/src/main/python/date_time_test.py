@@ -779,6 +779,7 @@ def test_formats_for_legacy_mode(input_format, output_format):
            from tab
         '''.format(input_format=input_format, output_format=output_format),
         {'spark.sql.legacy.timeParserPolicy': 'LEGACY',
+         'spark.rapids.sql.hasExtendedYearValues': False,
          'spark.rapids.sql.incompatibleDateFormats.enabled': True})
 
 
