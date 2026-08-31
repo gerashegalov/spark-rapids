@@ -32,9 +32,12 @@ _adaptive_conf = { "spark.sql.adaptive.enabled": "true" }
     not is_databricks173_or_later(), reason="Databricks 17.3+ AutoOptimizedShuffle")
 @ignore_order(local=True)
 def test_databricks_auto_optimized_shuffle():
+    initial_shuffle_partitions = 32
     conf = copy_and_update(_adaptive_conf, {
         "spark.databricks.adaptive.autoOptimizeShuffle.enabled": "true",
-        "spark.sql.shuffle.partitions": "32",
+        # Isolate pre-shuffle AOS resizing from AQE post-shuffle coalescing.
+        "spark.sql.adaptive.coalescePartitions.enabled": "false",
+        "spark.sql.shuffle.partitions": str(initial_shuffle_partitions),
     })
 
     def do_groupby(spark):
@@ -44,11 +47,65 @@ def test_databricks_auto_optimized_shuffle():
             .selectExpr("id % 8 AS key", "id AS value") \
             .groupBy("key").sum("value")
 
+    def collect_plan_nodes(plan):
+        nodes = [plan]
+        class_name = plan.getClass().getSimpleName()
+        if class_name == "AdaptiveSparkPlanExec":
+            nodes.extend(collect_plan_nodes(plan.executedPlan()))
+        elif class_name.endswith("QueryStageExec"):
+            nodes.extend(collect_plan_nodes(plan.plan()))
+        elif class_name in ("ReusedExchangeExec", "ReusedSubqueryExec"):
+            nodes.extend(collect_plan_nodes(plan.child()))
+        else:
+            children = plan.children().iterator()
+            while children.hasNext():
+                nodes.extend(collect_plan_nodes(children.next()))
+        return nodes
+
+    optimized_partition_counts = {}
+
+    def assert_cpu_auto_optimized_shuffle(plan):
+        exchanges = [
+            node for node in collect_plan_nodes(plan)
+            if node.getClass().getSimpleName() == "ShuffleExchangeExec"
+        ]
+        assert len(exchanges) == 1, \
+            f"Expected one CPU shuffle exchange, found {len(exchanges)}:\n{plan}"
+        optimized_partition_counts["cpu"] = \
+            exchanges[0].outputPartitioning().numPartitions()
+        assert optimized_partition_counts["cpu"] > 0, \
+            f"Expected a positive CPU shuffle partition count:\n{plan}"
+
+    def assert_auto_optimized_shuffle(plan):
+        exchanges = [
+            node for node in collect_plan_nodes(plan)
+            if node.getClass().getSimpleName() == "GpuShuffleExchangeExec"
+        ]
+        assert len(exchanges) == 1, \
+            f"Expected one GPU shuffle exchange, found {len(exchanges)}:\n{plan}"
+
+        exchange = exchanges[0]
+        partition_counts = {
+            "target": exchange.targetOutputPartitioning().numPartitions(),
+            "output": exchange.outputPartitioning().numPartitions(),
+            "gpu": exchange.gpuOutputPartitioning().numPartitions(),
+            "dependency": exchange.shuffleDependencyColumnar().partitioner().numPartitions(),
+        }
+        assert len(set(partition_counts.values())) == 1, \
+            f"Inconsistent optimized shuffle partition counts: {partition_counts}\n{plan}"
+        assert "cpu" in optimized_partition_counts, \
+            "CPU AutoOptimizedShuffle partition count was not captured"
+        assert partition_counts["target"] == optimized_partition_counts["cpu"], \
+            f"CPU and GPU AutoOptimizedShuffle partition counts differ: " \
+            f"CPU={optimized_partition_counts['cpu']}, GPU={partition_counts['target']}\n{plan}"
+
     assert_cpu_and_gpu_are_equal_collect_with_capture(
         do_groupby,
         exist_classes="GpuShuffleExchangeExec",
         conf=conf,
-        require_non_empty=True)
+        require_non_empty=True,
+        gpu_plan_assertion=assert_auto_optimized_shuffle,
+        cpu_plan_assertion=assert_cpu_auto_optimized_shuffle)
 
 
 def create_skew_df(spark, length):
