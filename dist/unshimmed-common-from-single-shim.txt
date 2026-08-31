@@ -17,6 +17,9 @@ com/nvidia/spark/rapids/iceberg/GpuInternalRowBase.class
 com/nvidia/spark/rapids/iceberg/package.class
 com/nvidia/spark/rapids/iceberg/package$.class
 com/nvidia/spark/rapids/iceberg/parquet/FileSchemaAccessors.class
+com/nvidia/spark/rapids/iceberg/spark/RapidsSparkCatalog.class
+com/nvidia/spark/rapids/iceberg/spark/RapidsSparkSessionCatalog.class
+com/nvidia/spark/rapids/iceberg/spark/source/RapidsSparkTable.class
 org/apache/iceberg/aws/s3/IcebergS3InputFileAccess.class
 org/apache/iceberg/data/GpuFileHelpers.class
 org/apache/iceberg/io/GpuClusteredWriterBridge.class
