@@ -20,7 +20,7 @@
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.shims
 
-import org.mockito.Mockito.{atLeastOnce, verify, when}
+import org.mockito.Mockito.{verify, when}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatestplus.mockito.MockitoSugar
 
@@ -41,11 +41,42 @@ class Spark42GpuDataSourceCustomMetricsSuite extends AnyFunSuite with MockitoSug
     val handler = factory.create()
     assert(factory.create() ne handler)
     handler.readerOpened(firstReader)
-    handler.readerOpened(secondReader)
-    handler.readerProgress(firstReader)
     handler.readerFinished(firstReader)
+    handler.readerOpened(secondReader)
+    handler.readerProgress(secondReader)
 
-    verify(sqlMetric, atLeastOnce()).set(8L)
+    verify(sqlMetric).set(8L)
+  }
+
+  test("removes a finished reader when collecting its metrics fails") {
+    val sqlMetric = mock[SQLMetric]
+    val failure = new IllegalStateException("metric collection failed")
+    val failingReader = new PartitionReader[ColumnarBatch] {
+      private var failMetricCollection = true
+
+      override def next(): Boolean = false
+      override def get(): ColumnarBatch = throw new UnsupportedOperationException
+      override def close(): Unit = {}
+      override def currentMetricsValues(): Array[CustomTaskMetric] = {
+        if (failMetricCollection) {
+          failMetricCollection = false
+          throw failure
+        }
+        Array(metric(3L))
+      }
+    }
+    val activeReader = mock[PartitionReader[ColumnarBatch]]
+    when(activeReader.currentMetricsValues()).thenReturn(Array(metric(5L)))
+
+    val handler = new Spark42GpuDataSourceCustomMetricsFactory(
+      Map("metric" -> sqlMetric)).create()
+    handler.readerOpened(failingReader)
+    val thrown = intercept[IllegalStateException](handler.readerFinished(failingReader))
+    assert(thrown eq failure)
+
+    handler.readerOpened(activeReader)
+    handler.readerProgress(activeReader)
+    verify(sqlMetric).set(5L)
   }
 
   private def metric(metricValue: Long): CustomTaskMetric = new CustomTaskMetric {

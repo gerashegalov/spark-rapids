@@ -48,12 +48,15 @@ private[rapids] class Spark42GpuDataSourceCustomMetrics(
   }
 
   override def readerFinished(reader: PartitionReader[ColumnarBatch]): Unit = {
-    reader.currentMetricsValues().foreach { metric =>
-      finishedMetrics.update(
-        metric.name(),
-        finishedMetrics.get(metric.name()).fold(metric)(_.mergeWith(metric)))
+    try {
+      reader.currentMetricsValues().foreach { metric =>
+        finishedMetrics.update(
+          metric.name(),
+          finishedMetrics.get(metric.name()).fold(metric)(_.mergeWith(metric)))
+      }
+    } finally {
+      activeReaders -= reader
     }
-    activeReaders -= reader
     updateMetrics()
   }
 

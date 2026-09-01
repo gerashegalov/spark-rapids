@@ -22,6 +22,7 @@
 {"spark": "402"}
 {"spark": "403"}
 {"spark": "404"}
+{"spark": "411"}
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.shims
 
@@ -34,22 +35,27 @@ import org.apache.spark.sql.connector.read.PartitionReader
 import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
-class Spark40GpuDataSourceCustomMetricsSuite extends AnyFunSuite with MockitoSugar {
-  test("updates Spark 4.0 custom metrics from the active reader") {
+class Spark40And41GpuDataSourceCustomMetricsSuite extends AnyFunSuite with MockitoSugar {
+  test("updates Spark 4.0 and 4.1.1 custom metrics on progress and reader finish") {
     val sqlMetric = mock[SQLMetric]
     val reader = mock[PartitionReader[ColumnarBatch]]
-    val taskMetric = new CustomTaskMetric {
-      override def name(): String = "metric"
-      override def value(): Long = 17L
-    }
-    when(reader.currentMetricsValues()).thenReturn(Array(taskMetric))
+    when(reader.currentMetricsValues())
+      .thenReturn(Array(metric(17L)))
+      .thenReturn(Array(metric(19L)))
 
     val factory = new Spark4GpuDataSourceCustomMetricsFactory(Map("metric" -> sqlMetric))
     val handler = factory.create()
     assert(factory.create() ne handler)
     handler.readerOpened(reader)
     handler.readerProgress(reader)
+    handler.readerFinished(reader)
 
     verify(sqlMetric).set(17L)
+    verify(sqlMetric).set(19L)
+  }
+
+  private def metric(metricValue: Long): CustomTaskMetric = new CustomTaskMetric {
+    override def name(): String = "metric"
+    override def value(): Long = metricValue
   }
 }

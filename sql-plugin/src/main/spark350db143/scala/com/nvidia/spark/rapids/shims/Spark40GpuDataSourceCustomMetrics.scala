@@ -22,6 +22,7 @@
 {"spark": "402"}
 {"spark": "403"}
 {"spark": "404"}
+{"spark": "411"}
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.shims
 
@@ -35,7 +36,7 @@ private[rapids] final class Spark4GpuDataSourceCustomMetricsFactory(
     new Spark4GpuDataSourceCustomMetrics(customMetrics)
 }
 
-/** Preserves Spark 4.0's custom metrics while using the GPU data source RDD. */
+/** Preserves Spark 4.0 and 4.1.1 custom metrics while using the GPU data source RDD. */
 private[rapids] class Spark4GpuDataSourceCustomMetrics(
     customMetrics: Map[String, SQLMetric]) extends GpuDataSourceCustomMetrics {
   override def readerOpened(reader: PartitionReader[ColumnarBatch]): Unit = {}
