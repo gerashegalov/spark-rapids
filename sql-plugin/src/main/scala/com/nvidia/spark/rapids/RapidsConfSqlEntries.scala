@@ -846,6 +846,14 @@ private[rapids] trait RapidsConfSqlEntries extends RapidsConfResourceEntries {
     .booleanConf
     .createWithDefault(false)
 
+  val VALIDATE_ICEBERG_DELETION_VECTOR_CRC =
+    conf("spark.rapids.sql.format.iceberg.deletionVector.crcCheck.enabled")
+      .doc("When set to false, skips validation of the CRC-32 checksum of each Iceberg " +
+        "deletion vector. Disabling validation avoids an additional CPU pass over the " +
+        "deletion-vector data, but may allow corrupted deletion vectors to be read.")
+      .booleanConf
+      .createWithDefault(true)
+
   val ENABLE_ICEBERG_WRITE = conf("spark.rapids.sql.format.iceberg.write.enabled")
     .doc("When set to false disables Iceberg write acceleration")
     .booleanConf
