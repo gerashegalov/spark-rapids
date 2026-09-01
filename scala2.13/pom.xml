@@ -2007,6 +2007,8 @@ This will force full Scala code rebuild in downstream modules.
                 <!-- parent-pom only executions -->
                 <inherited>false</inherited>
                 <executions>
+                    <!-- Encode option hyphens so this block remains a valid generated XML comment. -->
+                    <!-- #if scala-2.12 --><!--
                     <execution>
                         <id>nvidia-deprecation-audit</id>
                         <phase>none</phase>
@@ -2024,14 +2026,15 @@ This will force full Scala code rebuild in downstream modules.
                                       fork="true" failonerror="true" dir="${project.basedir}">
                                     <arg value="-B"/>
                                     <arg value="scripts/deprecation_audit.py"/>
-                                    <arg value="--repo-root"/>
+                                    <arg value="&#45;&#45;repo-root"/>
                                     <arg value="${project.basedir}"/>
-                                    <arg value="--raw-report"/>
+                                    <arg value="&#45;&#45;raw-report"/>
                                     <arg value="${deprecation.audit.rawReport}"/>
                                 </java>
                             </target>
                         </configuration>
                     </execution>
+                    --><!-- #endif scala-2.12 -->
                     <execution>
                         <!--
                         This is an alternative implementation of the scalastyle check invocation,
