@@ -26,6 +26,11 @@ import org.apache.spark.sql.types.{BinaryType, StringType, StructField, StructTy
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
 class GpuColumnarToRowSuite extends RmmSparkRetrySuiteBase {
+  test("accelerated columnar-to-row is disabled by default") {
+    val conf = new RapidsConf(Map.empty[String, String])
+    assert(!conf.isAcceleratedColumnarToRowEnabled)
+  }
+
   test("iterate past empty input batches") {
     val batchIter: Iterator[ColumnarBatch] = new Iterator[ColumnarBatch] {
       private[this] var batchCount = 0
