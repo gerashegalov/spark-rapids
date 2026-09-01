@@ -2013,12 +2013,14 @@ This will force full Scala code rebuild in downstream modules.
                         <goals><goal>run</goal></goals>
                         <configuration>
                             <target>
-                                <java jar="${settings.localRepository}/org/python/jython-standalone/${jython.version}/jython-standalone-${jython.version}.jar"
+                                <java classname="org.python.util.jython"
+                                      classpathref="maven.plugin.classpath"
                                       fork="true" failonerror="true" dir="${project.basedir}">
                                     <arg value="-B"/>
                                     <arg value="scripts/tests/test_deprecation_audit.py"/>
                                 </java>
-                                <java jar="${settings.localRepository}/org/python/jython-standalone/${jython.version}/jython-standalone-${jython.version}.jar"
+                                <java classname="org.python.util.jython"
+                                      classpathref="maven.plugin.classpath"
                                       fork="true" failonerror="true" dir="${project.basedir}">
                                     <arg value="-B"/>
                                     <arg value="scripts/deprecation_audit.py"/>
@@ -2077,7 +2079,8 @@ This will force full Scala code rebuild in downstream modules.
                                     <arg value="-p"/>
                                     <arg value="test_check_with_resource_nesting.py"/>
                                 </exec>
-                                <java jar="${settings.localRepository}/org/python/jython-standalone/${jython.version}/jython-standalone-${jython.version}.jar"
+                                <java classname="org.python.util.jython"
+                                      classpathref="maven.plugin.classpath"
                                       fork="true" failonerror="true"
                                       dir="${spark.rapids.source.basedir}">
                                     <arg value="-B"/>
