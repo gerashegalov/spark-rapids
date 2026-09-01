@@ -104,14 +104,10 @@ class GpuDataSourceRDD(
       }
 
       override def next(): Object = {
-        try {
-          if (!hasNext) {
-            throw new NoSuchElementException("No more elements")
-          }
-          currentIter.get.next()
-        } finally {
-          bytesReadTracker.update()
+        if (!hasNext) {
+          throw new NoSuchElementException("No more elements")
         }
+        currentIter.get.next()
       }
 
       private def advanceToNextIter(): Boolean = {
