@@ -276,7 +276,8 @@ def render_summary(findings, failures):
         lines.extend(f"- {markdown_escape(failure)}" for failure in failures)
     lines.extend([
         "",
-        "This audit is advisory. Build-job failures remain authoritative.",
+        "This check is optional. Findings or incomplete log collection fail only this audit "
+        "check; build-job results remain authoritative.",
         "",
     ])
     return "\n".join(lines)
@@ -352,7 +353,7 @@ def main(argv=None):
             for job_name, log in logs.items()
             for finding in parse_log(log, job_name, args.repo_root)
         )
-    except Exception as error:  # The audit must never mask the build result.
+    except Exception as error:  # Report operational errors through this optional check.
         findings = []
         failures.append(f"audit failed: {error}")
 
@@ -362,11 +363,13 @@ def main(argv=None):
     if args.summary:
         with Path(args.summary).open("a", encoding="utf-8") as summary_file:
             summary_file.write(summary)
+    report_failed = False
     try:
         write_raw_report(args.raw_report, findings, failures)
     except OSError as error:
+        report_failed = True
         print(f"::warning title=NVIDIA deprecation audit::Could not write raw report: {error}")
-    return 0
+    return 1 if findings or failures or report_failed else 0
 
 
 if __name__ == "__main__":

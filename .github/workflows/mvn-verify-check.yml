@@ -433,9 +433,8 @@ jobs:
           done
 
   nvidia-deprecation-audit:
-    name: NVIDIA deprecation audit
+    name: NVIDIA deprecation audit (optional)
     if: ${{ always() }}
-    continue-on-error: true
     needs:
       - package-tests
       - package-tests-scala213

@@ -17,6 +17,7 @@
 import importlib.util
 import io
 import sys
+import tempfile
 import unittest
 import zipfile
 from pathlib import Path
@@ -184,7 +185,45 @@ Applicable -Wconf filters: cat=deprecation, origin=com.nvidia.spark.rapids.jni.A
         summary = AUDIT.render_summary([], ["package-tests: log unavailable"])
         self.assertIn("No compiler deprecation diagnostics", summary)
         self.assertIn("Incomplete log collection", summary)
-        self.assertIn("advisory", summary)
+        self.assertIn("optional", summary)
+
+    def test_main_fails_when_findings_are_present(self):
+        log = (
+            "/workspace/sql-plugin/src/main/scala/Test.scala:42: "
+            "[deprecation @ example.Test.run | "
+            "origin=ai.rapids.cudf.ColumnView.oldApi | version=] deprecated\n"
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "package-tests.log").write_text(log, encoding="utf-8")
+            result = AUDIT.main([
+                "--logs-dir", str(root),
+                "--raw-report", str(root / "report.json"),
+            ])
+        self.assertEqual(1, result)
+
+    def test_main_succeeds_when_audit_is_clean(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "package-tests.log").write_text("clean build\n", encoding="utf-8")
+            result = AUDIT.main([
+                "--logs-dir", str(root),
+                "--raw-report", str(root / "report.json"),
+            ])
+        self.assertEqual(0, result)
+
+    def test_main_fails_when_log_collection_is_incomplete(self):
+        with tempfile.TemporaryDirectory() as temp_dir, \
+                mock.patch.object(
+                    AUDIT, "download_logs",
+                    return_value=({}, ["package-tests: log unavailable"])), \
+                mock.patch.dict(AUDIT.os.environ, {"GITHUB_TOKEN": "token"}):
+            result = AUDIT.main([
+                "--repository", "NVIDIA/cudf-spark",
+                "--run-id", "123",
+                "--raw-report", str(Path(temp_dir) / "report.json"),
+            ])
+        self.assertEqual(1, result)
 
     def test_annotation_property_escaping(self):
         self.assertEqual("path%3Awith%2Cpunctuation", AUDIT.command_property_escape(

@@ -249,9 +249,9 @@ Scala deprecations originating in NVIDIA-owned `ai.rapids.cudf`, `com.nvidia.spa
 during this migration window. The same applies to cudf-spark-private's
 `org.apache.spark.sql.execution.aggregate.PartialAggUtils` bridge; other APIs in Apache Spark
 namespaces are not exempt. Deprecations from other dependencies remain build errors. The
-non-blocking NVIDIA deprecation audit in pull requests collects these diagnostics across the Maven
-build matrix; findings should result in follow-up migration work even though the audit itself does
-not fail the build.
+optional NVIDIA deprecation audit in pull requests collects these diagnostics across the Maven
+build matrix. Findings or incomplete log collection fail the audit check so contributors inspect
+the result, but the audit is not a required build check; build-job results remain authoritative.
 
 ## Code contributions
 
