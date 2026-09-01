@@ -449,9 +449,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          python3 scripts/deprecation_audit.py \
-            --repo-root "$GITHUB_WORKSPACE" \
-            --raw-report "$RUNNER_TEMP/nvidia-deprecation-audit.json"
+          mvn --batch-mode -N antrun:run@nvidia-deprecation-audit \
+            -Ddeprecation.audit.rawReport="$RUNNER_TEMP/nvidia-deprecation-audit.json"
 
       - name: Upload deprecation report
         if: ${{ always() }}

@@ -1153,6 +1153,8 @@
         <scala.plugin.version>4.9.10</scala.plugin.version>
         <maven.install.plugin.version>3.1.1</maven.install.plugin.version>
         <maven.jar.plugin.version>3.3.0</maven.jar.plugin.version>
+        <jython.version>2.7.3</jython.version>
+        <deprecation.audit.rawReport>${project.build.directory}/nvidia-deprecation-audit.json</deprecation.audit.rawReport>
         <scalatest-maven-plugin.version>2.0.2</scalatest-maven-plugin.version>
         <guava.cdh.version>30.0-jre</guava.cdh.version>
         <arrow.cdh.version>2.0.0</arrow.cdh.version>
@@ -1619,7 +1621,7 @@ This will force full Scala code rebuild in downstream modules.
                     <dependency>
                         <groupId>org.python</groupId>
                         <artifactId>jython-standalone</artifactId>
-                        <version>2.7.3</version>
+                        <version>${jython.version}</version>
                     </dependency>
                     <dependency>
                         <groupId>net.sourceforge.pmd</groupId>
@@ -2006,6 +2008,29 @@ This will force full Scala code rebuild in downstream modules.
                 <inherited>false</inherited>
                 <executions>
                     <execution>
+                        <id>nvidia-deprecation-audit</id>
+                        <phase>none</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <java jar="${settings.localRepository}/org/python/jython-standalone/${jython.version}/jython-standalone-${jython.version}.jar"
+                                      fork="true" failonerror="true" dir="${project.basedir}">
+                                    <arg value="-B"/>
+                                    <arg value="scripts/tests/test_deprecation_audit.py"/>
+                                </java>
+                                <java jar="${settings.localRepository}/org/python/jython-standalone/${jython.version}/jython-standalone-${jython.version}.jar"
+                                      fork="true" failonerror="true" dir="${project.basedir}">
+                                    <arg value="-B"/>
+                                    <arg value="scripts/deprecation_audit.py"/>
+                                    <arg value="--repo-root"/>
+                                    <arg value="${project.basedir}"/>
+                                    <arg value="--raw-report"/>
+                                    <arg value="${deprecation.audit.rawReport}"/>
+                                </java>
+                            </target>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <!--
                         This is an alternative implementation of the scalastyle check invocation,
                         a replacement for scalastyle-maven-plugin. It's motivated to address the following:
@@ -2050,16 +2075,18 @@ This will force full Scala code rebuild in downstream modules.
                                     <arg value="-s"/>
                                     <arg value="scripts/tests"/>
                                     <arg value="-p"/>
-                                    <arg value="test_*.py"/>
+                                    <arg value="test_check_with_resource_nesting.py"/>
                                 </exec>
-                                <exec executable="python3" failonerror="true"
+                                <java jar="${settings.localRepository}/org/python/jython-standalone/${jython.version}/jython-standalone-${jython.version}.jar"
+                                      fork="true" failonerror="true"
                                       dir="${spark.rapids.source.basedir}">
+                                    <arg value="-B"/>
                                     <arg value="scripts/check_deprecation_policy.py"/>
                                     <arg value="--pom"/>
                                     <arg value="${project.basedir}/pom.xml"/>
                                     <arg value="--maven-repo"/>
                                     <arg value="${settings.localRepository}"/>
-                                </exec>
+                                </java>
                                 <!-- Existing nesting exceptions are tracked by
                                      https://github.com/NVIDIA/cudf-spark/issues/11713. -->
                                 <exec executable="python3" failonerror="true"

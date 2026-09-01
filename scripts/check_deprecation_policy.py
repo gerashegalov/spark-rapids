@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # Copyright (c) 2026, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,64 +12,102 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Compile fixtures that enforce the repository's scoped deprecation policy."""
+"""Compile deprecation-policy fixtures using Jython 2.7-compatible code."""
+
+from __future__ import print_function
 
 import argparse
+import io
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import xml.etree.ElementTree as ElementTree
-from pathlib import Path
 
 
-MAVEN_NAMESPACE = {"m": "http://maven.apache.org/POM/4.0.0"}
+MAVEN_NAMESPACE = "{http://maven.apache.org/POM/4.0.0}"
+try:
+    TEXT_TYPE = unicode
+except NameError:  # Python 3
+    TEXT_TYPE = str
+
+
+class CommandResult(object):
+    def __init__(self, returncode, stdout):
+        self.returncode = returncode
+        self.stdout = stdout
+
+
+def maven_tag(name):
+    return MAVEN_NAMESPACE + name
+
+
+def find_executable(name):
+    extensions = [""]
+    if os.name == "nt":
+        extensions.extend(os.environ.get("PATHEXT", ".EXE").split(os.pathsep))
+    for directory in os.environ.get("PATH", "").split(os.pathsep):
+        for extension in extensions:
+            candidate = os.path.join(directory, name + extension)
+            if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+                return candidate
+    return None
 
 
 def compiler_configuration(pom_path):
     root = ElementTree.parse(pom_path).getroot()
-    scala_version = root.findtext("m:properties/m:scala.version", namespaces=MAVEN_NAMESPACE)
+    scala_version = root.findtext(
+        "{0}/{1}".format(maven_tag("properties"), maven_tag("scala.version")))
     if not scala_version:
-        raise RuntimeError(f"Could not find scala.version in {pom_path}")
+        raise RuntimeError("Could not find scala.version in {0}".format(pom_path))
     plugin_paths = (
-        "m:build/m:plugins/m:plugin",
-        "m:build/m:pluginManagement/m:plugins/m:plugin",
+        "{0}/{1}/{2}".format(
+            maven_tag("build"), maven_tag("plugins"), maven_tag("plugin")),
+        "{0}/{1}/{2}/{3}".format(
+            maven_tag("build"), maven_tag("pluginManagement"),
+            maven_tag("plugins"), maven_tag("plugin")),
     )
     plugins = (
         plugin
         for plugin_path in plugin_paths
-        for plugin in root.findall(plugin_path, MAVEN_NAMESPACE)
+        for plugin in root.findall(plugin_path)
     )
     for plugin in plugins:
-        artifact_id = plugin.findtext("m:artifactId", namespaces=MAVEN_NAMESPACE)
+        artifact_id = plugin.findtext(maven_tag("artifactId"))
         if artifact_id == "scala-maven-plugin":
             args = [
                 argument.text
-                for argument in plugin.findall("m:configuration/m:args/m:arg", MAVEN_NAMESPACE)
+                for argument in plugin.findall("{0}/{1}/{2}".format(
+                    maven_tag("configuration"), maven_tag("args"), maven_tag("arg")))
                 if argument.text
             ]
             if not args:
-                raise RuntimeError(f"scala-maven-plugin has no compiler arguments in {pom_path}")
+                raise RuntimeError(
+                    "scala-maven-plugin has no compiler arguments in {0}".format(pom_path))
             return scala_version, args
-    raise RuntimeError(f"Could not find scala-maven-plugin in {pom_path}")
+    raise RuntimeError("Could not find scala-maven-plugin in {0}".format(pom_path))
 
 
 def scala_compiler_classpath(maven_repo, scala_version):
-    scala_root = Path(maven_repo) / "org" / "scala-lang"
+    scala_root = os.path.join(maven_repo, "org", "scala-lang")
     jars = [
-        scala_root / artifact / scala_version / f"{artifact}-{scala_version}.jar"
+        os.path.join(
+            scala_root, artifact, scala_version,
+            "{0}-{1}.jar".format(artifact, scala_version))
         for artifact in ("scala-compiler", "scala-library", "scala-reflect")
     ]
-    missing = [str(jar) for jar in jars if not jar.is_file()]
+    missing = [jar for jar in jars if not os.path.isfile(jar)]
     if missing:
         raise RuntimeError("Missing Scala compiler dependencies: " + ", ".join(missing))
     return jars
 
 
 def run_command(command):
-    return subprocess.run(command, text=True, stdout=subprocess.PIPE,
-                          stderr=subprocess.STDOUT, check=False)
+    process = subprocess.Popen(
+        command, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    stdout, _ = process.communicate()
+    return CommandResult(process.returncode, stdout)
 
 
 def write_fixtures(root):
@@ -174,49 +210,61 @@ object ThirdPartyCall {
 """,
     }
     for relative_path, source in sources.items():
-        path = root / relative_path
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(source.lstrip(), encoding="utf-8")
+        path = os.path.join(root, relative_path)
+        parent = os.path.dirname(path)
+        if not os.path.isdir(parent):
+            os.makedirs(parent)
+        with io.open(path, "w", encoding="utf-8") as source_file:
+            source_file.write(TEXT_TYPE(source.lstrip()))
 
 
 def check_policy(pom_path, maven_repo):
     scala_version, compiler_args = compiler_configuration(pom_path)
     compiler_jar, library_jar, reflect_jar = scala_compiler_classpath(
         maven_repo, scala_version)
-    javac = shutil.which("javac")
-    java = shutil.which("java")
+    javac = find_executable("javac")
+    java = find_executable("java")
     if not javac or not java:
         raise RuntimeError("Both java and javac are required for the deprecation policy check")
 
-    with tempfile.TemporaryDirectory(prefix="cudf-spark-deprecation-policy-") as temp_dir:
-        fixture_root = Path(temp_dir)
-        classes = fixture_root / "classes"
-        classes.mkdir()
+    temp_dir = tempfile.mkdtemp(prefix="cudf-spark-deprecation-policy-")
+    try:
+        fixture_root = temp_dir
+        classes = os.path.join(fixture_root, "classes")
+        os.mkdir(classes)
         write_fixtures(fixture_root)
         java_compile = run_command([
-            javac, "-d", str(classes),
-            str(fixture_root / "ai/rapids/cudf/fixture/NvidiaApi.java"),
-            str(fixture_root / "com/nvidia/spark/rapids/jni/fixture/JniApi.java"),
-            str(fixture_root / "com/nvidia/spark/rapids/optimizer/fixture/PrivateApi.java"),
-            str(fixture_root / "org/apache/spark/sql/rapids/internal/fixture/PrivateApi.java"),
-            str(fixture_root / "org/apache/spark/sql/execution/aggregate/PartialAggUtils.java"),
-            str(fixture_root /
+            javac, "-d", classes,
+            os.path.join(fixture_root, "ai/rapids/cudf/fixture/NvidiaApi.java"),
+            os.path.join(fixture_root, "com/nvidia/spark/rapids/jni/fixture/JniApi.java"),
+            os.path.join(
+                fixture_root, "com/nvidia/spark/rapids/optimizer/fixture/PrivateApi.java"),
+            os.path.join(
+                fixture_root, "org/apache/spark/sql/rapids/internal/fixture/PrivateApi.java"),
+            os.path.join(
+                fixture_root,
+                "org/apache/spark/sql/execution/aggregate/PartialAggUtils.java"),
+            os.path.join(
+                fixture_root,
                 "org/apache/spark/sql/execution/aggregate/PartialAggUtilsNeighbor.java"),
-            str(fixture_root / "org/apache/spark/sql/execution/aggregate/SparkApi.java"),
-            str(fixture_root / "org/example/fixture/ThirdPartyApi.java"),
+            os.path.join(
+                fixture_root, "org/apache/spark/sql/execution/aggregate/SparkApi.java"),
+            os.path.join(fixture_root, "org/example/fixture/ThirdPartyApi.java"),
         ])
         if java_compile.returncode:
             raise RuntimeError("Could not compile Java fixtures:\n" + java_compile.stdout)
 
-        compiler_classpath = os.pathsep.join(map(str, (compiler_jar, library_jar, reflect_jar)))
-        source_classpath = os.pathsep.join(map(str, (classes, library_jar)))
+        compiler_classpath = os.pathsep.join((compiler_jar, library_jar, reflect_jar))
+        source_classpath = os.pathsep.join((classes, library_jar))
 
         def compile_scala(source):
-            return run_command([
+            command = [
                 java, "-cp", compiler_classpath, "scala.tools.nsc.Main",
-                "-classpath", source_classpath, "-d", str(classes),
-                *compiler_args, str(fixture_root / source),
-            ])
+                "-classpath", source_classpath, "-d", classes,
+            ]
+            command.extend(compiler_args)
+            command.append(os.path.join(fixture_root, source))
+            return run_command(command)
 
         nvidia_sources = (
             ("cuDF Java", "NvidiaCall.scala"),
@@ -229,7 +277,7 @@ def check_policy(pom_path, maven_repo):
             nvidia_compile = compile_scala(source)
             if nvidia_compile.returncode or "deprecated" not in nvidia_compile.stdout.lower():
                 raise RuntimeError(
-                    f"{api_name} deprecation must be visible and nonfatal, "
+                    "{0} deprecation must be visible and nonfatal, ".format(api_name) +
                     "but compilation produced:\n" + nvidia_compile.stdout)
 
         fatal_sources = (
@@ -241,10 +289,12 @@ def check_policy(pom_path, maven_repo):
             fatal_compile = compile_scala(source)
             if fatal_compile.returncode == 0 or "deprecated" not in fatal_compile.stdout.lower():
                 raise RuntimeError(
-                    f"{api_name} deprecation must be visible and fatal, "
+                    "{0} deprecation must be visible and fatal, ".format(api_name) +
                     "but compilation produced:\n" + fatal_compile.stdout)
+    finally:
+        shutil.rmtree(temp_dir)
 
-    print(f"Deprecation policy check passed for Scala {scala_version}")
+    print("Deprecation policy check passed for Scala {0}".format(scala_version))
 
 
 def parse_args(argv):
