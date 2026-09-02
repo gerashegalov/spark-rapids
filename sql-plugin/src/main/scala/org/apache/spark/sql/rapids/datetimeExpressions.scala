@@ -603,9 +603,9 @@ object ExceptionTimeParserPolicy extends TimeParserPolicy
 object CorrectedTimeParserPolicy extends TimeParserPolicy
 
 object GpuToTimestamp {
-  // We are compatible with Spark for these formats when the timeParserPolicy is CORRECTED
-  // or EXCEPTION. It is possible that other formats may be supported but these are the only
-  // ones that we have tests for.
+  // We are compatible with Spark for these formats when the timeParserPolicy is CORRECTED.
+  // It is possible that other formats may be supported but these are the only ones that we
+  // have tests for.
   val CORRECTED_COMPATIBLE_FORMATS = Set(
     "yyyy-MM-dd",
     "yyyy/MM/dd",
@@ -624,6 +624,10 @@ object GpuToTimestamp {
     "yyyyMMdd",
     "MMyyyy"
   )
+
+  // EXCEPTION first tries CORRECTED parsing and then probes LEGACY parsing on failure. Formats
+  // in this set must therefore match Spark under both parsers, including success/failure behavior.
+  val EXCEPTION_COMPATIBLE_FORMATS = CORRECTED_COMPATIBLE_FORMATS - "yyyyMMdd"
 
   // We are compatible with Spark for these formats when the timeParserPolicy is LEGACY. It
   // is possible that other formats may be supported but these are the only ones that we have
@@ -671,12 +675,13 @@ object GpuToTimestamp {
   }
 
   // True iff the fused JNI parser handles this (sparkFormat, policy) combination.
-  // Today the JNI accepts every entry in CORRECTED_COMPATIBLE_FORMATS / LEGACY_COMPATIBLE_FORMATS.
-  private def isSimpleSparkFormat(sparkFormat: String, isLegacy: Boolean): Boolean = {
-    if (isLegacy) {
-      LEGACY_COMPATIBLE_FORMATS.contains(sparkFormat)
-    } else {
-      CORRECTED_COMPATIBLE_FORMATS.contains(sparkFormat)
+  private def isSimpleSparkFormat(
+      sparkFormat: String,
+      timeParserPolicy: TimeParserPolicy): Boolean = {
+    timeParserPolicy match {
+      case LegacyTimeParserPolicy => LEGACY_COMPATIBLE_FORMATS.contains(sparkFormat)
+      case ExceptionTimeParserPolicy => EXCEPTION_COMPATIBLE_FORMATS.contains(sparkFormat)
+      case CorrectedTimeParserPolicy => CORRECTED_COMPATIBLE_FORMATS.contains(sparkFormat)
     }
   }
 
@@ -722,7 +727,12 @@ object GpuToTimestamp {
       exceptionPolicy: Boolean): ColumnVector = {
 
     // `tsVector` will be closed in replaceSpecialDates
-    val tsVector = if (isSimpleSparkFormat(sparkFormat, isLegacy = false)) {
+    val timeParserPolicy = if (exceptionPolicy) {
+      ExceptionTimeParserPolicy
+    } else {
+      CorrectedTimeParserPolicy
+    }
+    val tsVector = if (isSimpleSparkFormat(sparkFormat, timeParserPolicy)) {
       // Fused kernel skips the regex+length+cuDF-asTimestamp chain.
       val parsed = try {
         val parserPolicy = if (exceptionPolicy) {
@@ -782,7 +792,7 @@ object GpuToTimestamp {
   def parseStringAsTimestampWithLegacyParserPolicy(
       lhs: GpuColumnVector,
       sparkFormat: String): ColumnVector = {
-    if (!isSimpleSparkFormat(sparkFormat, isLegacy = true)) {
+    if (!isSimpleSparkFormat(sparkFormat, LegacyTimeParserPolicy)) {
       throw new IllegalStateException(s"Unsupported format $sparkFormat")
     }
     CastStrings.parseTimestampWithFormat(lhs.getBase, sparkFormat, true)
