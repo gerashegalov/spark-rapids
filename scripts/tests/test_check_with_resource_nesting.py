@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # Copyright (c) 2026, NVIDIA CORPORATION.
 #
@@ -14,29 +14,82 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
+
 import collections
 import contextlib
-import importlib.util
 import io
 import json
+import os
+import shutil
 import sys
 import tempfile
 import unittest
-from pathlib import Path
 
 
-SCRIPT = Path(__file__).parents[1] / "check_with_resource_nesting.py"
-SPEC = importlib.util.spec_from_file_location("check_with_resource_nesting", SCRIPT)
-LINT = importlib.util.module_from_spec(SPEC)
-assert SPEC.loader is not None
-sys.modules[SPEC.name] = LINT
-SPEC.loader.exec_module(LINT)
+try:
+    TEXT_TYPE = unicode
+except NameError:  # Python 3
+    TEXT_TYPE = str
+
+
+SCRIPT = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                      "check_with_resource_nesting.py")
+try:
+    import importlib.util
+    SPEC = importlib.util.spec_from_file_location("check_with_resource_nesting", SCRIPT)
+    LINT = importlib.util.module_from_spec(SPEC)
+    sys.modules[SPEC.name] = LINT
+    SPEC.loader.exec_module(LINT)
+except ImportError:  # Jython 2.7 / Python 2.7
+    import imp
+    LINT = imp.load_source("check_with_resource_nesting", SCRIPT)
+
+
+@contextlib.contextmanager
+def temporary_directory():
+    path = tempfile.mkdtemp()
+    try:
+        yield path
+    finally:
+        shutil.rmtree(path)
+
+
+class OutputSink(object):
+    def __init__(self):
+        self.parts = []
+
+    def write(self, value):
+        self.parts.append(value)
+
+    def flush(self):
+        pass
+
+    def getvalue(self):
+        return TEXT_TYPE("").join(self.parts)
+
+
+@contextlib.contextmanager
+def captured_stream(name):
+    output = OutputSink()
+    original = getattr(sys, name)
+    setattr(sys, name, output)
+    try:
+        yield output
+    finally:
+        setattr(sys, name, original)
+
+
+def write_text(path, value):
+    with io.open(path, "w", encoding="utf-8") as output_file:
+        output_file.write(TEXT_TYPE(value))
 
 
 def nested_source(depth):
     body = "result"
     for index in reversed(range(depth)):
-        body = f"withResource(make{index}()) {{ resource{index} =>\n{body}\n}}"
+        body = "withResource(make{0}()) {{ resource{0} =>\n{1}\n}}".format(
+            index, body)
     return body
 
 
@@ -192,69 +245,124 @@ class WithResourceNestingLintSuite(unittest.TestCase):
         shallower = LINT.scan_source("Test.scala", nested_source(5), 3).violations[-1]
         self.assertEqual(deep.fingerprint, shallower.fingerprint)
 
+    def test_baseline_json_is_stable_across_runtimes(self):
+        violation = LINT.scan_source(
+            "Test.scala", "withResource(make()) { resource => result }", 0).violations[0]
+        self.assertEqual("ba163e5cbee380205ebb", violation.fingerprint)
+        self.assertEqual("""{
+  "version": 1,
+  "maxDepth": 0,
+  "trackingIssue": "https://github.com/NVIDIA/cudf-spark/issues/11713",
+  "entries": [
+    {
+      "path": "Test.scala",
+      "fingerprint": "ba163e5cbee380205ebb",
+      "resource": "withResource(make())"
+    }
+  ]
+}
+""", LINT.baseline_json((violation,), 0))
+
+    def test_production_source_discovery_excludes_generated_and_test_trees(self):
+        with temporary_directory() as root:
+            relative_paths = (
+                "module/src/main/scala/Keep.scala",
+                "module/src/test/scala/IgnoreTest.scala",
+                "module/target/generated/src/main/scala/IgnoreTarget.scala",
+                "scala2.13/module/src/main/scala/IgnoreGeneratedPomTree.scala",
+            )
+            for relative_path in relative_paths:
+                path = os.path.join(root, *relative_path.split("/"))
+                parent = os.path.dirname(path)
+                if not os.path.isdir(parent):
+                    os.makedirs(parent)
+                write_text(path, "object Fixture\n")
+
+            discovered = [
+                os.path.relpath(path, root).replace(os.sep, "/")
+                for path in LINT.production_scala_files(root)
+            ]
+            self.assertEqual(["module/src/main/scala/Keep.scala"], discovered)
+
     def test_command_fails_for_new_violation(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            source_dir = root / "module" / "src" / "main" / "scala"
-            source_dir.mkdir(parents=True)
-            (source_dir / "Test.scala").write_text(nested_source(5), encoding="utf-8")
-            baseline = root / "baseline.json"
-            baseline.write_text(json.dumps({
+        with temporary_directory() as root:
+            source_dir = os.path.join(root, "module", "src", "main", "scala")
+            os.makedirs(source_dir)
+            write_text(os.path.join(source_dir, "Test.scala"), nested_source(5))
+            baseline = os.path.join(root, "baseline.json")
+            write_text(baseline, json.dumps({
                 "version": 1,
                 "maxDepth": 4,
                 "trackingIssue": "https://github.com/NVIDIA/cudf-spark/issues/11713",
                 "entries": [],
-            }), encoding="utf-8")
+            }))
 
-            stderr = io.StringIO()
-            with contextlib.redirect_stderr(stderr):
+            with captured_stream("stderr") as stderr:
                 exit_code = LINT.main([
-                    "--root", str(root),
-                    "--baseline", str(baseline),
+                    "--root", root,
+                    "--baseline", baseline,
                 ])
 
             self.assertEqual(1, exit_code)
             self.assertIn("nesting depth 5 exceeds 4", stderr.getvalue())
 
     def test_command_accepts_justified_exemption(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            source_dir = root / "module" / "src" / "main" / "scala"
-            source_dir.mkdir(parents=True)
+        with temporary_directory() as root:
+            source_dir = os.path.join(root, "module", "src", "main", "scala")
+            os.makedirs(source_dir)
             source = (
                 "// with-resource-lint: allow-deep-nesting -- required by "
                 "https://github.com/NVIDIA/cudf-spark/issues/11713\n" +
                 nested_source(5))
-            (source_dir / "Test.scala").write_text(source, encoding="utf-8")
-            baseline = root / "baseline.json"
-            baseline.write_text(json.dumps({
+            write_text(os.path.join(source_dir, "Test.scala"), source)
+            baseline = os.path.join(root, "baseline.json")
+            write_text(baseline, json.dumps({
                 "version": 1,
                 "maxDepth": 4,
                 "trackingIssue": "https://github.com/NVIDIA/cudf-spark/issues/11713",
                 "entries": [],
-            }), encoding="utf-8")
+            }))
 
-            stdout = io.StringIO()
-            with contextlib.redirect_stdout(stdout):
+            with captured_stream("stdout") as stdout:
                 exit_code = LINT.main([
-                    "--root", str(root),
-                    "--baseline", str(baseline),
+                    "--root", root,
+                    "--baseline", baseline,
                 ])
 
             self.assertEqual(0, exit_code)
             self.assertIn("lint passed", stdout.getvalue())
 
+    def test_command_updates_baseline(self):
+        with temporary_directory() as root:
+            source_dir = os.path.join(root, "module", "src", "main", "scala")
+            os.makedirs(source_dir)
+            write_text(os.path.join(source_dir, "Test.scala"), nested_source(5))
+            baseline = os.path.join(root, "baseline.json")
+
+            with captured_stream("stdout") as stdout:
+                exit_code = LINT.main([
+                    "--root", root,
+                    "--baseline", baseline,
+                    "--update-baseline",
+                ])
+
+            self.assertEqual(0, exit_code)
+            self.assertIn("Updated", stdout.getvalue())
+            with io.open(baseline, "r", encoding="utf-8") as baseline_file:
+                generated = baseline_file.read()
+            scan = LINT.scan_tree(root, 4)
+            self.assertEqual(LINT.baseline_json(scan.violations, 4), generated)
+
     def test_command_explains_fingerprint_changes(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            source_dir = root / "module" / "src" / "main" / "scala"
-            source_dir.mkdir(parents=True)
+        with temporary_directory() as root:
+            source_dir = os.path.join(root, "module", "src", "main", "scala")
+            os.makedirs(source_dir)
             source = nested_source(5)
-            source_path = source_dir / "Test.scala"
-            source_path.write_text(source, encoding="utf-8")
+            source_path = os.path.join(source_dir, "Test.scala")
+            write_text(source_path, source)
             violation = LINT.scan_source("module/src/main/scala/Test.scala", source, 4).violations[0]
-            baseline = root / "baseline.json"
-            baseline.write_text(json.dumps({
+            baseline = os.path.join(root, "baseline.json")
+            write_text(baseline, json.dumps({
                 "version": 1,
                 "maxDepth": 4,
                 "trackingIssue": "https://github.com/NVIDIA/cudf-spark/issues/11713",
@@ -263,14 +371,13 @@ class WithResourceNestingLintSuite(unittest.TestCase):
                     "fingerprint": violation.fingerprint,
                     "resource": violation.resource,
                 }],
-            }), encoding="utf-8")
-            source_path.write_text(source.replace("make4", "renamedMake4"), encoding="utf-8")
+            }))
+            write_text(source_path, source.replace("make4", "renamedMake4"))
 
-            stderr = io.StringIO()
-            with contextlib.redirect_stderr(stderr):
+            with captured_stream("stderr") as stderr:
                 exit_code = LINT.main([
-                    "--root", str(root),
-                    "--baseline", str(baseline),
+                    "--root", root,
+                    "--baseline", baseline,
                 ])
 
             self.assertEqual(1, exit_code)

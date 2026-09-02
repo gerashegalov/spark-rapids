@@ -51,4 +51,7 @@ Only hoist values that own their data. Views returned by methods such as `bitCas
 `getChildColumnView`, `replaceListChild`, and `splitAsViews` must not outlive their owning parent.
 Copy or convert a view to an owning resource before closing its parent.
 
-The check and its unit tests run with the all-modules Scalastyle execution during `mvn verify`.
+The script remains directly runnable with Python 3, but is also compatible with Jython 2.7. Maven
+uses its managed Jython dependency to run the check and unit tests with the all-modules Scalastyle
+execution during `mvn verify`; the generated Scala 2.13 reactor does not repeat this repository-wide
+check.

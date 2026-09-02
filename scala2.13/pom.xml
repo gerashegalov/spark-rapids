@@ -2072,16 +2072,17 @@ This will force full Scala code rebuild in downstream modules.
                                     <arg line="--xmlEncoding ${project.reporting.outputEncoding}"/>
                                     <arg line="${scalastyle.dirs}"/>
                                 </java>
-                                <exec executable="python3" failonerror="true"
+                                <!-- The repository-wide lint runs only in the canonical root
+                                     reactor, not again from the generated Scala 2.13 POM. -->
+                                <!-- #if scala-2.12 --><!--
+                                <java classname="org.python.util.jython"
+                                      classpathref="maven.plugin.classpath"
+                                      fork="true" failonerror="true"
                                       dir="${spark.rapids.source.basedir}">
-                                    <arg value="-m"/>
-                                    <arg value="unittest"/>
-                                    <arg value="discover"/>
-                                    <arg value="-s"/>
-                                    <arg value="scripts/tests"/>
-                                    <arg value="-p"/>
-                                    <arg value="test_check_with_resource_nesting.py"/>
-                                </exec>
+                                    <arg value="-B"/>
+                                    <arg value="scripts/tests/test_check_with_resource_nesting.py"/>
+                                </java>
+                                --><!-- #endif scala-2.12 -->
                                 <java classname="org.python.util.jython"
                                       classpathref="maven.plugin.classpath"
                                       fork="true" failonerror="true"
@@ -2095,12 +2096,17 @@ This will force full Scala code rebuild in downstream modules.
                                 </java>
                                 <!-- Existing nesting exceptions are tracked by
                                      https://github.com/NVIDIA/cudf-spark/issues/11713. -->
-                                <exec executable="python3" failonerror="true"
+                                <!-- #if scala-2.12 --><!--
+                                <java classname="org.python.util.jython"
+                                      classpathref="maven.plugin.classpath"
+                                      fork="true" failonerror="true"
                                       dir="${spark.rapids.source.basedir}">
+                                    <arg value="-B"/>
                                     <arg value="scripts/check_with_resource_nesting.py"/>
-                                    <arg value="--root"/>
+                                    <arg value="&#45;&#45;root"/>
                                     <arg value="${spark.rapids.source.basedir}"/>
-                                </exec>
+                                </java>
+                                --><!-- #endif scala-2.12 -->
                             </target>
                         </configuration>
                     </execution>
