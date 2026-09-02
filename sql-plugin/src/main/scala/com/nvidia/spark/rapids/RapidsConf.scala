@@ -1365,13 +1365,13 @@ val GPU_COREDUMP_PIPE_PATTERN = conf("spark.rapids.gpu.coreDump.pipePattern")
 
   val ACCELERATED_COLUMNAR_TO_ROW_ENABLED =
     conf("spark.rapids.sql.acceleratedColumnarToRow.enabled")
-      .doc("When set to true the GPU columnar-to-row transition uses the GPU " +
+      .doc("When set to true (default) the GPU columnar-to-row transition uses the GPU " +
         "transpose kernel (AcceleratedColumnarToRowIterator) for wide fixed-width / STRING " +
         "schemas. Setting it to false forces the slower per-row CPU iterator " +
-        "(ColumnarToRowIterator). This is disabled by default due to " +
-        "https://github.com/NVIDIA/cudf-spark/issues/15872.")
+        "(ColumnarToRowIterator). Mainly useful for troubleshooting and performance " +
+        "comparisons; production workloads should leave this on.")
       .booleanConf
-      .createWithDefault(false)
+      .createWithDefault(true)
 
   val ENABLE_PARQUET_INT96_WRITE = conf("spark.rapids.sql.format.parquet.writer.int96.enabled")
     .doc("When set to false, disables accelerated parquet write if the " +
