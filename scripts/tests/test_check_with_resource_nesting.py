@@ -284,6 +284,39 @@ class WithResourceNestingLintSuite(unittest.TestCase):
             ]
             self.assertEqual(["module/src/main/scala/Keep.scala"], discovered)
 
+    def test_report_classifies_and_lists_every_violation(self):
+        violations = LINT.scan_source("Test.scala", nested_source(6), 4).violations
+        baseline = collections.Counter({violations[0].baseline_key: 1})
+        classified = LINT.classify_violations(violations, baseline)
+        self.assertEqual(["baselined", "new"], [item.status for item in classified])
+
+        summary = LINT.render_summary(classified, collections.Counter(), (), 4)
+        self.assertIn("Found 2 scope(s) deeper than 4: 1 baselined, 1 new", summary)
+        for violation in violations:
+            self.assertIn(violation.resource, summary)
+
+        with temporary_directory() as root:
+            report_path = os.path.join(root, "report.json")
+            LINT.write_raw_report(
+                report_path, classified, collections.Counter(), (), 4)
+            with io.open(report_path, "r", encoding="utf-8") as report_file:
+                report = json.loads(report_file.read())
+        self.assertEqual(2, len(report["violations"]))
+        self.assertEqual(["baselined", "new"], [
+            violation["status"] for violation in report["violations"]])
+        self.assertEqual("&lt;literal&gt; &amp; value \\| next",
+                         LINT.markdown_escape("<literal> & value | next"))
+
+    def test_annotations_distinguish_baselined_and_new_violations(self):
+        violations = LINT.scan_source("Test:File.scala", nested_source(6), 4).violations
+        baseline = collections.Counter({violations[0].baseline_key: 1})
+        classified = LINT.classify_violations(violations, baseline)
+        with captured_stream("stdout") as stdout:
+            LINT.emit_annotations(classified)
+        output = stdout.getvalue()
+        self.assertIn("::warning file=Test%3AFile.scala", output)
+        self.assertIn("::error file=Test%3AFile.scala", output)
+
     def test_command_fails_for_new_violation(self):
         with temporary_directory() as root:
             source_dir = os.path.join(root, "module", "src", "main", "scala")
@@ -352,6 +385,45 @@ class WithResourceNestingLintSuite(unittest.TestCase):
                 generated = baseline_file.read()
             scan = LINT.scan_tree(root, 4)
             self.assertEqual(LINT.baseline_json(scan.violations, 4), generated)
+
+    def test_command_writes_complete_reports(self):
+        with temporary_directory() as root:
+            source_dir = os.path.join(root, "module", "src", "main", "scala")
+            os.makedirs(source_dir)
+            write_text(os.path.join(source_dir, "Test.scala"), nested_source(6))
+            scan = LINT.scan_tree(root, 4)
+            baseline = os.path.join(root, "baseline.json")
+            write_text(baseline, LINT.baseline_json(scan.violations, 4))
+            summary = os.path.join(root, "summary.md")
+            report = os.path.join(root, "report.json")
+
+            with captured_stream("stdout"):
+                exit_code = LINT.main([
+                    "--root", root,
+                    "--baseline", baseline,
+                    "--summary", summary,
+                    "--raw-report", report,
+                ])
+
+            self.assertEqual(0, exit_code)
+            with io.open(summary, "r", encoding="utf-8") as summary_file:
+                self.assertIn("2 baselined, 0 new", summary_file.read())
+            with io.open(report, "r", encoding="utf-8") as report_file:
+                report_data = json.loads(report_file.read())
+            self.assertEqual(2, len(report_data["violations"]))
+
+    def test_command_fails_when_report_cannot_be_written(self):
+        with temporary_directory() as root:
+            baseline = os.path.join(root, "baseline.json")
+            write_text(baseline, LINT.baseline_json((), 4))
+            with captured_stream("stderr") as stderr, captured_stream("stdout"):
+                exit_code = LINT.main([
+                    "--root", root,
+                    "--baseline", baseline,
+                    "--raw-report", root,
+                ])
+            self.assertEqual(1, exit_code)
+            self.assertIn("Could not write withResource raw report", stderr.getvalue())
 
     def test_command_explains_fingerprint_changes(self):
         with temporary_directory() as root:

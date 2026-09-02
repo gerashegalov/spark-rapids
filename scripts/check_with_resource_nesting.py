@@ -62,6 +62,8 @@ class Violation(collections.namedtuple(
 
 
 ScanResult = collections.namedtuple("ScanResult", "violations directive_errors")
+ClassifiedViolation = collections.namedtuple(
+    "ClassifiedViolation", "violation status")
 
 
 def _consume_quoted(source, start, quote):
@@ -458,6 +460,110 @@ def stale_baseline_entries(violations, baseline):
     return baseline - current
 
 
+def classify_violations(violations, baseline):
+    remaining = baseline.copy()
+    classified = []
+    for violation in violations:
+        key = violation.baseline_key
+        status = "baselined" if remaining[key] > 0 else "new"
+        if remaining[key] > 0:
+            remaining[key] -= 1
+        classified.append(ClassifiedViolation(violation, status))
+    return classified
+
+
+def markdown_escape(value):
+    return (value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            .replace("|", "\\|").replace("\r", " ").replace("\n", " "))
+
+
+def render_summary(classified, stale, directive_errors, max_depth):
+    new_count = sum(1 for item in classified if item.status == "new")
+    baselined_count = len(classified) - new_count
+    lines = [
+        "## withResource nesting audit",
+        "",
+        ("Found {0} scope(s) deeper than {1}: {2} baselined, {3} new.".format(
+            len(classified), max_depth, baselined_count, new_count)),
+        "",
+    ]
+    if classified:
+        lines.extend([
+            "| Status | Depth | Location | Resource |",
+            "| --- | ---: | --- | --- |",
+        ])
+        for item in classified:
+            violation = item.violation
+            lines.append("| {0} | {1} | `{2}:{3}` | {4} |".format(
+                item.status, violation.depth, markdown_escape(violation.path),
+                violation.line, markdown_escape(violation.resource)))
+    else:
+        lines.append("No deep withResource scopes were found.")
+
+    if stale:
+        lines.extend(["", "### Stale baseline entries", ""])
+        for (path, fingerprint), count in sorted(stale.items()):
+            lines.append("- `{0}` (`{1}`), count {2}".format(
+                markdown_escape(path), fingerprint, count))
+    if directive_errors:
+        lines.extend(["", "### Invalid exemption directives", ""])
+        lines.extend("- {0}".format(markdown_escape(error))
+                     for error in directive_errors)
+    lines.extend([
+        "",
+        ("Baselined scopes are reported as existing debt and do not fail this check. "
+         "New scopes, stale baseline entries, and invalid directives fail the audit."),
+        "",
+    ])
+    return "\n".join(lines)
+
+
+def command_escape(value):
+    return value.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+def command_property_escape(value):
+    return command_escape(value).replace(":", "%3A").replace(",", "%2C")
+
+
+def emit_annotations(classified):
+    for item in classified[:50]:
+        violation = item.violation
+        level = "error" if item.status == "new" else "warning"
+        message = "depth {0}: {1} ({2})".format(
+            violation.depth, violation.resource, item.status)
+        print("::{0} file={1},line={2},title=withResource nesting::{3}".format(
+            level, command_property_escape(violation.path), violation.line,
+            command_escape(message)))
+    if len(classified) > 50:
+        print("::warning title=withResource nesting::Only 50 of {0} scopes were annotated; "
+              "see the job summary and raw report for all findings".format(len(classified)))
+
+
+def write_raw_report(path, classified, stale, directive_errors, max_depth):
+    report = collections.OrderedDict((
+        ("version", BASELINE_VERSION),
+        ("maxDepth", max_depth),
+        ("violations", [collections.OrderedDict((
+            ("status", item.status),
+            ("path", item.violation.path),
+            ("line", item.violation.line),
+            ("depth", item.violation.depth),
+            ("fingerprint", item.violation.fingerprint),
+            ("resource", item.violation.resource),
+        )) for item in classified]),
+        ("staleBaselineEntries", [collections.OrderedDict((
+            ("path", path),
+            ("fingerprint", fingerprint),
+            ("count", count),
+        )) for (path, fingerprint), count in sorted(stale.items())]),
+        ("directiveErrors", list(directive_errors)),
+    ))
+    with io.open(path, "w", encoding="utf-8") as report_file:
+        report_file.write(TEXT_TYPE(json.dumps(
+            report, indent=2, separators=(",", ": "))) + "\n")
+
+
 def parse_args(args):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=os.getcwd(),
@@ -470,6 +576,10 @@ def parse_args(args):
                         help="print a baseline for the current source tree and exit")
     parser.add_argument("--update-baseline", action="store_true",
                         help="replace the baseline with the current source tree")
+    parser.add_argument("--summary", default=os.environ.get("GITHUB_STEP_SUMMARY"),
+                        help="write a Markdown report containing every deep scope")
+    parser.add_argument("--raw-report",
+                        help="write a JSON report containing every deep scope")
     return parser.parse_args(args)
 
 
@@ -496,10 +606,6 @@ def main(argv=None):
         return 2
 
     scan = scan_tree(root, max_depth)
-    if scan.directive_errors:
-        for error in scan.directive_errors:
-            print(error, file=sys.stderr)
-        return 1
 
     generated_baseline = baseline_json(scan.violations, max_depth)
     if args.print_baseline:
@@ -514,11 +620,36 @@ def main(argv=None):
 
     unexpected = new_violations(scan.violations, baseline)
     stale = stale_baseline_entries(scan.violations, baseline)
+    classified = classify_violations(scan.violations, baseline)
+    report_failed = False
+    if args.summary:
+        try:
+            with io.open(args.summary, "w", encoding="utf-8") as summary_file:
+                summary_file.write(TEXT_TYPE(render_summary(
+                    classified, stale, scan.directive_errors, max_depth)))
+        except (IOError, OSError) as error:
+            report_failed = True
+            print("Could not write withResource summary: {0}".format(error), file=sys.stderr)
+    if args.raw_report:
+        try:
+            write_raw_report(
+                args.raw_report, classified, stale, scan.directive_errors, max_depth)
+        except (IOError, OSError) as error:
+            report_failed = True
+            print("Could not write withResource raw report: {0}".format(error), file=sys.stderr)
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        emit_annotations(classified)
+
+    if scan.directive_errors:
+        for error in scan.directive_errors:
+            print(error, file=sys.stderr)
+        return 1
+
     if not unexpected and not stale:
         print(
             "withResource nesting lint passed ({0} baselined violations, maximum "
             "allowed depth {1})".format(len(scan.violations), max_depth))
-        return 0
+        return 1 if report_failed else 0
 
     for violation in unexpected:
         resource = violation.resource

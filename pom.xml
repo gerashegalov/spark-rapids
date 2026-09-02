@@ -1153,8 +1153,8 @@
         <scala.plugin.version>4.9.10</scala.plugin.version>
         <maven.install.plugin.version>3.1.1</maven.install.plugin.version>
         <maven.jar.plugin.version>3.3.0</maven.jar.plugin.version>
-        <jython.version>2.7.3</jython.version>
-        <deprecation.audit.rawReport>${project.build.directory}/nvidia-deprecation-audit.json</deprecation.audit.rawReport>
+        <withResource.audit.rawReport>${project.build.directory}/with-resource-nesting-audit.json</withResource.audit.rawReport>
+        <withResource.audit.summary>${project.build.directory}/with-resource-nesting-summary.md</withResource.audit.summary>
         <scalatest-maven-plugin.version>2.0.2</scalatest-maven-plugin.version>
         <guava.cdh.version>30.0-jre</guava.cdh.version>
         <arrow.cdh.version>2.0.0</arrow.cdh.version>
@@ -1621,7 +1621,7 @@ This will force full Scala code rebuild in downstream modules.
                     <dependency>
                         <groupId>org.python</groupId>
                         <artifactId>jython-standalone</artifactId>
-                        <version>${jython.version}</version>
+                        <version>2.7.3</version>
                     </dependency>
                     <dependency>
                         <groupId>net.sourceforge.pmd</groupId>
@@ -1745,18 +1745,6 @@ This will force full Scala code rebuild in downstream modules.
                             <arg>-Wconf:cat=unused-privates:e</arg>
                             <arg>-Wunused:imports,locals,patvars,privates</arg>
                             --><!-- #endif scala-2.13 -->
-                            <!-- Wconf arguments are prepended, so keep these last to take
-                                 precedence over the general Scala 2.13 deprecation rule.
-                                 NVIDIA-owned APIs are updated in lockstep with this project, but
-                                 their replacement artifacts are not available before deprecation
-                                 annotations land. Keep these diagnostics visible without letting
-                                 fatal-warning policies break the update window. cudf-spark-private
-                                 does not have a single artifact-specific namespace, so cover its
-                                 NVIDIA-owned package roots and its one Spark-package bridge. -->
-                            <arg>-Wconf:cat=deprecation&amp;origin=ai\.rapids\.cudf\..*:iv</arg>
-                            <arg>-Wconf:cat=deprecation&amp;origin=com\.nvidia\.spark\.rapids\..*:iv</arg>
-                            <arg>-Wconf:cat=deprecation&amp;origin=org\.apache\.spark\.sql\.rapids\..*:iv</arg>
-                            <arg>-Wconf:cat=deprecation&amp;origin=org\.apache\.spark\.sql\.execution\.aggregate\.PartialAggUtils([.$].*|$):iv</arg>
                         </args>
                         <addJavacArgs>${scala.javac.args}</addJavacArgs>
                         <!-- #if scala-2.13 --><!--
@@ -2007,11 +1995,12 @@ This will force full Scala code rebuild in downstream modules.
                 <!-- parent-pom only executions -->
                 <inherited>false</inherited>
                 <executions>
-                    <!-- Encode option hyphens so this block remains a valid generated XML comment. -->
+                    <!-- Run this repository-wide audit only from the canonical root reactor.
+                         Encode option hyphens so the generated Scala 2.13 comment stays valid. -->
                     <!-- #if scala-2.12 -->
                     <execution>
-                        <id>nvidia-deprecation-audit</id>
-                        <phase>none</phase>
+                        <id>with-resource-nesting-audit</id>
+                        <phase>verify</phase>
                         <goals><goal>run</goal></goals>
                         <configuration>
                             <target>
@@ -2019,17 +2008,19 @@ This will force full Scala code rebuild in downstream modules.
                                       classpathref="maven.plugin.classpath"
                                       fork="true" failonerror="true" dir="${project.basedir}">
                                     <arg value="-B"/>
-                                    <arg value="scripts/tests/test_deprecation_audit.py"/>
+                                    <arg value="scripts/tests/test_check_with_resource_nesting.py"/>
                                 </java>
                                 <java classname="org.python.util.jython"
                                       classpathref="maven.plugin.classpath"
                                       fork="true" failonerror="true" dir="${project.basedir}">
                                     <arg value="-B"/>
-                                    <arg value="scripts/deprecation_audit.py"/>
-                                    <arg value="&#45;&#45;repo-root"/>
+                                    <arg value="scripts/check_with_resource_nesting.py"/>
+                                    <arg value="&#45;&#45;root"/>
                                     <arg value="${project.basedir}"/>
                                     <arg value="&#45;&#45;raw-report"/>
-                                    <arg value="${deprecation.audit.rawReport}"/>
+                                    <arg value="${withResource.audit.rawReport}"/>
+                                    <arg value="&#45;&#45;summary"/>
+                                    <arg value="${withResource.audit.summary}"/>
                                 </java>
                             </target>
                         </configuration>
@@ -2072,41 +2063,6 @@ This will force full Scala code rebuild in downstream modules.
                                     <arg line="--xmlEncoding ${project.reporting.outputEncoding}"/>
                                     <arg line="${scalastyle.dirs}"/>
                                 </java>
-                                <!-- The repository-wide lint runs only in the canonical root
-                                     reactor, not again from the generated Scala 2.13 POM. -->
-                                <!-- #if scala-2.12 -->
-                                <java classname="org.python.util.jython"
-                                      classpathref="maven.plugin.classpath"
-                                      fork="true" failonerror="true"
-                                      dir="${spark.rapids.source.basedir}">
-                                    <arg value="-B"/>
-                                    <arg value="scripts/tests/test_check_with_resource_nesting.py"/>
-                                </java>
-                                <!-- #endif scala-2.12 -->
-                                <java classname="org.python.util.jython"
-                                      classpathref="maven.plugin.classpath"
-                                      fork="true" failonerror="true"
-                                      dir="${spark.rapids.source.basedir}">
-                                    <arg value="-B"/>
-                                    <arg value="scripts/check_deprecation_policy.py"/>
-                                    <arg value="--pom"/>
-                                    <arg value="${project.basedir}/pom.xml"/>
-                                    <arg value="--maven-repo"/>
-                                    <arg value="${settings.localRepository}"/>
-                                </java>
-                                <!-- Existing nesting exceptions are tracked by
-                                     https://github.com/NVIDIA/cudf-spark/issues/11713. -->
-                                <!-- #if scala-2.12 -->
-                                <java classname="org.python.util.jython"
-                                      classpathref="maven.plugin.classpath"
-                                      fork="true" failonerror="true"
-                                      dir="${spark.rapids.source.basedir}">
-                                    <arg value="-B"/>
-                                    <arg value="scripts/check_with_resource_nesting.py"/>
-                                    <arg value="&#45;&#45;root"/>
-                                    <arg value="${spark.rapids.source.basedir}"/>
-                                </java>
-                                <!-- #endif scala-2.12 -->
                             </target>
                         </configuration>
                     </execution>
