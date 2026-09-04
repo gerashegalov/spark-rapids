@@ -1,6 +1,8 @@
 META-INF/DEPENDENCIES
 META-INF/LICENSE
 META-INF/NOTICE
+com/nvidia/spark/rapids/ConsoleOutput.class
+com/nvidia/spark/rapids/ConsoleOutput$.class
 com/nvidia/spark/rapids/ExplainPlan.class
 com/nvidia/spark/rapids/ExplainPlan$.class
 com/nvidia/spark/rapids/ExplainPlanBase.class
@@ -9,7 +11,6 @@ com/nvidia/spark/rapids/optimizer/SQLOptimizerPlugin*
 com/nvidia/spark/rapids/ShimLoaderTemp*
 com/nvidia/spark/rapids/SparkShims*
 com/nvidia/shaded/spark/com/google/flatbuffers/*.class
-com/nvidia/spark/rapids/iceberg/parquet/FileSchemaAccessors.class
 com/nvidia/spark/rapids/iceberg/spark/RapidsSparkCatalog.class
 com/nvidia/spark/rapids/iceberg/spark/RapidsSparkSessionCatalog.class
 com/nvidia/spark/rapids/iceberg/spark/source/RapidsSparkTable.class
