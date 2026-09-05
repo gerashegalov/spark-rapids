@@ -32,7 +32,7 @@ ICEBERG_SHADED_PREFIX = "org/apache/iceberg/shaded/"
 SHIM_DIR_RE = re.compile(r"^spark[0-9][0-9a-z]*$")
 DESCRIPTOR_CLASS_RE = re.compile(r"L([^;<>()\[\]]+);")
 RUNTIME_JAR_RE = re.compile(
-    r"^iceberg-spark-runtime-(3\.5|4\.0|4\.1)_2\.(?:12|13)-([0-9.]+)\.jar$")
+    r"^iceberg-spark-runtime-(3\.5|4\.0|4\.1)_2\.(?:12|13)-([^/]+)\.jar$")
 NO_ICEBERG_BUILD_RE = re.compile(r"^(?:33[0-4]|34[0-4]|350db143|400db173|420|500)$")
 MEMBER_VISIBILITY = AccessFlag.PUBLIC | AccessFlag.PRIVATE | AccessFlag.PROTECTED
 
@@ -41,6 +41,9 @@ MemberRef = collections.namedtuple("MemberRef", "kind owner name descriptor")
 ClassInfo = collections.namedtuple(
     "ClassInfo", "name access super_name interfaces fields methods class_refs member_refs")
 Finding = collections.namedtuple("Finding", "entry caller target reason runtime")
+RuntimeSpec = collections.namedtuple(
+    "RuntimeSpec", "build_version spark_version iceberg_version")
+RuntimeSelection = collections.namedtuple("RuntimeSelection", "spec path")
 
 
 def _internal_name(name):
@@ -117,54 +120,19 @@ def _is_class_entry(entry):
 def has_class_entries(path):
     if not os.path.exists(path):
         return False
-    if os.path.isfile(path):
-        archive = JarFile(path)
-        try:
-            entries = archive.entries()
-            while entries.hasMoreElements():
-                if _is_class_entry(entries.nextElement().getName()):
-                    return True
-            return False
-        finally:
-            archive.close()
-    for _, _, files in os.walk(path):
-        if any(file_name.endswith(".class") for file_name in files):
-            return True
-    return False
+    repository = LazyClassRepository(path, lambda entry: True)
+    try:
+        return bool(repository)
+    finally:
+        repository.close()
 
 
 def load_classes(path, entry_predicate):
-    if not os.path.exists(path):
-        raise IOError("class layout does not exist: %s" % path)
-    loaded = []
-    if os.path.isfile(path):
-        archive = JarFile(path)
-        try:
-            entries = archive.entries()
-            while entries.hasMoreElements():
-                item = entries.nextElement()
-                entry = item.getName()
-                if not item.isDirectory() and _is_class_entry(entry) and entry_predicate(entry):
-                    stream = archive.getInputStream(item)
-                    try:
-                        loaded.append((entry, _parse_class(stream)))
-                    finally:
-                        stream.close()
-        finally:
-            archive.close()
-        return loaded
-
-    for root, _, files in os.walk(path):
-        for file_name in files:
-            full_path = os.path.join(root, file_name)
-            entry = os.path.relpath(full_path, path).replace(os.sep, "/")
-            if _is_class_entry(entry) and entry_predicate(entry):
-                stream = FileInputStream(full_path)
-                try:
-                    loaded.append((entry, _parse_class(stream)))
-                finally:
-                    stream.close()
-    return loaded
+    repository = LazyClassRepository(path, entry_predicate)
+    try:
+        return list(repository.items())
+    finally:
+        repository.close()
 
 
 class LazyClassRepository(object):
@@ -196,17 +164,24 @@ class LazyClassRepository(object):
         return len(self.entries)
 
     def get(self, name, default=()):
-        source = self.entries.get(name)
-        if source is None:
+        if name not in self.entries:
             return default
+        return (self._load(name),)
+
+    def _load(self, name):
         if name not in self.cache:
+            source = self.entries[name]
             stream = (self.archive.getInputStream(source) if self.archive else
                       FileInputStream(source))
             try:
                 self.cache[name] = _parse_class(stream)
             finally:
                 stream.close()
-        return (self.cache[name],)
+        return self.cache[name]
+
+    def items(self):
+        for name in sorted(self.entries):
+            yield name + ".class", self._load(name)
 
     def close(self):
         if self.archive:
@@ -226,6 +201,28 @@ def _classes_by_name(entries):
     for _, info in entries:
         result[info.name].append(info)
     return result
+
+
+def _entry_world(entry):
+    first = entry.split("/", 1)[0]
+    if first == "spark-shared":
+        return "shared"
+    if SHIM_DIR_RE.match(first):
+        return first[len("spark"):]
+    return "root"
+
+
+def _plugin_world(layout_entries, build_version):
+    if build_version is None:
+        return layout_entries
+    visible = []
+    class_names = set()
+    for world in ("root", "shared", build_version):
+        for entry, info in layout_entries:
+            if _entry_world(entry) == world and info.name not in class_names:
+                visible.append((entry, info))
+                class_names.add(info.name)
+    return visible
 
 
 def _find_members(runtime_classes, plugin_classes, owner, reference):
@@ -268,46 +265,66 @@ def _runtime_key(path):
     return match.groups() if match else None
 
 
-def expected_runtime_keys(build_versions):
-    keys = set()
+def _iceberg_versions(values):
+    versions = {}
+    for value in values:
+        family, separator, version = value.partition("=")
+        if not separator or family not in ("16", "19", "110", "111") or not version:
+            raise RuntimeError("invalid Iceberg version mapping: %s" % value)
+        versions[family] = version
+    return versions
+
+
+def runtime_specs(build_versions, iceberg_versions):
+    specs = []
     for build_version in re.split(r"[,\s]+", build_versions.strip()):
         if not build_version:
             continue
         if re.match(r"^35[0-3]$", build_version):
-            keys.add(("3.5", "1.6.1"))
+            families = (("3.5", "16"),)
         elif re.match(r"^35[4-9]$", build_version):
-            keys.update((("3.5", "1.9.2"), ("3.5", "1.10.1")))
+            families = (("3.5", "19"), ("3.5", "110"))
         elif re.match(r"^40[01]$", build_version):
-            keys.add(("4.0", "1.10.1"))
+            families = (("4.0", "110"),)
         elif re.match(r"^40[2-4]$", build_version):
-            keys.update((("4.0", "1.10.1"), ("4.0", "1.11.0")))
+            families = (("4.0", "110"), ("4.0", "111"))
         elif re.match(r"^41[1-3]$", build_version):
-            keys.add(("4.1", "1.11.0"))
+            families = (("4.1", "111"),)
         elif not NO_ICEBERG_BUILD_RE.match(build_version):
             raise RuntimeError("unknown build version in Iceberg audit: %s" % build_version)
-    return keys
+        else:
+            families = ()
+        for spark_version, family in families:
+            if family not in iceberg_versions:
+                raise RuntimeError("missing Iceberg %s.x version mapping" % family)
+            specs.append(RuntimeSpec(
+                build_version, spark_version, iceberg_versions[family]))
+    return specs
 
 
-def select_runtime_paths(paths, build_versions):
-    if build_versions is None:
+def select_runtime_paths(paths, specs):
+    if specs is None:
         if not paths:
             raise RuntimeError("no Iceberg audit runtime was provided")
-        return sorted(paths)
+        return [RuntimeSelection(RuntimeSpec(None, None, None), path)
+                for path in sorted(paths)]
     by_key = dict((_runtime_key(path), path) for path in paths if _runtime_key(path))
-    expected = expected_runtime_keys(build_versions)
-    missing = expected.difference(by_key)
+    missing = set((spec.spark_version, spec.iceberg_version)
+                  for spec in specs).difference(by_key)
     if missing:
         raise RuntimeError("missing Iceberg audit runtime(s): %s" % sorted(missing))
-    return [by_key[key] for key in sorted(expected)]
+    return [RuntimeSelection(spec, by_key[(spec.spark_version, spec.iceberg_version)])
+            for spec in specs]
 
 
-def maven_runtime_paths(repository, scala_binary_version, build_versions):
+def maven_runtime_paths(repository, scala_binary_version, specs):
     paths = []
-    for spark_version, iceberg_version in expected_runtime_keys(build_versions):
-        artifact = "iceberg-spark-runtime-%s_%s" % (spark_version, scala_binary_version)
+    for spec in specs:
+        artifact = "iceberg-spark-runtime-%s_%s" % (
+            spec.spark_version, scala_binary_version)
         paths.append(os.path.join(
-            repository, "org", "apache", "iceberg", artifact, iceberg_version,
-            "%s-%s.jar" % (artifact, iceberg_version)))
+            repository, "org", "apache", "iceberg", artifact, spec.iceberg_version,
+            "%s-%s.jar" % (artifact, spec.iceberg_version)))
     return paths
 
 
@@ -344,12 +361,15 @@ def _runtime_paths(args):
     for directory in args.runtime_directory:
         paths.extend(os.path.join(directory, name) for name in os.listdir(directory)
                      if name.endswith(".jar"))
+    specs = None
+    if args.build_versions:
+        specs = runtime_specs(args.build_versions, _iceberg_versions(args.iceberg_version))
     if args.maven_repository:
         if not args.build_versions or not args.scala_binary_version:
             raise RuntimeError("Maven repository lookup requires build and Scala versions")
         paths.extend(maven_runtime_paths(
-            args.maven_repository, args.scala_binary_version, args.build_versions))
-    return select_runtime_paths(paths, args.build_versions)
+            args.maven_repository, args.scala_binary_version, specs))
+    return select_runtime_paths(paths, specs)
 
 
 def main(argv=None):
@@ -360,6 +380,7 @@ def main(argv=None):
     parser.add_argument("--maven-repository")
     parser.add_argument("--scala-binary-version", choices=("2.12", "2.13"))
     parser.add_argument("--build-versions")
+    parser.add_argument("--iceberg-version", action="append", default=[])
     args = parser.parse_args(argv)
 
     try:
@@ -367,18 +388,25 @@ def main(argv=None):
             raise RuntimeError("assembled layout is missing or contains no class files: %s" %
                                args.layout)
         layout_entries = load_classes(args.layout, _is_plugin_entry)
-        runtime_paths = _runtime_paths(args)
-        if args.build_versions and expected_runtime_keys(args.build_versions) and not layout_entries:
+        runtime_selections = _runtime_paths(args)
+        if runtime_selections and not layout_entries:
             raise RuntimeError("assembled layout contains no Iceberg plugin classes")
         callers = set()
         findings = set()
-        for runtime_path in runtime_paths:
+        for selection in runtime_selections:
+            runtime_path = selection.path
             runtime_classes = LazyClassRepository(runtime_path, _is_runtime_entry)
             try:
                 if not runtime_classes:
                     raise RuntimeError("runtime contains no Iceberg classes: %s" % runtime_path)
+                world_entries = _plugin_world(
+                    layout_entries, selection.spec.build_version)
+                runtime_label = os.path.basename(runtime_path)
+                if selection.spec.build_version:
+                    runtime_label = "spark%s; %s" % (
+                        selection.spec.build_version, runtime_label)
                 runtime_callers, runtime_findings = find_package_private_access(
-                    layout_entries, runtime_classes, os.path.basename(runtime_path))
+                    world_entries, runtime_classes, runtime_label)
                 callers.update(runtime_callers)
                 findings.update(runtime_findings)
             finally:
@@ -404,7 +432,7 @@ def main(argv=None):
         return 1
 
     print("Iceberg package-private access audit passed: %d caller classes are at the jar root "
-          "across %d runtime(s)" % (len(callers), len(runtime_paths)))
+          "across %d runtime world(s)" % (len(callers), len(runtime_selections)))
     return 0
 
 

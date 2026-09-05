@@ -222,19 +222,83 @@ class IcebergPackagePrivateAccessTest(unittest.TestCase):
             "/tmp/iceberg-spark-runtime-3.5_2.13-1.9.2.jar",
             "/tmp/iceberg-spark-runtime-3.5_2.13-1.10.1.jar",
         )
-        self.assertEqual(sorted(paths), LINT.select_runtime_paths(paths, "359"))
+        versions = {"19": "1.9.2", "110": "1.10.1"}
+        specs = LINT.runtime_specs("359", versions)
+        self.assertEqual(sorted(paths),
+                         sorted(selection.path for selection in
+                                LINT.select_runtime_paths(paths, specs)))
         with self.assertRaises(RuntimeError):
-            LINT.select_runtime_paths(paths[:1], "359")
+            LINT.select_runtime_paths(paths[:1], specs)
         with self.assertRaises(RuntimeError):
-            LINT.select_runtime_paths(paths, "future-version")
+            LINT.runtime_specs("future-version", versions)
+
+    def test_runtime_versions_come_from_maven_values(self):
+        specs = LINT.runtime_specs("359", {"19": "1.9.new", "110": "1.10.new"})
+        self.assertEqual(set(("1.9.new", "1.10.new")),
+                         set(spec.iceberg_version for spec in specs))
+
+    def test_callers_are_paired_only_with_their_supported_runtime(self):
+        with temporary_directory() as root:
+            layout = os.path.join(root, "layout")
+            runtime350 = os.path.join(
+                root, "iceberg-spark-runtime-3.5_2.13-1.6.new.jar")
+            runtime413 = os.path.join(
+                root, "iceberg-spark-runtime-4.1_2.13-1.11.new.jar")
+            write_runtime(runtime350)
+            write_runtime(runtime413, AccessFlag.PUBLIC)
+            for build_version in ("350", "413"):
+                prefix = "spark%s/org/apache/iceberg/p/" % build_version
+                methods = ((AccessFlag.PUBLIC, "hidden", "()V"),) \
+                    if build_version == "350" else ()
+                write_class(layout, prefix + "GpuChild.class",
+                            "org.apache.iceberg.p.GpuChild", "org.apache.iceberg.p.Base",
+                            methods=methods)
+                write_class(layout, prefix + "Caller.class", "org.apache.iceberg.p.Caller",
+                            references=(("method", "org.apache.iceberg.p.GpuChild",
+                                         "hidden", "()V"),))
+            with captured_stream("stdout"):
+                self.assertEqual(0, LINT.main([
+                    "--build-versions", "350,413",
+                    "--iceberg-version", "16=1.6.new",
+                    "--iceberg-version", "111=1.11.new",
+                    layout, runtime350, runtime413]))
 
     def test_maven_runtime_paths(self):
+        specs = [LINT.RuntimeSpec("413", "4.1", "1.11.0")]
         self.assertEqual([
             os.path.join(
                 "/repo", "org", "apache", "iceberg",
                 "iceberg-spark-runtime-4.1_2.13", "1.11.0",
                 "iceberg-spark-runtime-4.1_2.13-1.11.0.jar")
-        ], LINT.maven_runtime_paths("/repo", "2.13", "413"))
+        ], LINT.maven_runtime_paths("/repo", "2.13", specs))
+
+    def test_plugin_hierarchies_are_isolated_by_spark_world(self):
+        with temporary_directory() as root:
+            layout = os.path.join(root, "layout")
+            runtime = os.path.join(root, "runtime")
+            write_runtime(runtime)
+            for build_version, access in (("350", AccessFlag.PUBLIC), ("413", None)):
+                prefix = "spark%s/org/apache/iceberg/p/" % build_version
+                methods = () if access is None else ((access, "hidden", "()V"),)
+                write_class(layout, prefix + "GpuChild.class",
+                            "org.apache.iceberg.p.GpuChild", "org.apache.iceberg.p.Base",
+                            methods=methods)
+                write_class(layout, prefix + "Caller.class", "org.apache.iceberg.p.Caller",
+                            references=(("method", "org.apache.iceberg.p.GpuChild",
+                                         "hidden", "()V"),))
+            entries = LINT.load_classes(layout, LINT._is_plugin_entry)
+            repository = LINT.LazyClassRepository(runtime, LINT._is_runtime_entry)
+            try:
+                _, spark350_findings = LINT.find_package_private_access(
+                    LINT._plugin_world(entries, "350"), repository, "spark350")
+                _, spark413_findings = LINT.find_package_private_access(
+                    LINT._plugin_world(entries, "413"), repository, "spark413")
+                self.assertFalse(spark350_findings)
+                self.assertTrue(spark413_findings)
+                self.assertTrue(all(finding.entry.startswith("spark413/")
+                                    for finding in spark413_findings))
+            finally:
+                repository.close()
 
     def test_runtime_classes_are_loaded_lazily(self):
         with temporary_directory() as root:
