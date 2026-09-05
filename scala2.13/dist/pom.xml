@@ -53,6 +53,7 @@
         <dist.native.chunking.minimum.size>256M</dist.native.chunking.minimum.size>
         <dist.native.chunking.chunk.size>32M</dist.native.chunking.chunk.size>
         <dist.native.chunking.metadata.dir>${project.build.directory}/native-chunks</dist.native.chunking.metadata.dir>
+        <iceberg.audit.runtime.dir>${project.build.directory}/iceberg-audit-runtimes</iceberg.audit.runtime.dir>
     </properties>
     <profiles>
         <profile>
@@ -262,16 +263,23 @@
                         <goals><goal>run</goal></goals>
                         <configuration>
                             <target>
-                                <property name="iceberg.audit.classpath"
-                                          refid="maven.plugin.classpath"/>
+                                <java classname="org.python.util.jython"
+                                      classpathref="maven.plugin.classpath"
+                                      fork="true" failonerror="true"
+                                      dir="${spark.rapids.source.basedir}">
+                                    <arg value="-B"/>
+                                    <arg value="${spark.rapids.source.basedir}/${rapids.module}/scripts/tests/test_check_iceberg_package_private_access.py"/>
+                                </java>
                                 <java classname="org.python.util.jython"
                                       classpathref="maven.plugin.classpath"
                                       fork="true" failonerror="true"
                                       dir="${spark.rapids.source.basedir}">
                                     <arg value="-B"/>
                                     <arg value="${spark.rapids.source.basedir}/${rapids.module}/scripts/check-iceberg-package-private-access.py"/>
-                                    <arg value="--runtime-classpath"/>
-                                    <arg value="${iceberg.audit.classpath}"/>
+                                    <arg value="--runtime-directory"/>
+                                    <arg value="${iceberg.audit.runtime.dir}"/>
+                                    <arg value="--build-versions"/>
+                                    <arg value="${included_buildvers}"/>
                                     <arg value="${project.build.directory}/parallel-world"/>
                                 </java>
                             </target>
@@ -292,6 +300,7 @@
                                     <fileset dir="${project.build.directory}" includes="*.jar"/>
                                 </delete>
                                 <delete dir="${project.build.directory}/deps" includeemptydirs="true"/>
+                                <delete dir="${iceberg.audit.runtime.dir}" includeemptydirs="true"/>
                                 <delete dir="${dist.native.chunking.metadata.dir}" includeemptydirs="true"/>
                                 <mkdir dir="${project.build.directory}/deps"/>
                             </target>
@@ -431,9 +440,9 @@ self.log("... OK")
                         <classifier>${spark.version.classifier}</classifier>
                     </dependency>
                     <dependency>
-                        <groupId>org.apache.iceberg</groupId>
-                        <artifactId>iceberg-spark-runtime-${iceberg.artifact.suffix}_${scala.binary.version}</artifactId>
-                        <version>${iceberg.runtime.version}</version>
+                        <groupId>org.javassist</groupId>
+                        <artifactId>javassist</artifactId>
+                        <version>3.30.2-GA</version>
                     </dependency>
                 </dependencies>
             </plugin>
@@ -458,6 +467,48 @@ self.log("... OK")
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
+                    <execution>
+                        <id>copy-iceberg-audit-runtimes</id>
+                        <phase>prepare-package</phase>
+                        <goals><goal>copy</goal></goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.apache.iceberg</groupId>
+                                    <artifactId>iceberg-spark-runtime-3.5_${scala.binary.version}</artifactId>
+                                    <version>${iceberg.16x.version}</version>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.iceberg</groupId>
+                                    <artifactId>iceberg-spark-runtime-3.5_${scala.binary.version}</artifactId>
+                                    <version>${iceberg.19x.version}</version>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.iceberg</groupId>
+                                    <artifactId>iceberg-spark-runtime-3.5_${scala.binary.version}</artifactId>
+                                    <version>${iceberg.110x.version}</version>
+                                </artifactItem>
+                                <!-- #if scala-2.13 -->
+                                <artifactItem>
+                                    <groupId>org.apache.iceberg</groupId>
+                                    <artifactId>iceberg-spark-runtime-4.0_${scala.binary.version}</artifactId>
+                                    <version>${iceberg.110x.version}</version>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.iceberg</groupId>
+                                    <artifactId>iceberg-spark-runtime-4.0_${scala.binary.version}</artifactId>
+                                    <version>${iceberg.111x.version}</version>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.iceberg</groupId>
+                                    <artifactId>iceberg-spark-runtime-4.1_${scala.binary.version}</artifactId>
+                                    <version>${iceberg.111x.version}</version>
+                                </artifactItem>
+                                <!-- #endif scala-2.13 -->
+                            </artifactItems>
+                            <outputDirectory>${iceberg.audit.runtime.dir}</outputDirectory>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>unpack-spark-rapids-jni-and-ucx</id>
                         <!-- run after `create-parallel-world`, the phase equals to the phase of the `create-parallel-world` -->
