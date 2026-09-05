@@ -228,6 +228,31 @@ class IcebergPackagePrivateAccessTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             LINT.select_runtime_paths(paths, "future-version")
 
+    def test_maven_runtime_paths(self):
+        self.assertEqual([
+            os.path.join(
+                "/repo", "org", "apache", "iceberg",
+                "iceberg-spark-runtime-4.1_2.13", "1.11.0",
+                "iceberg-spark-runtime-4.1_2.13-1.11.0.jar")
+        ], LINT.maven_runtime_paths("/repo", "2.13", "413"))
+
+    def test_runtime_classes_are_loaded_lazily(self):
+        with temporary_directory() as root:
+            layout = os.path.join(root, "layout")
+            runtime = os.path.join(root, "runtime")
+            write_runtime(runtime)
+            write_class(runtime, "org/apache/iceberg/p/Unused.class",
+                        "org.apache.iceberg.p.Unused")
+            write_inherited_caller(layout, "")
+            repository = LINT.LazyClassRepository(runtime, LINT._is_runtime_entry)
+            try:
+                entries = LINT.load_classes(layout, LINT._is_plugin_entry)
+                LINT.find_package_private_access(entries, repository, "runtime")
+                self.assertEqual(set(("org/apache/iceberg/p/Base",)),
+                                 set(repository.cache))
+            finally:
+                repository.close()
+
     def test_no_runtime_fails(self):
         with self.assertRaises(RuntimeError):
             LINT.select_runtime_paths([], None)

@@ -167,6 +167,52 @@ def load_classes(path, entry_predicate):
     return loaded
 
 
+class LazyClassRepository(object):
+    """Index a class layout and parse classes only when resolution needs them."""
+
+    def __init__(self, path, entry_predicate):
+        if not os.path.exists(path):
+            raise IOError("class layout does not exist: %s" % path)
+        self.path = path
+        self.archive = JarFile(path) if os.path.isfile(path) else None
+        self.entries = {}
+        self.cache = {}
+        if self.archive:
+            entries = self.archive.entries()
+            while entries.hasMoreElements():
+                item = entries.nextElement()
+                entry = item.getName()
+                if not item.isDirectory() and _is_class_entry(entry) and entry_predicate(entry):
+                    self.entries[entry[:-6]] = item
+        else:
+            for root, _, files in os.walk(path):
+                for file_name in files:
+                    full_path = os.path.join(root, file_name)
+                    entry = os.path.relpath(full_path, path).replace(os.sep, "/")
+                    if _is_class_entry(entry) and entry_predicate(entry):
+                        self.entries[entry[:-6]] = full_path
+
+    def __len__(self):
+        return len(self.entries)
+
+    def get(self, name, default=()):
+        source = self.entries.get(name)
+        if source is None:
+            return default
+        if name not in self.cache:
+            stream = (self.archive.getInputStream(source) if self.archive else
+                      FileInputStream(source))
+            try:
+                self.cache[name] = _parse_class(stream)
+            finally:
+                stream.close()
+        return (self.cache[name],)
+
+    def close(self):
+        if self.archive:
+            self.archive.close()
+
+
 def _is_runtime_entry(entry):
     return entry.startswith(ICEBERG_PREFIX) and not entry.startswith(ICEBERG_SHADED_PREFIX)
 
@@ -255,9 +301,18 @@ def select_runtime_paths(paths, build_versions):
     return [by_key[key] for key in sorted(expected)]
 
 
-def find_package_private_access(layout_entries, runtime_entries, runtime_label):
+def maven_runtime_paths(repository, scala_binary_version, build_versions):
+    paths = []
+    for spark_version, iceberg_version in expected_runtime_keys(build_versions):
+        artifact = "iceberg-spark-runtime-%s_%s" % (spark_version, scala_binary_version)
+        paths.append(os.path.join(
+            repository, "org", "apache", "iceberg", artifact, iceberg_version,
+            "%s-%s.jar" % (artifact, iceberg_version)))
+    return paths
+
+
+def find_package_private_access(layout_entries, runtime_classes, runtime_label):
     plugin_classes = _classes_by_name(layout_entries)
-    runtime_classes = _classes_by_name(runtime_entries)
     findings = set()
     callers = set()
     for entry, caller in layout_entries:
@@ -289,6 +344,11 @@ def _runtime_paths(args):
     for directory in args.runtime_directory:
         paths.extend(os.path.join(directory, name) for name in os.listdir(directory)
                      if name.endswith(".jar"))
+    if args.maven_repository:
+        if not args.build_versions or not args.scala_binary_version:
+            raise RuntimeError("Maven repository lookup requires build and Scala versions")
+        paths.extend(maven_runtime_paths(
+            args.maven_repository, args.scala_binary_version, args.build_versions))
     return select_runtime_paths(paths, args.build_versions)
 
 
@@ -297,6 +357,8 @@ def main(argv=None):
     parser.add_argument("layout", help="assembled dist jar or parallel-world directory")
     parser.add_argument("iceberg_runtime", nargs="*", help="Iceberg runtime jar(s)")
     parser.add_argument("--runtime-directory", action="append", default=[])
+    parser.add_argument("--maven-repository")
+    parser.add_argument("--scala-binary-version", choices=("2.12", "2.13"))
     parser.add_argument("--build-versions")
     args = parser.parse_args(argv)
 
@@ -311,13 +373,16 @@ def main(argv=None):
         callers = set()
         findings = set()
         for runtime_path in runtime_paths:
-            runtime_entries = load_classes(runtime_path, _is_runtime_entry)
-            if not runtime_entries:
-                raise RuntimeError("runtime contains no Iceberg classes: %s" % runtime_path)
-            runtime_callers, runtime_findings = find_package_private_access(
-                layout_entries, runtime_entries, os.path.basename(runtime_path))
-            callers.update(runtime_callers)
-            findings.update(runtime_findings)
+            runtime_classes = LazyClassRepository(runtime_path, _is_runtime_entry)
+            try:
+                if not runtime_classes:
+                    raise RuntimeError("runtime contains no Iceberg classes: %s" % runtime_path)
+                runtime_callers, runtime_findings = find_package_private_access(
+                    layout_entries, runtime_classes, os.path.basename(runtime_path))
+                callers.update(runtime_callers)
+                findings.update(runtime_findings)
+            finally:
+                runtime_classes.close()
     except (IOError, OSError, IOException, RuntimeError) as error:
         print("Iceberg package-private access audit failed: %s" % error, file=sys.stderr)
         return 2
