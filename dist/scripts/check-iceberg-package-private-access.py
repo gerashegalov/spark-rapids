@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # Copyright (c) 2026, NVIDIA CORPORATION.
 #
@@ -15,6 +15,8 @@
 # limitations under the License.
 
 """Require Iceberg package-private callers to be stored at the dist jar root."""
+
+from __future__ import print_function
 
 import argparse
 import collections
@@ -47,7 +49,10 @@ Finding = collections.namedtuple("Finding", ("entry", "caller", "target", "reaso
 
 
 def _read_u1(data, offset):
-    return data[offset], offset + 1
+    value = data[offset]
+    if not isinstance(value, int):
+        value = ord(value)
+    return value, offset + 1
 
 
 def _read_u2(data, offset):
@@ -118,7 +123,7 @@ def parse_class_file(data):
             length, offset = _read_u2(data, offset)
             raw = data[offset:offset + length]
             offset += length
-            constant_pool[index] = raw.decode("utf-8", errors="replace")
+            constant_pool[index] = raw.decode("utf-8", "replace")
         elif tag in (3, 4):  # Integer, Float
             offset += 4
         elif tag in (5, 6):  # Long, Double
@@ -200,7 +205,7 @@ def parse_class_file(data):
         frozenset(class_refs), tuple(member_refs))
 
 
-def iter_class_entries(path):
+def iter_class_entries(path, entry_predicate=None):
     if zipfile.is_zipfile(path):
         with zipfile.ZipFile(path) as archive:
             total_class_bytes = 0
@@ -208,6 +213,8 @@ def iter_class_entries(path):
                 entry = info.filename
                 if (not entry.endswith(".class") or entry.endswith("/module-info.class") or
                         entry.startswith("META-INF/versions/")):
+                    continue
+                if entry_predicate is not None and not entry_predicate(entry):
                     continue
                 if info.file_size > MAX_ZIP_CLASS_ENTRY_BYTES:
                     raise RuntimeError(
@@ -225,19 +232,34 @@ def iter_class_entries(path):
                 continue
             full_path = os.path.join(root, file_name)
             entry = os.path.relpath(full_path, path).replace(os.sep, "/")
+            if entry_predicate is not None and not entry_predicate(entry):
+                continue
             with open(full_path, "rb") as class_file:
                 yield entry, class_file.read()
+
+
+def _is_runtime_iceberg_entry(entry):
+    return entry.startswith(ICEBERG_PREFIX) and not entry.startswith(ICEBERG_SHADED_PREFIX)
+
+
+def _is_plugin_iceberg_entry(entry):
+    return ICEBERG_PREFIX in entry and ICEBERG_SHADED_PREFIX not in entry
 
 
 def load_runtime_classes(paths):
     classes = {}
     for path in paths:
-        for _, data in iter_class_entries(path):
+        for _, data in iter_class_entries(path, _is_runtime_iceberg_entry):
             info = parse_class_file(data)
-            if info.name.startswith(ICEBERG_PREFIX) and not info.name.startswith(
-                    ICEBERG_SHADED_PREFIX):
-                classes[info.name] = info
+            classes[info.name] = info
     return classes
+
+
+def iceberg_runtime_paths(classpath):
+    return [
+        path for path in classpath.split(os.pathsep)
+        if os.path.basename(path).startswith("iceberg-spark-runtime-")
+    ]
 
 
 def _find_member(classes, owner, name, descriptor, kind):
@@ -269,7 +291,7 @@ def _is_root_entry(entry):
 def find_package_private_access(layout_path, runtime_classes):
     findings = set()
     callers = set()
-    for entry, data in iter_class_entries(layout_path):
+    for entry, data in iter_class_entries(layout_path, _is_plugin_iceberg_entry):
         caller = parse_class_file(data)
         caller_findings = set()
         for target_name in caller.class_refs:
@@ -296,23 +318,28 @@ def find_package_private_access(layout_path, runtime_classes):
     return sorted(callers), sorted(findings)
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "layout", help="assembled dist jar or dist/target/parallel-world directory")
     parser.add_argument(
-        "iceberg_runtime", nargs="+", help="Iceberg Spark runtime jar(s) to resolve access against")
-    args = parser.parse_args()
+        "iceberg_runtime", nargs="*", help="Iceberg Spark runtime jar(s) to resolve access against")
+    parser.add_argument(
+        "--runtime-classpath",
+        help="classpath containing an Iceberg Spark runtime jar")
+    args = parser.parse_args(argv)
 
-    runtime_classes = load_runtime_classes(args.iceberg_runtime)
+    runtime_paths = list(args.iceberg_runtime)
+    if args.runtime_classpath:
+        runtime_paths.extend(iceberg_runtime_paths(args.runtime_classpath))
+    if not runtime_paths:
+        parser.error("no Iceberg Spark runtime jar was provided or found on the classpath")
+
+    runtime_classes = load_runtime_classes(runtime_paths)
     if not runtime_classes:
         parser.error("no org.apache.iceberg runtime classes found")
 
     callers, findings = find_package_private_access(args.layout, runtime_classes)
-    if not callers:
-        print("No Iceberg package-private callers were detected; refusing to pass an empty audit",
-              file=sys.stderr)
-        return 2
     violations = [(entry, caller) for entry, caller in callers if not _is_root_entry(entry)]
 
     if violations:

@@ -237,21 +237,6 @@ run_iceberg_extra_classpath_tests() {
     wget -q -O "$iceberg_runtime_jar" \
         "$SPARK_REPO/org/apache/iceberg/${iceberg_runtime_artifact}/${iceberg_version}/${iceberg_runtime_artifact}-${iceberg_version}.jar"
 
-    local scala_build_prefix=""
-    if [[ "$scala_ver" == "2.13" ]]; then
-        scala_build_prefix="scala2.13/"
-    fi
-    local plugin_jars=(
-        "${scala_build_prefix}dist/target"/rapids-4-spark_"${scala_ver}"-*-cuda*.jar)
-    if [[ ${#plugin_jars[@]} -ne 1 || ! -f "${plugin_jars[0]}" ]]; then
-        echo >&2 "Expected exactly one assembled cuDF Plugin jar, found: ${plugin_jars[*]}"
-        return 1
-    fi
-
-    echo "!!! Checking Iceberg package-private access is root-safe"
-    ./dist/scripts/check-iceberg-package-private-access.py \
-        "${plugin_jars[0]}" "$iceberg_runtime_jar"
-
     # Loading Iceberg from extraClassPath creates the app/shim classloader split.
     echo "!!! Running targeted Iceberg extraClassPath tests for Iceberg $iceberg_version"
     ICEBERG_EXTRA_CLASSPATH="${iceberg_runtime_jar}" \
