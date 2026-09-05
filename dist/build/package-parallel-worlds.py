@@ -17,11 +17,16 @@ import os
 import re
 import shutil
 import subprocess
+import xml.etree.ElementTree as ET
 import zipfile
 
 
-def shell_exec(shell_cmd):
-    ret_code = subprocess.call(shell_cmd)
+MAVEN_NS = "http://maven.apache.org/POM/4.0.0"
+MAVEN_PROPERTY_RE = re.compile(r"\$\{([^}]+)\}")
+
+
+def shell_exec(shell_cmd, cwd=None):
+    ret_code = subprocess.call(shell_cmd, cwd=cwd)
     if ret_code != 0:
         self.fail("failed to execute %s" % shell_cmd)
 
@@ -98,6 +103,75 @@ def ensure_artifact(art, classifier):
     return os.sep.join([deps_dir, art_jar])
 
 
+def resolve_maven_properties(value, overrides):
+    for _ in range(10):
+        names = MAVEN_PROPERTY_RE.findall(value)
+        if not names:
+            return value
+        for name in names:
+            replacement = overrides.get(name) or project.getProperty(name)
+            if replacement is None:
+                raise Exception("unresolved Maven property %s in %s" % (name, value))
+            value = value.replace("${%s}" % name, replacement)
+    raise Exception("cyclic Maven properties in %s" % value)
+
+
+def iceberg_runtime_coordinates(zip_handle, buildver):
+    if len(buildver) < 2 or not buildver[:2].isdigit():
+        raise Exception("cannot derive Spark feature version from build version %s" % buildver)
+    overrides = {
+        "iceberg.artifact.suffix": "%s.%s" % (buildver[0], buildver[1]),
+        "scala.binary.version": scala_version,
+    }
+    coordinates = set()
+    prefix = "META-INF/maven/com.nvidia/rapids-4-spark-iceberg-"
+    namespace = {"m": MAVEN_NS}
+    for entry in zip_handle.namelist():
+        if not entry.startswith(prefix) or not entry.endswith("/pom.xml"):
+            continue
+        root = ET.fromstring(zip_handle.read(entry))
+        module_artifact_id = root.findtext("m:artifactId", namespaces=namespace)
+        if not module_artifact_id or not re.match(
+                r"^rapids-4-spark-iceberg-[0-9]", module_artifact_id):
+            continue
+        for dependency in root.findall("./m:dependencies/m:dependency", namespace):
+            group_id = dependency.findtext("m:groupId", namespaces=namespace)
+            artifact_id = dependency.findtext("m:artifactId", namespaces=namespace)
+            version = dependency.findtext("m:version", namespaces=namespace)
+            if (group_id == "org.apache.iceberg" and artifact_id and version and
+                    artifact_id.startswith("iceberg-spark-runtime-")):
+                coordinates.add((
+                    group_id,
+                    resolve_maven_properties(artifact_id, overrides),
+                    resolve_maven_properties(version, overrides)))
+    return sorted(coordinates)
+
+
+def ensure_external_artifact(group_id, artifact_id, version):
+    artifact_path = os.path.join(*(
+        [maven_repository] + group_id.split(".") + [
+            artifact_id, version, "%s-%s.jar" % (artifact_id, version)]))
+    if not os.path.isfile(artifact_path):
+        mvn_home = project.getProperty('maven.home')
+        mvn_cmd = [
+            os.path.join(mvn_home, 'bin', 'mvn'),
+            'org.apache.maven.plugins:maven-dependency-plugin:2.10:get',
+            '-B',
+            '-DgroupId=%s' % group_id,
+            '-DartifactId=%s' % artifact_id,
+            '-Dversion=%s' % version,
+            '-Dpackaging=jar',
+            '-Dtransitive=false'
+        ]
+        if art_url:
+            mvn_cmd.extend(['-s', jenkins_settings])
+        mvn_cmd.append('-Dmaven.repo.local=%s' % maven_repository)
+        shell_exec(mvn_cmd, project_build_dir)
+    if not os.path.isfile(artifact_path):
+        raise Exception("resolved artifact is missing: %s" % artifact_path)
+    return artifact_path
+
+
 def root_safe_module_class_members(classifier):
     members = set()
     for module in root_safe_modules:
@@ -124,13 +198,16 @@ top_dist_jar_dir = os.sep.join([project_build_dir, 'parallel-world'])
 art_url = project.getProperty('env.ART_URL')
 jenkins_settings = os.sep.join([source_basedir, 'jenkins', 'settings.xml'])
 repo_local = project.getProperty('maven.repo.local')
+maven_repository = project.getProperty('maven.local.repository')
 dist_dir = os.sep.join([source_basedir, 'dist'])
+runtime_manifest = os.path.join(project_build_dir, 'iceberg-audit-runtimes.txt')
 with open(os.sep.join([dist_dir, 'unshimmed-common-from-single-shim.txt']), 'r') as f:
     from_single_shim = f.read().splitlines()
 with open(os.sep.join([dist_dir, 'unshimmed-from-each-spark3xx.txt']), 'r') as f:
     from_each = f.read().splitlines()
 root_safe_modules = read_patterns(os.sep.join([dist_dir, 'root-safe-module-classes.txt']))
 from_single_shim_or_each = from_single_shim + from_each
+iceberg_audit_runtimes = set()
 
 for bv in buildver_list:
     classifier = 'spark' + bv
@@ -138,6 +215,10 @@ for bv in buildver_list:
         art_jar_path = ensure_artifact(art, classifier)
 
         with zipfile.ZipFile(art_jar_path, 'r') as zip_handle:
+            if art == 'aggregator':
+                for group_id, artifact_id, version in iceberg_runtime_coordinates(zip_handle, bv):
+                    iceberg_audit_runtimes.add((
+                        bv, ensure_external_artifact(group_id, artifact_id, version)))
             if project.getProperty('should.build.conventional.jar'):
                 zip_handle.extractall(path=top_dist_jar_dir)
             else:
@@ -162,3 +243,7 @@ for bv in buildver_list:
                 glob_list = from_single_shim_or_each if bv == buildver_list[0] else from_each
                 matching_members = select_matching_members(namelist, glob_list)
                 zip_handle.extractall(path=top_dist_jar_dir, members=matching_members)
+
+with open(runtime_manifest, 'w') as manifest:
+    for buildver, runtime_path in sorted(iceberg_audit_runtimes):
+        manifest.write("%s\t%s\n" % (buildver, runtime_path))

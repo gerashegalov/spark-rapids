@@ -53,6 +53,7 @@
         <dist.native.chunking.minimum.size>256M</dist.native.chunking.minimum.size>
         <dist.native.chunking.chunk.size>32M</dist.native.chunking.chunk.size>
         <dist.native.chunking.metadata.dir>${project.build.directory}/native-chunks</dist.native.chunking.metadata.dir>
+        <iceberg.audit.maven.repository>${settings.localRepository}</iceberg.audit.maven.repository>
     </properties>
     <profiles>
         <profile>
@@ -257,31 +258,6 @@
                         <phase>none</phase>
                     </execution>
                     <execution>
-                        <id>select-iceberg-audit-runtimes</id>
-                        <phase>prepare-package</phase>
-                        <goals><goal>run</goal></goals>
-                        <configuration>
-                            <target>
-                                <condition property="iceberg.audit.skip.35.16" value="false" else="true">
-                                    <matches string="${included_buildvers}" pattern="(^|[^0-9a-z])35[0-3]([^0-9a-z]|$)"/>
-                                </condition>
-                                <condition property="iceberg.audit.skip.35.19" value="false" else="true">
-                                    <matches string="${included_buildvers}" pattern="(^|[^0-9a-z])35[4-9]([^0-9a-z]|$)"/>
-                                </condition>
-                                <condition property="iceberg.audit.skip.40.110" value="false" else="true">
-                                    <matches string="${included_buildvers}" pattern="(^|[^0-9a-z])40[0-4]([^0-9a-z]|$)"/>
-                                </condition>
-                                <condition property="iceberg.audit.skip.40.111" value="false" else="true">
-                                    <matches string="${included_buildvers}" pattern="(^|[^0-9a-z])40[2-4]([^0-9a-z]|$)"/>
-                                </condition>
-                                <condition property="iceberg.audit.skip.41.111" value="false" else="true">
-                                    <matches string="${included_buildvers}" pattern="(^|[^0-9a-z])41[1-3]([^0-9a-z]|$)"/>
-                                </condition>
-                            </target>
-                            <exportAntProperties>true</exportAntProperties>
-                        </configuration>
-                    </execution>
-                    <execution>
                         <id>check-iceberg-package-private-access</id>
                         <phase>package</phase>
                         <goals><goal>run</goal></goals>
@@ -300,20 +276,8 @@
                                       dir="${spark.rapids.source.basedir}">
                                     <arg value="-B"/>
                                     <arg value="${spark.rapids.source.basedir}/${rapids.module}/scripts/check-iceberg-package-private-access.py"/>
-                                    <arg value="--maven-repository"/>
-                                    <arg value="${settings.localRepository}"/>
-                                    <arg value="--scala-binary-version"/>
-                                    <arg value="${scala.binary.version}"/>
-                                    <arg value="--iceberg-version"/>
-                                    <arg value="16=${iceberg.16x.version}"/>
-                                    <arg value="--iceberg-version"/>
-                                    <arg value="19=${iceberg.19x.version}"/>
-                                    <arg value="--iceberg-version"/>
-                                    <arg value="110=${iceberg.110x.version}"/>
-                                    <arg value="--iceberg-version"/>
-                                    <arg value="111=${iceberg.111x.version}"/>
-                                    <arg value="--build-versions"/>
-                                    <arg value="${included_buildvers}"/>
+                                    <arg value="--runtime-manifest"/>
+                                    <arg value="${project.build.directory}/iceberg-audit-runtimes.txt"/>
                                     <arg value="${project.build.directory}/parallel-world"/>
                                 </java>
                             </target>
@@ -352,6 +316,7 @@
                                 <property name="project.version" value="${project.version}"/>
                                 <property name="scala.binary.version" value="${scala.binary.version}"/>
                                 <property name="included_buildvers" value="${included_buildvers}"/>
+                                <property name="maven.local.repository" value="${iceberg.audit.maven.repository}"/>
                                 <ant
                                     antfile="${spark.rapids.source.basedir}/${rapids.module}/maven-antrun/build-parallel-worlds.xml"
                                     target="remove-dependencies-from-pom"
@@ -500,68 +465,6 @@ self.log("... OK")
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
-                    <execution>
-                        <id>resolve-iceberg-35-16-audit-runtime</id>
-                        <phase>prepare-package</phase>
-                        <goals><goal>get</goal></goals>
-                        <configuration>
-                            <artifact>org.apache.iceberg:iceberg-spark-runtime-3.5_${scala.binary.version}:${iceberg.16x.version}</artifact>
-                            <transitive>false</transitive>
-                            <skip>${iceberg.audit.skip.35.16}</skip>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>resolve-iceberg-35-19-audit-runtime</id>
-                        <phase>prepare-package</phase>
-                        <goals><goal>get</goal></goals>
-                        <configuration>
-                            <artifact>org.apache.iceberg:iceberg-spark-runtime-3.5_${scala.binary.version}:${iceberg.19x.version}</artifact>
-                            <transitive>false</transitive>
-                            <skip>${iceberg.audit.skip.35.19}</skip>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>resolve-iceberg-35-110-audit-runtime</id>
-                        <phase>prepare-package</phase>
-                        <goals><goal>get</goal></goals>
-                        <configuration>
-                            <artifact>org.apache.iceberg:iceberg-spark-runtime-3.5_${scala.binary.version}:${iceberg.110x.version}</artifact>
-                            <transitive>false</transitive>
-                            <skip>${iceberg.audit.skip.35.19}</skip>
-                        </configuration>
-                    </execution>
-                    <!-- #if scala-2.13 -->
-                    <execution>
-                        <id>resolve-iceberg-40-110-audit-runtime</id>
-                        <phase>prepare-package</phase>
-                        <goals><goal>get</goal></goals>
-                        <configuration>
-                            <artifact>org.apache.iceberg:iceberg-spark-runtime-4.0_${scala.binary.version}:${iceberg.110x.version}</artifact>
-                            <transitive>false</transitive>
-                            <skip>${iceberg.audit.skip.40.110}</skip>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>resolve-iceberg-40-111-audit-runtime</id>
-                        <phase>prepare-package</phase>
-                        <goals><goal>get</goal></goals>
-                        <configuration>
-                            <artifact>org.apache.iceberg:iceberg-spark-runtime-4.0_${scala.binary.version}:${iceberg.111x.version}</artifact>
-                            <transitive>false</transitive>
-                            <skip>${iceberg.audit.skip.40.111}</skip>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>resolve-iceberg-41-111-audit-runtime</id>
-                        <phase>prepare-package</phase>
-                        <goals><goal>get</goal></goals>
-                        <configuration>
-                            <artifact>org.apache.iceberg:iceberg-spark-runtime-4.1_${scala.binary.version}:${iceberg.111x.version}</artifact>
-                            <transitive>false</transitive>
-                            <skip>${iceberg.audit.skip.41.111}</skip>
-                        </configuration>
-                    </execution>
-                    <!-- #endif scala-2.13 -->
                     <execution>
                         <id>unpack-spark-rapids-jni-and-ucx</id>
                         <!-- run after `create-parallel-world`, the phase equals to the phase of the `create-parallel-world` -->

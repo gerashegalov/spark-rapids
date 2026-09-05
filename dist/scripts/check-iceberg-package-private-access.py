@@ -31,9 +31,7 @@ ICEBERG_PREFIX = "org/apache/iceberg/"
 ICEBERG_SHADED_PREFIX = "org/apache/iceberg/shaded/"
 SHIM_DIR_RE = re.compile(r"^spark[0-9][0-9a-z]*$")
 DESCRIPTOR_CLASS_RE = re.compile(r"L([^;<>()\[\]]+);")
-RUNTIME_JAR_RE = re.compile(
-    r"^iceberg-spark-runtime-(3\.5|4\.0|4\.1)_2\.(?:12|13)-([^/]+)\.jar$")
-NO_ICEBERG_BUILD_RE = re.compile(r"^(?:33[0-4]|34[0-4]|350db143|400db173|420|500)$")
+BUILD_VERSION_RE = re.compile(r"^[0-9][0-9a-z]*$")
 MEMBER_VISIBILITY = AccessFlag.PUBLIC | AccessFlag.PRIVATE | AccessFlag.PROTECTED
 
 Member = collections.namedtuple("Member", "access name descriptor")
@@ -41,9 +39,7 @@ MemberRef = collections.namedtuple("MemberRef", "kind owner name descriptor")
 ClassInfo = collections.namedtuple(
     "ClassInfo", "name access super_name interfaces fields methods class_refs member_refs")
 Finding = collections.namedtuple("Finding", "entry caller target reason runtime")
-RuntimeSpec = collections.namedtuple(
-    "RuntimeSpec", "build_version spark_version iceberg_version")
-RuntimeSelection = collections.namedtuple("RuntimeSelection", "spec path")
+RuntimeSelection = collections.namedtuple("RuntimeSelection", "build_version path")
 
 
 def _internal_name(name):
@@ -260,72 +256,21 @@ def _is_root_entry(entry):
     return first != "spark-shared" and not SHIM_DIR_RE.match(first)
 
 
-def _runtime_key(path):
-    match = RUNTIME_JAR_RE.match(os.path.basename(path))
-    return match.groups() if match else None
-
-
-def _iceberg_versions(values):
-    versions = {}
-    for value in values:
-        family, separator, version = value.partition("=")
-        if not separator or family not in ("16", "19", "110", "111") or not version:
-            raise RuntimeError("invalid Iceberg version mapping: %s" % value)
-        versions[family] = version
-    return versions
-
-
-def runtime_specs(build_versions, iceberg_versions):
-    specs = []
-    for build_version in re.split(r"[,\s]+", build_versions.strip()):
-        if not build_version:
-            continue
-        if re.match(r"^35[0-3]$", build_version):
-            families = (("3.5", "16"),)
-        elif re.match(r"^35[4-9]$", build_version):
-            families = (("3.5", "19"), ("3.5", "110"))
-        elif re.match(r"^40[01]$", build_version):
-            families = (("4.0", "110"),)
-        elif re.match(r"^40[2-4]$", build_version):
-            families = (("4.0", "110"), ("4.0", "111"))
-        elif re.match(r"^41[1-3]$", build_version):
-            families = (("4.1", "111"),)
-        elif not NO_ICEBERG_BUILD_RE.match(build_version):
-            raise RuntimeError("unknown build version in Iceberg audit: %s" % build_version)
-        else:
-            families = ()
-        for spark_version, family in families:
-            if family not in iceberg_versions:
-                raise RuntimeError("missing Iceberg %s.x version mapping" % family)
-            specs.append(RuntimeSpec(
-                build_version, spark_version, iceberg_versions[family]))
-    return specs
-
-
-def select_runtime_paths(paths, specs):
-    if specs is None:
-        if not paths:
-            raise RuntimeError("no Iceberg audit runtime was provided")
-        return [RuntimeSelection(RuntimeSpec(None, None, None), path)
-                for path in sorted(paths)]
-    by_key = dict((_runtime_key(path), path) for path in paths if _runtime_key(path))
-    missing = set((spec.spark_version, spec.iceberg_version)
-                  for spec in specs).difference(by_key)
-    if missing:
-        raise RuntimeError("missing Iceberg audit runtime(s): %s" % sorted(missing))
-    return [RuntimeSelection(spec, by_key[(spec.spark_version, spec.iceberg_version)])
-            for spec in specs]
-
-
-def maven_runtime_paths(repository, scala_binary_version, specs):
-    paths = []
-    for spec in specs:
-        artifact = "iceberg-spark-runtime-%s_%s" % (
-            spec.spark_version, scala_binary_version)
-        paths.append(os.path.join(
-            repository, "org", "apache", "iceberg", artifact, spec.iceberg_version,
-            "%s-%s.jar" % (artifact, spec.iceberg_version)))
-    return paths
+def read_runtime_manifest(path):
+    if not os.path.isfile(path):
+        raise RuntimeError("Iceberg runtime manifest is missing: %s" % path)
+    selections = []
+    with open(path, "r") as manifest:
+        for line_number, line in enumerate(manifest, 1):
+            line = line.rstrip("\r\n")
+            if not line:
+                continue
+            fields = line.split("\t")
+            if len(fields) != 2 or not BUILD_VERSION_RE.match(fields[0]) or not fields[1]:
+                raise RuntimeError("invalid Iceberg runtime manifest line %d: %s" %
+                                   (line_number, line))
+            selections.append(RuntimeSelection(fields[0], fields[1]))
+    return selections
 
 
 def find_package_private_access(layout_entries, runtime_classes, runtime_label):
@@ -357,19 +302,17 @@ def find_package_private_access(layout_entries, runtime_classes, runtime_label):
 
 
 def _runtime_paths(args):
+    if args.runtime_manifest:
+        if args.iceberg_runtime or args.runtime_directory:
+            raise RuntimeError("runtime manifest cannot be combined with runtime paths")
+        return read_runtime_manifest(args.runtime_manifest)
     paths = list(args.iceberg_runtime)
     for directory in args.runtime_directory:
         paths.extend(os.path.join(directory, name) for name in os.listdir(directory)
                      if name.endswith(".jar"))
-    specs = None
-    if args.build_versions:
-        specs = runtime_specs(args.build_versions, _iceberg_versions(args.iceberg_version))
-    if args.maven_repository:
-        if not args.build_versions or not args.scala_binary_version:
-            raise RuntimeError("Maven repository lookup requires build and Scala versions")
-        paths.extend(maven_runtime_paths(
-            args.maven_repository, args.scala_binary_version, specs))
-    return select_runtime_paths(paths, specs)
+    if not paths:
+        raise RuntimeError("no Iceberg audit runtime was provided")
+    return [RuntimeSelection(None, path) for path in sorted(paths)]
 
 
 def main(argv=None):
@@ -377,10 +320,7 @@ def main(argv=None):
     parser.add_argument("layout", help="assembled dist jar or parallel-world directory")
     parser.add_argument("iceberg_runtime", nargs="*", help="Iceberg runtime jar(s)")
     parser.add_argument("--runtime-directory", action="append", default=[])
-    parser.add_argument("--maven-repository")
-    parser.add_argument("--scala-binary-version", choices=("2.12", "2.13"))
-    parser.add_argument("--build-versions")
-    parser.add_argument("--iceberg-version", action="append", default=[])
+    parser.add_argument("--runtime-manifest")
     args = parser.parse_args(argv)
 
     try:
@@ -400,11 +340,11 @@ def main(argv=None):
                 if not runtime_classes:
                     raise RuntimeError("runtime contains no Iceberg classes: %s" % runtime_path)
                 world_entries = _plugin_world(
-                    layout_entries, selection.spec.build_version)
+                    layout_entries, selection.build_version)
                 runtime_label = os.path.basename(runtime_path)
-                if selection.spec.build_version:
+                if selection.build_version:
                     runtime_label = "spark%s; %s" % (
-                        selection.spec.build_version, runtime_label)
+                        selection.build_version, runtime_label)
                 runtime_callers, runtime_findings = find_package_private_access(
                     world_entries, runtime_classes, runtime_label)
                 callers.update(runtime_callers)

@@ -217,25 +217,28 @@ class IcebergPackagePrivateAccessTest(unittest.TestCase):
                 self.assertEqual(2, LINT.main([missing, runtime]))
                 self.assertEqual(2, LINT.main([empty, runtime]))
 
-    def test_build_versions_require_every_runtime(self):
-        paths = (
-            "/tmp/iceberg-spark-runtime-3.5_2.13-1.9.2.jar",
-            "/tmp/iceberg-spark-runtime-3.5_2.13-1.10.1.jar",
-        )
-        versions = {"19": "1.9.2", "110": "1.10.1"}
-        specs = LINT.runtime_specs("359", versions)
-        self.assertEqual(sorted(paths),
-                         sorted(selection.path for selection in
-                                LINT.select_runtime_paths(paths, specs)))
-        with self.assertRaises(RuntimeError):
-            LINT.select_runtime_paths(paths[:1], specs)
-        with self.assertRaises(RuntimeError):
-            LINT.runtime_specs("future-version", versions)
+    def test_runtime_manifest_preserves_build_runtime_pairs(self):
+        with temporary_directory() as root:
+            manifest = os.path.join(root, "runtimes.txt")
+            with open(manifest, "w") as output:
+                output.write("359\t/tmp/iceberg-1.9.jar\n")
+                output.write("359\t/tmp/iceberg-1.10.jar\n")
+                output.write("413\t/tmp/iceberg-1.11.jar\n")
+            self.assertEqual([
+                LINT.RuntimeSelection("359", "/tmp/iceberg-1.9.jar"),
+                LINT.RuntimeSelection("359", "/tmp/iceberg-1.10.jar"),
+                LINT.RuntimeSelection("413", "/tmp/iceberg-1.11.jar"),
+            ], LINT.read_runtime_manifest(manifest))
 
-    def test_runtime_versions_come_from_maven_values(self):
-        specs = LINT.runtime_specs("359", {"19": "1.9.new", "110": "1.10.new"})
-        self.assertEqual(set(("1.9.new", "1.10.new")),
-                         set(spec.iceberg_version for spec in specs))
+    def test_invalid_runtime_manifest_fails(self):
+        with temporary_directory() as root:
+            manifest = os.path.join(root, "runtimes.txt")
+            with open(manifest, "w") as output:
+                output.write("not a valid manifest line\n")
+            with self.assertRaises(RuntimeError):
+                LINT.read_runtime_manifest(manifest)
+            with self.assertRaises(RuntimeError):
+                LINT.read_runtime_manifest(os.path.join(root, "missing"))
 
     def test_callers_are_paired_only_with_their_supported_runtime(self):
         with temporary_directory() as root:
@@ -244,8 +247,12 @@ class IcebergPackagePrivateAccessTest(unittest.TestCase):
                 root, "iceberg-spark-runtime-3.5_2.13-1.6.new.jar")
             runtime413 = os.path.join(
                 root, "iceberg-spark-runtime-4.1_2.13-1.11.new.jar")
+            manifest = os.path.join(root, "runtimes.txt")
             write_runtime(runtime350)
             write_runtime(runtime413, AccessFlag.PUBLIC)
+            with open(manifest, "w") as output:
+                output.write("350\t%s\n" % runtime350)
+                output.write("413\t%s\n" % runtime413)
             for build_version in ("350", "413"):
                 prefix = "spark%s/org/apache/iceberg/p/" % build_version
                 methods = ((AccessFlag.PUBLIC, "hidden", "()V"),) \
@@ -258,19 +265,7 @@ class IcebergPackagePrivateAccessTest(unittest.TestCase):
                                          "hidden", "()V"),))
             with captured_stream("stdout"):
                 self.assertEqual(0, LINT.main([
-                    "--build-versions", "350,413",
-                    "--iceberg-version", "16=1.6.new",
-                    "--iceberg-version", "111=1.11.new",
-                    layout, runtime350, runtime413]))
-
-    def test_maven_runtime_paths(self):
-        specs = [LINT.RuntimeSpec("413", "4.1", "1.11.0")]
-        self.assertEqual([
-            os.path.join(
-                "/repo", "org", "apache", "iceberg",
-                "iceberg-spark-runtime-4.1_2.13", "1.11.0",
-                "iceberg-spark-runtime-4.1_2.13-1.11.0.jar")
-        ], LINT.maven_runtime_paths("/repo", "2.13", specs))
+                    "--runtime-manifest", manifest, layout]))
 
     def test_plugin_hierarchies_are_isolated_by_spark_world(self):
         with temporary_directory() as root:
@@ -318,8 +313,12 @@ class IcebergPackagePrivateAccessTest(unittest.TestCase):
                 repository.close()
 
     def test_no_runtime_fails(self):
-        with self.assertRaises(RuntimeError):
-            LINT.select_runtime_paths([], None)
+        with temporary_directory() as root:
+            layout = os.path.join(root, "layout")
+            write_class(layout, "org/apache/iceberg/p/Caller.class",
+                        "org.apache.iceberg.p.Caller")
+            with captured_stream("stderr"):
+                self.assertEqual(2, LINT.main([layout]))
 
     def test_malformed_class_fails_closed(self):
         with temporary_directory() as root:
