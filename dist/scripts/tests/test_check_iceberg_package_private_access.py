@@ -21,6 +21,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+import zipfile
 
 from java.io import DataOutputStream, FileOutputStream
 from javassist.bytecode import AccessFlag, ClassFile, FieldInfo, MethodInfo
@@ -29,6 +30,25 @@ from javassist.bytecode import AccessFlag, ClassFile, FieldInfo, MethodInfo
 SCRIPT = os.path.join(os.path.dirname(os.path.dirname(__file__)),
                       "check-iceberg-package-private-access.py")
 LINT = imp.load_source("check_iceberg_package_private_access", SCRIPT)
+RUNTIME_DISCOVERY = imp.load_source(
+    "iceberg_runtime",
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                 "build", "iceberg_runtime.py"))
+
+
+POM_TEMPLATE = """\
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <artifactId>%s</artifactId>
+  <dependencies>%s</dependencies>
+</project>
+"""
+RUNTIME_DEPENDENCY = """\
+<dependency>
+  <groupId>org.apache.iceberg</groupId>
+  <artifactId>iceberg-spark-runtime-${iceberg.artifact.suffix}_${scala.binary.version}</artifactId>
+  <version>${iceberg.111x.version}</version>
+</dependency>
+"""
 
 
 @contextlib.contextmanager
@@ -112,7 +132,62 @@ def write_inherited_caller(layout, prefix):
                 references=(("method", "org.apache.iceberg.p.GpuChild", "hidden", "()V"),))
 
 
+def write_aggregator(path, modules):
+    archive = zipfile.ZipFile(path, "w")
+    try:
+        for artifact_id, dependencies in modules:
+            archive.writestr(
+                "META-INF/maven/com.nvidia/%s/pom.xml" % artifact_id,
+                POM_TEMPLATE % (artifact_id, dependencies))
+    finally:
+        archive.close()
+
+
 class IcebergPackagePrivateAccessTest(unittest.TestCase):
+    def test_aggregator_runtime_discovery_is_fail_closed(self):
+        with temporary_directory() as root:
+            aggregator = os.path.join(root, "aggregator.jar")
+            real_module = "rapids-4-spark-iceberg-1-11-x_2.13"
+            write_aggregator(aggregator, [(real_module, RUNTIME_DEPENDENCY)])
+            archive = zipfile.ZipFile(aggregator, "r")
+            try:
+                self.assertEqual([
+                    ("org.apache.iceberg", "iceberg-spark-runtime-4.1_2.13", "1.11.0")
+                ], RUNTIME_DISCOVERY.coordinates(
+                    archive, "413", "2.13",
+                    lambda name: {"iceberg.111x.version": "1.11.0"}.get(name)))
+            finally:
+                archive.close()
+
+            write_aggregator(aggregator, [(real_module, "")])
+            archive = zipfile.ZipFile(aggregator, "r")
+            try:
+                with self.assertRaises(RuntimeError):
+                    RUNTIME_DISCOVERY.coordinates(archive, "413", "2.13", lambda name: None)
+            finally:
+                archive.close()
+
+            write_aggregator(aggregator, [
+                ("rapids-4-spark-iceberg-common_2.13", "")])
+            archive = zipfile.ZipFile(aggregator, "r")
+            try:
+                with self.assertRaises(RuntimeError):
+                    RUNTIME_DISCOVERY.coordinates(archive, "413", "2.13", lambda name: None)
+            finally:
+                archive.close()
+
+    def test_aggregator_stub_is_explicit(self):
+        with temporary_directory() as root:
+            aggregator = os.path.join(root, "aggregator.jar")
+            write_aggregator(aggregator, [
+                ("rapids-4-spark-iceberg-stub_2.12", "")])
+            archive = zipfile.ZipFile(aggregator, "r")
+            try:
+                self.assertEqual([], RUNTIME_DISCOVERY.coordinates(
+                    archive, "330", "2.12", lambda name: None))
+            finally:
+                archive.close()
+
     def test_root_inherited_package_private_caller_passes(self):
         with temporary_directory() as root:
             layout = os.path.join(root, "layout")
@@ -230,6 +305,14 @@ class IcebergPackagePrivateAccessTest(unittest.TestCase):
                 LINT.RuntimeSelection("413", "/tmp/iceberg-1.11.jar"),
             ], LINT.read_runtime_manifest(manifest))
 
+    def test_stub_runtime_manifest_is_explicit(self):
+        with temporary_directory() as root:
+            manifest = os.path.join(root, "runtimes.txt")
+            with open(manifest, "w") as output:
+                output.write("330\t-\n")
+            self.assertEqual([LINT.RuntimeSelection("330", None)],
+                             LINT.read_runtime_manifest(manifest))
+
     def test_invalid_runtime_manifest_fails(self):
         with temporary_directory() as root:
             manifest = os.path.join(root, "runtimes.txt")
@@ -239,6 +322,43 @@ class IcebergPackagePrivateAccessTest(unittest.TestCase):
                 LINT.read_runtime_manifest(manifest)
             with self.assertRaises(RuntimeError):
                 LINT.read_runtime_manifest(os.path.join(root, "missing"))
+            with open(manifest, "w") as output:
+                pass
+            with self.assertRaises(RuntimeError):
+                LINT.read_runtime_manifest(manifest)
+            with open(manifest, "w") as output:
+                output.write("330\t-\n330\t/tmp/runtime.jar\n")
+            with self.assertRaises(RuntimeError):
+                LINT.read_runtime_manifest(manifest)
+
+    def test_runtime_manifest_must_cover_parallel_worlds(self):
+        with temporary_directory() as root:
+            layout = os.path.join(root, "layout")
+            runtime = os.path.join(root, "runtime")
+            manifest = os.path.join(root, "runtimes.txt")
+            write_runtime(runtime, AccessFlag.PUBLIC)
+            for build_version in ("350", "413"):
+                write_class(layout, "spark%s/example/Marker.class" % build_version,
+                            "example.Marker%s" % build_version)
+            with open(manifest, "w") as output:
+                output.write("350\t%s\n" % runtime)
+            with captured_stream("stderr"):
+                self.assertEqual(2, LINT.main([
+                    "--runtime-manifest", manifest,
+                    "--expected-build-versions", "350,413", layout]))
+
+    def test_stub_manifest_passes_for_no_iceberg_layout(self):
+        with temporary_directory() as root:
+            layout = os.path.join(root, "layout")
+            manifest = os.path.join(root, "runtimes.txt")
+            write_class(layout, "example/Marker.class", "example.Marker")
+            with open(manifest, "w") as output:
+                output.write("330\t-\n")
+            with captured_stream("stdout") as stdout:
+                self.assertEqual(0, LINT.main([
+                    "--runtime-manifest", manifest,
+                    "--expected-build-versions", "330", layout]))
+            self.assertIn("0 runtime world(s)", stdout.getvalue())
 
     def test_callers_are_paired_only_with_their_supported_runtime(self):
         with temporary_directory() as root:

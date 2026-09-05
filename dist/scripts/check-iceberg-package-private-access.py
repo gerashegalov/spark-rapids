@@ -260,6 +260,7 @@ def read_runtime_manifest(path):
     if not os.path.isfile(path):
         raise RuntimeError("Iceberg runtime manifest is missing: %s" % path)
     selections = []
+    paths_by_build_version = collections.defaultdict(set)
     with open(path, "r") as manifest:
         for line_number, line in enumerate(manifest, 1):
             line = line.rstrip("\r\n")
@@ -269,7 +270,17 @@ def read_runtime_manifest(path):
             if len(fields) != 2 or not BUILD_VERSION_RE.match(fields[0]) or not fields[1]:
                 raise RuntimeError("invalid Iceberg runtime manifest line %d: %s" %
                                    (line_number, line))
-            selections.append(RuntimeSelection(fields[0], fields[1]))
+            build_version, runtime_path = fields
+            runtime_path = None if runtime_path == "-" else runtime_path
+            seen_paths = paths_by_build_version[build_version]
+            if runtime_path in seen_paths or (None in seen_paths and runtime_path is not None) or \
+                    (runtime_path is None and seen_paths):
+                raise RuntimeError("conflicting or duplicate Iceberg runtime manifest line %d: %s" %
+                                   (line_number, line))
+            seen_paths.add(runtime_path)
+            selections.append(RuntimeSelection(build_version, runtime_path))
+    if not selections:
+        raise RuntimeError("Iceberg runtime manifest is empty: %s" % path)
     return selections
 
 
@@ -321,6 +332,7 @@ def main(argv=None):
     parser.add_argument("iceberg_runtime", nargs="*", help="Iceberg runtime jar(s)")
     parser.add_argument("--runtime-directory", action="append", default=[])
     parser.add_argument("--runtime-manifest")
+    parser.add_argument("--expected-build-versions")
     args = parser.parse_args(argv)
 
     try:
@@ -329,12 +341,31 @@ def main(argv=None):
                                args.layout)
         layout_entries = load_classes(args.layout, _is_plugin_entry)
         runtime_selections = _runtime_paths(args)
-        if runtime_selections and not layout_entries:
+        runtime_paths = [selection for selection in runtime_selections if selection.path]
+        if args.expected_build_versions:
+            if not args.runtime_manifest:
+                raise RuntimeError("expected build versions require a runtime manifest")
+            expected_build_versions = set(filter(None, re.split(
+                r"[,\s]+", args.expected_build_versions)))
+            if not expected_build_versions or any(not BUILD_VERSION_RE.match(build_version)
+                                                  for build_version in expected_build_versions):
+                raise RuntimeError("invalid expected build versions: %s" %
+                                   args.expected_build_versions)
+            manifest_build_versions = set(selection.build_version
+                                          for selection in runtime_selections)
+            if manifest_build_versions != expected_build_versions:
+                raise RuntimeError("Iceberg runtime manifest build versions %s do not match "
+                                   "expected build versions %s" %
+                                   (sorted(manifest_build_versions),
+                                    sorted(expected_build_versions)))
+        if runtime_paths and not layout_entries:
             raise RuntimeError("assembled layout contains no Iceberg plugin classes")
         callers = set()
         findings = set()
         for selection in runtime_selections:
             runtime_path = selection.path
+            if runtime_path is None:
+                continue
             runtime_classes = LazyClassRepository(runtime_path, _is_runtime_entry)
             try:
                 if not runtime_classes:
@@ -372,7 +403,7 @@ def main(argv=None):
         return 1
 
     print("Iceberg package-private access audit passed: %d caller classes are at the jar root "
-          "across %d runtime world(s)" % (len(callers), len(runtime_selections)))
+          "across %d runtime world(s)" % (len(callers), len(runtime_paths)))
     return 0
 
 

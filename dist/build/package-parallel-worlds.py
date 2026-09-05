@@ -15,20 +15,93 @@
 import fnmatch
 import os
 import re
+import shlex
 import shutil
 import subprocess
-import xml.etree.ElementTree as ET
 import zipfile
-
-
-MAVEN_NS = "http://maven.apache.org/POM/4.0.0"
-MAVEN_PROPERTY_RE = re.compile(r"\$\{([^}]+)\}")
 
 
 def shell_exec(shell_cmd, cwd=None):
     ret_code = subprocess.call(shell_cmd, cwd=cwd)
     if ret_code != 0:
         self.fail("failed to execute %s" % shell_cmd)
+
+
+def inherited_maven_options():
+    """Keep repository-affecting options from the parent Maven invocation."""
+    args = shlex.split(os.environ.get("MAVEN_CMD_LINE_ARGS", ""))
+    options = []
+    value_options = {"-s", "--settings", "-gs", "--global-settings"}
+    flag_options = {
+        "-o", "--offline", "-U", "--update-snapshots",
+        "-nsu", "--no-snapshot-updates", "-C", "--strict-checksums",
+        "-c", "--lax-checksums",
+    }
+    index = 0
+    while index < len(args):
+        arg = args[index]
+        if arg in value_options:
+            if index + 1 >= len(args):
+                raise Exception("missing value for Maven option %s" % arg)
+            value = args[index + 1]
+            if not os.path.isabs(value):
+                value = os.path.abspath(value)
+            options.extend([arg, value])
+            index += 2
+            continue
+        if arg in flag_options:
+            options.append(arg)
+        elif any(arg.startswith(name + "=") for name in
+                 ("--settings", "--global-settings")):
+            name, value = arg.split("=", 1)
+            if not os.path.isabs(value):
+                value = os.path.abspath(value)
+            options.append("%s=%s" % (name, value))
+        index += 1
+    if art_url and not any(option in ("-s", "--settings") or
+                           option.startswith("--settings=") for option in options):
+        options.extend(["-s", jenkins_settings])
+    return options
+
+
+def remote_repositories_option():
+    maven_project = project.getReference("maven.project")
+    if maven_project is None:
+        raise Exception("maven.project reference is unavailable")
+    repositories = []
+    seen = set()
+    for repository in maven_project.getRemoteArtifactRepositories():
+        coordinate = "%s::%s::%s" % (
+            repository.getId(), repository.getLayout().getId(), repository.getUrl())
+        if coordinate not in seen:
+            seen.add(coordinate)
+            repositories.append(coordinate)
+    return ",".join(repositories)
+
+
+def maven_get(group_id, artifact_id, version, classifier=None, dest=None):
+    mvn_home = project.getProperty('maven.home')
+    mvn_cmd = [os.path.join(mvn_home, 'bin', 'mvn')]
+    mvn_cmd.extend(inherited_maven_options())
+    mvn_cmd.extend([
+        'org.apache.maven.plugins:maven-dependency-plugin:2.10:get',
+        '-B',
+        '-DgroupId=%s' % group_id,
+        '-DartifactId=%s' % artifact_id,
+        '-Dversion=%s' % version,
+        '-Dpackaging=jar',
+        '-Dtransitive=false',
+        '-Dmaven.repo.local=%s' % maven_repository,
+    ])
+    repositories = remote_repositories_option()
+    if repositories:
+        mvn_cmd.append('-DremoteRepositories=%s' % repositories)
+    if classifier:
+        mvn_cmd.append('-Dclassifier=%s' % classifier)
+    if dest:
+        # TODO dest property is removed in 3.x, switch to the 'copy' goal.
+        mvn_cmd.append('-Ddest=%s' % dest)
+    shell_exec(mvn_cmd, project_build_dir)
 
 
 def has_fnmatch_magic(pattern):
@@ -78,73 +151,9 @@ def ensure_artifact(art, classifier):
     if os.path.isfile(art_jar_path):
         shutil.copy(art_jar_path, deps_dir)
     else:
-        mvn_home = project.getProperty('maven.home')
         art_id = '-'.join(['rapids-4-spark', art + '_' + scala_version])
-        mvn_cmd = [
-            os.sep.join([mvn_home, 'bin', 'mvn']),
-            # TODO dest property is removed in 3.x, switch to the 'copy' goal
-            # however it does not support overriding local repo via property
-            # need an issue to sort this out better.
-            'org.apache.maven.plugins:maven-dependency-plugin:2.10:get',
-            '-B',
-            '='.join(['-Ddest', deps_dir]),
-            '='.join(['-DgroupId','com.nvidia']),
-            '='.join(['-DartifactId', art_id]),
-            '='.join(['-Dversion', project_version]),
-            '='.join(['-Dpackaging', 'jar']),
-            '='.join(['-Dclassifier', classifier]),
-            '='.join(['-Dtransitive', 'false'])
-        ]
-        if art_url:
-            mvn_cmd.extend(['-s', jenkins_settings])
-        if repo_local:
-            mvn_cmd.append('='.join(['-Dmaven.repo.local', repo_local]))
-        shell_exec(mvn_cmd)
+        maven_get('com.nvidia', art_id, project_version, classifier, deps_dir)
     return os.sep.join([deps_dir, art_jar])
-
-
-def resolve_maven_properties(value, overrides):
-    for _ in range(10):
-        names = MAVEN_PROPERTY_RE.findall(value)
-        if not names:
-            return value
-        for name in names:
-            replacement = overrides.get(name) or project.getProperty(name)
-            if replacement is None:
-                raise Exception("unresolved Maven property %s in %s" % (name, value))
-            value = value.replace("${%s}" % name, replacement)
-    raise Exception("cyclic Maven properties in %s" % value)
-
-
-def iceberg_runtime_coordinates(zip_handle, buildver):
-    if len(buildver) < 2 or not buildver[:2].isdigit():
-        raise Exception("cannot derive Spark feature version from build version %s" % buildver)
-    overrides = {
-        "iceberg.artifact.suffix": "%s.%s" % (buildver[0], buildver[1]),
-        "scala.binary.version": scala_version,
-    }
-    coordinates = set()
-    prefix = "META-INF/maven/com.nvidia/rapids-4-spark-iceberg-"
-    namespace = {"m": MAVEN_NS}
-    for entry in zip_handle.namelist():
-        if not entry.startswith(prefix) or not entry.endswith("/pom.xml"):
-            continue
-        root = ET.fromstring(zip_handle.read(entry))
-        module_artifact_id = root.findtext("m:artifactId", namespaces=namespace)
-        if not module_artifact_id or not re.match(
-                r"^rapids-4-spark-iceberg-[0-9]", module_artifact_id):
-            continue
-        for dependency in root.findall("./m:dependencies/m:dependency", namespace):
-            group_id = dependency.findtext("m:groupId", namespaces=namespace)
-            artifact_id = dependency.findtext("m:artifactId", namespaces=namespace)
-            version = dependency.findtext("m:version", namespaces=namespace)
-            if (group_id == "org.apache.iceberg" and artifact_id and version and
-                    artifact_id.startswith("iceberg-spark-runtime-")):
-                coordinates.add((
-                    group_id,
-                    resolve_maven_properties(artifact_id, overrides),
-                    resolve_maven_properties(version, overrides)))
-    return sorted(coordinates)
 
 
 def ensure_external_artifact(group_id, artifact_id, version):
@@ -152,21 +161,7 @@ def ensure_external_artifact(group_id, artifact_id, version):
         [maven_repository] + group_id.split(".") + [
             artifact_id, version, "%s-%s.jar" % (artifact_id, version)]))
     if not os.path.isfile(artifact_path):
-        mvn_home = project.getProperty('maven.home')
-        mvn_cmd = [
-            os.path.join(mvn_home, 'bin', 'mvn'),
-            'org.apache.maven.plugins:maven-dependency-plugin:2.10:get',
-            '-B',
-            '-DgroupId=%s' % group_id,
-            '-DartifactId=%s' % artifact_id,
-            '-Dversion=%s' % version,
-            '-Dpackaging=jar',
-            '-Dtransitive=false'
-        ]
-        if art_url:
-            mvn_cmd.extend(['-s', jenkins_settings])
-        mvn_cmd.append('-Dmaven.repo.local=%s' % maven_repository)
-        shell_exec(mvn_cmd, project_build_dir)
+        maven_get(group_id, artifact_id, version)
     if not os.path.isfile(artifact_path):
         raise Exception("resolved artifact is missing: %s" % artifact_path)
     return artifact_path
@@ -197,9 +192,10 @@ deps_dir = os.sep.join([project_build_dir, 'deps'])
 top_dist_jar_dir = os.sep.join([project_build_dir, 'parallel-world'])
 art_url = project.getProperty('env.ART_URL')
 jenkins_settings = os.sep.join([source_basedir, 'jenkins', 'settings.xml'])
-repo_local = project.getProperty('maven.repo.local')
 maven_repository = project.getProperty('maven.local.repository')
 dist_dir = os.sep.join([source_basedir, 'dist'])
+iceberg_runtime = {}
+execfile(os.path.join(dist_dir, 'build', 'iceberg_runtime.py'), iceberg_runtime)
 runtime_manifest = os.path.join(project_build_dir, 'iceberg-audit-runtimes.txt')
 with open(os.sep.join([dist_dir, 'unshimmed-common-from-single-shim.txt']), 'r') as f:
     from_single_shim = f.read().splitlines()
@@ -207,7 +203,7 @@ with open(os.sep.join([dist_dir, 'unshimmed-from-each-spark3xx.txt']), 'r') as f
     from_each = f.read().splitlines()
 root_safe_modules = read_patterns(os.sep.join([dist_dir, 'root-safe-module-classes.txt']))
 from_single_shim_or_each = from_single_shim + from_each
-iceberg_audit_runtimes = set()
+iceberg_audit_runtimes = {}
 
 for bv in buildver_list:
     classifier = 'spark' + bv
@@ -216,9 +212,12 @@ for bv in buildver_list:
 
         with zipfile.ZipFile(art_jar_path, 'r') as zip_handle:
             if art == 'aggregator':
-                for group_id, artifact_id, version in iceberg_runtime_coordinates(zip_handle, bv):
-                    iceberg_audit_runtimes.add((
-                        bv, ensure_external_artifact(group_id, artifact_id, version)))
+                coordinates = iceberg_runtime["coordinates"](
+                    zip_handle, bv, scala_version, project.getProperty)
+                iceberg_audit_runtimes[bv] = [
+                    ensure_external_artifact(group_id, artifact_id, version)
+                    for group_id, artifact_id, version in coordinates
+                ]
             if project.getProperty('should.build.conventional.jar'):
                 zip_handle.extractall(path=top_dist_jar_dir)
             else:
@@ -245,5 +244,12 @@ for bv in buildver_list:
                 zip_handle.extractall(path=top_dist_jar_dir, members=matching_members)
 
 with open(runtime_manifest, 'w') as manifest:
-    for buildver, runtime_path in sorted(iceberg_audit_runtimes):
-        manifest.write("%s\t%s\n" % (buildver, runtime_path))
+    if set(iceberg_audit_runtimes) != set(buildver_list):
+        raise Exception("Iceberg runtime discovery did not cover every build version")
+    for buildver in sorted(iceberg_audit_runtimes):
+        runtime_paths = iceberg_audit_runtimes[buildver]
+        if runtime_paths:
+            for runtime_path in sorted(runtime_paths):
+                manifest.write("%s\t%s\n" % (buildver, runtime_path))
+        else:
+            manifest.write("%s\t-\n" % buildver)
