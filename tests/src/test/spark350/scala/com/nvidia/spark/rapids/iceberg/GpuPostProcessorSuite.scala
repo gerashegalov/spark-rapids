@@ -1812,7 +1812,7 @@ class GpuPostProcessorSuite extends AnyFunSuite with BeforeAndAfterAll {
     val metric = new LocalGpuMetric
     // The _pos column the DV path injects is dropped, so it must not count as decoded.
     val processor = new GpuParquetReaderPostProcessor(info, new JHashMap[Integer, Any](),
-      expectedSchema, GpuIcebergParquetReader.withNativeRowIndex(shaded),
+      expectedSchema, GpuIcebergParquetReaderUtils.withNativeRowIndex(shaded),
       Map(GPU_OUTPUT_BATCH_BYTES -> metric))
     val withPos = StructType(Array(
       StructField("_pos", LongType, true), StructField("long_col", LongType, true)))
