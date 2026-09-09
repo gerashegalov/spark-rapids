@@ -317,6 +317,17 @@ class WithResourceNestingLintSuite(unittest.TestCase):
         self.assertIn("::warning file=Test%3AFile.scala", output)
         self.assertIn("::error file=Test%3AFile.scala", output)
 
+    def test_annotations_prioritize_new_violations(self):
+        violations = LINT.scan_source("Test.scala", nested_source(55), 4).violations
+        baseline = collections.Counter(
+            violation.baseline_key for violation in violations[:50])
+        classified = LINT.classify_violations(violations, baseline)
+        with captured_stream("stdout") as stdout:
+            LINT.emit_annotations(classified)
+        output = stdout.getvalue()
+        self.assertEqual(1, output.count("::error file="))
+        self.assertEqual(49, output.count("::warning file="))
+
     def test_command_fails_for_new_violation(self):
         with temporary_directory() as root:
             source_dir = os.path.join(root, "module", "src", "main", "scala")
@@ -385,6 +396,45 @@ class WithResourceNestingLintSuite(unittest.TestCase):
                 generated = baseline_file.read()
             scan = LINT.scan_tree(root, 4)
             self.assertEqual(LINT.baseline_json(scan.violations, 4), generated)
+
+    def test_command_does_not_print_baseline_with_invalid_directive(self):
+        with temporary_directory() as root:
+            source_dir = os.path.join(root, "module", "src", "main", "scala")
+            os.makedirs(source_dir)
+            source = ("// with-resource-lint: allow-deep-nesting -- short\n" +
+                      nested_source(5))
+            write_text(os.path.join(source_dir, "Test.scala"), source)
+
+            with captured_stream("stdout") as stdout, captured_stream("stderr") as stderr:
+                exit_code = LINT.main(["--root", root, "--print-baseline"])
+
+            self.assertEqual(1, exit_code)
+            self.assertEqual("", stdout.getvalue())
+            self.assertIn("requires a reason of at least", stderr.getvalue())
+
+    def test_command_does_not_update_baseline_with_invalid_directive(self):
+        with temporary_directory() as root:
+            source_dir = os.path.join(root, "module", "src", "main", "scala")
+            os.makedirs(source_dir)
+            source = ("// with-resource-lint: allow-deep-nesting -- short\n" +
+                      nested_source(5))
+            write_text(os.path.join(source_dir, "Test.scala"), source)
+            baseline = os.path.join(root, "baseline.json")
+            original_baseline = LINT.baseline_json((), 4)
+            write_text(baseline, original_baseline)
+
+            with captured_stream("stdout") as stdout, captured_stream("stderr") as stderr:
+                exit_code = LINT.main([
+                    "--root", root,
+                    "--baseline", baseline,
+                    "--update-baseline",
+                ])
+
+            self.assertEqual(1, exit_code)
+            self.assertEqual("", stdout.getvalue())
+            self.assertIn("requires a reason of at least", stderr.getvalue())
+            with io.open(baseline, "r", encoding="utf-8") as baseline_file:
+                self.assertEqual(original_baseline, baseline_file.read())
 
     def test_command_writes_complete_reports(self):
         with temporary_directory() as root:

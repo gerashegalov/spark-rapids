@@ -527,7 +527,9 @@ def command_property_escape(value):
 
 
 def emit_annotations(classified):
-    for item in classified[:50]:
+    prioritized = ([item for item in classified if item.status == "new"] +
+                   [item for item in classified if item.status != "new"])
+    for item in prioritized[:50]:
         violation = item.violation
         level = "error" if item.status == "new" else "warning"
         message = "depth {0}: {1} ({2})".format(
@@ -606,6 +608,10 @@ def main(argv=None):
         return 2
 
     scan = scan_tree(root, max_depth)
+    if scan.directive_errors:
+        for error in scan.directive_errors:
+            print(error, file=sys.stderr)
+        return 1
 
     generated_baseline = baseline_json(scan.violations, max_depth)
     if args.print_baseline:
@@ -639,11 +645,6 @@ def main(argv=None):
             print("Could not write withResource raw report: {0}".format(error), file=sys.stderr)
     if os.environ.get("GITHUB_ACTIONS") == "true":
         emit_annotations(classified)
-
-    if scan.directive_errors:
-        for error in scan.directive_errors:
-            print(error, file=sys.stderr)
-        return 1
 
     if not unexpected and not stale:
         print(
