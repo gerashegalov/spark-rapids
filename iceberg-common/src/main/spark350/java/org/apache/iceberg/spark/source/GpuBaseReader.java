@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/*** spark-rapids-shim-json-lines
+{"spark": "350"}
+{"spark": "351"}
+{"spark": "352"}
+{"spark": "353"}
+spark-rapids-shim-json-lines ***/
+
 package org.apache.iceberg.spark.source;
 
 import org.apache.iceberg.types.Type;
