@@ -223,13 +223,17 @@ by the CPU node case class should be examined closely to see if the same
 overrides need to appear in the GPU version.
 
 ### Adding Configuration Properties
+
 All plugin configuration properties are exposed through the `RapidsConf` object,
-but their declarations are split by category. Add resource, memory, metrics, and
-profiler entries to `RapidsConfResourceEntries.scala`; add SQL and file-format
-entries to `RapidsConfSqlEntries.scala`; and add test, debug, and remaining
-general entries to `RapidsConfEntries.scala`. Keep enumeration definitions and
-the configuration registry in `RapidsConf.scala` so their singleton ownership
-and initialization order remain stable.
+but their declarations are split by category:
+
+1. Add resource, memory, metrics, and profiler entries to
+   `RapidsConfResourceEntries.scala`.
+2. Add SQL and file-format entries to `RapidsConfSqlEntries.scala`.
+3. Add test, debug, and remaining general entries to `RapidsConfEntries.scala`.
+
+Keep enumeration definitions and the configuration registry in `RapidsConf.scala`
+so their singleton ownership and initialization order remain stable.
 
 Every property needs well-written documentation, and this documentation is used
 to automatically generate the

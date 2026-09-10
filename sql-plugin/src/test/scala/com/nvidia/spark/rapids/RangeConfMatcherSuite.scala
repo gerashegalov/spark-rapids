@@ -85,7 +85,6 @@ class RangeConfMatcherSuite extends AnyFunSuite {
 
   test("RapidsConf enumeration values are serializable") {
     val values = Seq(
-      RapidsConf.HybridFilterPushdownType.CPU,
       RapidsConf.RapidsShuffleManagerMode.MULTITHREADED,
       RapidsConf.ShuffleKudoMode.GPU,
       RapidsConf.AllowMultipleJars.SAME_REVISION,

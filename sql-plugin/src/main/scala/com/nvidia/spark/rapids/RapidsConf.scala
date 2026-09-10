@@ -320,10 +320,6 @@ object RapidsReaderType extends Enumeration {
 }
 
 object RapidsConf extends Logging with RapidsConfEntries {
-  object HybridFilterPushdownType extends Enumeration {
-    val CPU, GPU, OFF = Value
-  }
-
   object RapidsShuffleManagerMode extends Enumeration {
     val UCX, CACHE_ONLY, MULTITHREADED = Value
   }
@@ -882,16 +878,6 @@ class RapidsConf(conf: Map[String, String]) extends Logging {
   lazy val avroDebugDumpPrefix: Option[String] = get(AVRO_DEBUG_DUMP_PREFIX)
 
   lazy val avroDebugDumpAlways: Boolean = get(AVRO_DEBUG_DUMP_ALWAYS)
-
-  lazy val useHybridParquetReader: Boolean = get(HYBRID_PARQUET_READER)
-
-  lazy val hybridParquetPreloadBatches: Int = get(HYBRID_PARQUET_PRELOAD_CAP)
-
-  lazy val loadHybridBackend: Boolean = get(LOAD_HYBRID_BACKEND)
-
-  lazy val pushDownFiltersToHybrid: String = get(PUSH_DOWN_FILTERS_TO_HYBRID)
-
-  lazy val hybridExprsWhitelist: String = get(HYBRID_EXPRS_WHITELIST)
 
   lazy val hashAggReplaceMode: String = get(HASH_AGG_REPLACE_MODE)
 
