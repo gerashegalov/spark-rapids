@@ -611,7 +611,8 @@ def main(argv=None):
     if scan.directive_errors:
         for error in scan.directive_errors:
             print(error, file=sys.stderr)
-        return 1
+        if args.print_baseline or args.update_baseline:
+            return 1
 
     generated_baseline = baseline_json(scan.violations, max_depth)
     if args.print_baseline:
@@ -646,7 +647,7 @@ def main(argv=None):
     if os.environ.get("GITHUB_ACTIONS") == "true":
         emit_annotations(classified)
 
-    if not unexpected and not stale:
+    if not unexpected and not stale and not scan.directive_errors:
         print(
             "withResource nesting lint passed ({0} baselined violations, maximum "
             "allowed depth {1})".format(len(scan.violations), max_depth))

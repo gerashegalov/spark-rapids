@@ -462,6 +462,34 @@ class WithResourceNestingLintSuite(unittest.TestCase):
                 report_data = json.loads(report_file.read())
             self.assertEqual(2, len(report_data["violations"]))
 
+    def test_command_reports_invalid_directive(self):
+        with temporary_directory() as root:
+            source_dir = os.path.join(root, "module", "src", "main", "scala")
+            os.makedirs(source_dir)
+            source = ("// with-resource-lint: allow-deep-nesting -- short\n" +
+                      nested_source(5))
+            write_text(os.path.join(source_dir, "Test.scala"), source)
+            summary = os.path.join(root, "summary.md")
+            report = os.path.join(root, "report.json")
+
+            with captured_stream("stdout") as stdout, captured_stream("stderr") as stderr:
+                exit_code = LINT.main([
+                    "--root", root,
+                    "--summary", summary,
+                    "--raw-report", report,
+                ])
+
+            self.assertEqual(1, exit_code)
+            self.assertNotIn("lint passed", stdout.getvalue())
+            self.assertIn("requires a reason of at least", stderr.getvalue())
+            with io.open(summary, "r", encoding="utf-8") as summary_file:
+                self.assertIn("Invalid exemption directives", summary_file.read())
+            with io.open(report, "r", encoding="utf-8") as report_file:
+                report_data = json.loads(report_file.read())
+            self.assertEqual(1, len(report_data["directiveErrors"]))
+            self.assertIn("requires a reason of at least",
+                          report_data["directiveErrors"][0])
+
     def test_command_fails_when_report_cannot_be_written(self):
         with temporary_directory() as root:
             baseline = os.path.join(root, "baseline.json")

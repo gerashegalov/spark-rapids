@@ -1155,6 +1155,7 @@
         <maven.jar.plugin.version>3.3.0</maven.jar.plugin.version>
         <withResource.audit.rawReport>${project.build.directory}/with-resource-nesting-audit.json</withResource.audit.rawReport>
         <withResource.audit.summary>${project.build.directory}/with-resource-nesting-summary.md</withResource.audit.summary>
+        <withResource.audit.annotations>${project.build.directory}/with-resource-nesting-annotations.txt</withResource.audit.annotations>
         <scalatest-maven-plugin.version>2.0.2</scalatest-maven-plugin.version>
         <guava.cdh.version>30.0-jre</guava.cdh.version>
         <arrow.cdh.version>2.0.0</arrow.cdh.version>
@@ -2012,7 +2013,8 @@ This will force full Scala code rebuild in downstream modules.
                                 </java>
                                 <java classname="org.python.util.jython"
                                       classpathref="maven.plugin.classpath"
-                                      fork="true" failonerror="true" dir="${project.basedir}">
+                                      fork="true" failonerror="true" dir="${project.basedir}"
+                                      output="${withResource.audit.annotations}">
                                     <arg value="-B"/>
                                     <arg value="scripts/check_with_resource_nesting.py"/>
                                     <arg value="&#45;&#45;root"/>
