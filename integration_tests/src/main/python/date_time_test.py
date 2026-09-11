@@ -642,12 +642,32 @@ if not is_before_spark_350():
     exception_policy_operators.append("try_to_timestamp")
 
 
+exception_policy_disagreement_cases = [
+    ("2024-1-1", "yyyy-MM-dd"),
+    ("2024/1/1", "yyyy/MM/dd"),
+    ("2024-1", "yyyy-MM"),
+    ("2024/1", "yyyy/MM"),
+    ("1/1/2024", "dd/MM/yyyy"),
+    ("2024-1-1 1:2:3", "yyyy-MM-dd HH:mm:ss"),
+    ("1-1", "MM-dd"),
+    ("1/1", "MM/dd"),
+    ("1-1", "dd-MM"),
+    ("1/1", "dd/MM"),
+    ("1/2024", "MM/yyyy"),
+    ("1-2024", "MM-yyyy"),
+    ("1/1/2024", "MM/dd/yyyy"),
+    ("1-1-2024", "MM-dd-yyyy"),
+]
+
+
 @pytest.mark.parametrize('ansi_enabled', [True, False], ids=['ANSI_ON', 'ANSI_OFF'])
 @pytest.mark.parametrize('operator', exception_policy_operators, ids=idfn)
-def test_string_to_timestamp_functions_exception_policy_disagreement(ansi_enabled, operator):
+@pytest.mark.parametrize('value,fmt', exception_policy_disagreement_cases, ids=idfn)
+def test_string_to_timestamp_functions_exception_policy_disagreement(
+        ansi_enabled, operator, value, fmt):
     def fun(spark):
-        return spark.createDataFrame([("2024-05-06xxx",)], "a string") \
-            .selectExpr("{}(a, 'yyyy-MM-dd')".format(operator)) \
+        return spark.createDataFrame([(value,)], "a string") \
+            .selectExpr("{}(a, '{}')".format(operator, fmt)) \
             .collect()
 
     assert_gpu_and_cpu_error(
@@ -967,14 +987,13 @@ def test_to_timestamp_yyyyMMdd_unset_policy_corrected_default():
 
 @disable_ansi_mode
 @allow_non_gpu('ProjectExec', 'GetTimestamp')
-@pytest.mark.parametrize('parser_policy', ['CORRECTED', 'EXCEPTION'], ids=idfn)
-def test_to_timestamp_yyyyMMdd_extended_year_fallback(parser_policy):
+def test_to_timestamp_yyyyMMdd_corrected_extended_year_fallback():
     data = [("+123450101",), ("-00010101",)]
     assert_gpu_fallback_collect(
         lambda spark: spark.createDataFrame(data, "a string")
             .selectExpr("cast(to_timestamp(a, 'yyyyMMdd') as string)"),
         'GetTimestamp',
-        {'spark.sql.legacy.timeParserPolicy': parser_policy,
+        {'spark.sql.legacy.timeParserPolicy': 'CORRECTED',
          'spark.sql.session.timeZone': 'UTC',
          'spark.rapids.sql.hasExtendedYearValues': True,
          'spark.rapids.sql.expression.cpuBridge.enabled': False})
@@ -1010,6 +1029,19 @@ def test_to_timestamp_yyyyMMdd_exception_policy_disagreement():
         error_message="different result")
 
 
+@disable_ansi_mode
+def test_to_timestamp_yyyyMMdd_legacy_incompatible_extended_year_opt_in():
+    assert_gpu_and_cpu_are_equal_collect(
+        lambda spark: spark.createDataFrame([("20240101",)], "a string")
+            .selectExpr("to_timestamp(a, 'yyyyMMdd')"),
+        conf={
+            'spark.sql.legacy.timeParserPolicy': 'LEGACY',
+            'spark.rapids.sql.hasExtendedYearValues': True,
+            'spark.rapids.sql.incompatibleDateFormats.enabled': True,
+            'spark.rapids.sql.expression.cpuBridge.enabled': False,
+        })
+
+
 @tz_sensitive_test
 @pytest.mark.parametrize("ansi_enabled", [True, False], ids=['ANSI_ON', 'ANSI_OFF'])
 def test_to_date(ansi_enabled):
@@ -1041,7 +1073,39 @@ def test_to_timestamp_ansi_on_invalid_value(invalid):
 @pytest.mark.parametrize('data_gen', [StringGen('0[1-9][0-9]{4}')], ids=idfn)
 def test_to_date_format_MMyyyy(data_gen):
     assert_gpu_and_cpu_are_equal_collect(
-        lambda spark: unary_op_df(spark, data_gen).select(f.to_date(f.col("a"), "MMyyyy")))
+        lambda spark: unary_op_df(spark, data_gen).select(f.to_date(f.col("a"), "MMyyyy")),
+        {'spark.sql.legacy.timeParserPolicy': 'CORRECTED',
+         'spark.rapids.sql.hasExtendedYearValues': False})
+
+
+@disable_ansi_mode
+@allow_non_gpu('ProjectExec', 'GetTimestamp')
+def test_to_date_format_MMyyyy_exception_policy_fallback():
+    conf = {
+        'spark.sql.legacy.timeParserPolicy': 'EXCEPTION',
+        'spark.rapids.sql.hasExtendedYearValues': False,
+        'spark.rapids.sql.expression.cpuBridge.enabled': False,
+    }
+    assert_gpu_fallback_collect(
+        lambda spark: spark.createDataFrame([("012024",)], "a string")
+            .select(f.to_date(f.col("a"), "MMyyyy")),
+        'GetTimestamp',
+        conf)
+
+
+@disable_ansi_mode
+@allow_non_gpu('ProjectExec', 'GetTimestamp')
+def test_to_date_format_MMyyyy_exception_policy_disagreement():
+    assert_gpu_and_cpu_error(
+        lambda spark: spark.createDataFrame([("12024",)], "a string")
+            .select(f.to_date(f.col("a"), "MMyyyy"))
+            .collect(),
+        conf={
+            'spark.sql.legacy.timeParserPolicy': 'EXCEPTION',
+            'spark.rapids.sql.hasExtendedYearValues': False,
+            'spark.rapids.sql.expression.cpuBridge.enabled': False,
+        },
+        error_message="different result")
 
 def test_to_date_ansi_exception():
     assert_gpu_and_cpu_error(
@@ -1051,6 +1115,44 @@ def test_to_date_ansi_exception():
 
 supported_date_formats = ['yyyy-MM-dd', 'yyyy-MM', 'yyyy/MM/dd', 'yyyy/MM', 'dd/MM/yyyy',
                           'MM-dd', 'MM/dd', 'dd-MM', 'dd/MM', 'yyyyMMdd']
+year_date_formats = [
+    'yyyy-MM-dd', 'yyyy/MM/dd', 'yyyy-MM', 'yyyy/MM', 'dd/MM/yyyy',
+    'yyyy-MM-dd HH:mm:ss', 'MM/yyyy', 'MM-yyyy', 'MM/dd/yyyy', 'MM-dd-yyyy',
+    'yyyyMMdd', 'MMyyyy']
+non_year_date_formats = ['MM-dd', 'MM/dd', 'dd-MM', 'dd/MM']
+
+
+@disable_ansi_mode
+@allow_non_gpu('ProjectExec', 'DateFormatClass')
+@pytest.mark.parametrize('date_format', year_date_formats, ids=idfn)
+def test_date_format_extended_year_fallback(date_format):
+    def format_extended_years(spark):
+        extended_year_micros = \
+            "IF(id = 0, 327403411200000000L + id, -62198755200000000L + id)"
+        return spark.range(2).selectExpr(
+            "date_format(timestamp_micros({}), '{}')".format(
+                extended_year_micros, date_format))
+
+    assert_gpu_fallback_collect(
+        format_extended_years,
+        'DateFormatClass',
+        {'spark.sql.session.timeZone': 'UTC',
+         'spark.rapids.sql.hasExtendedYearValues': True,
+         'spark.rapids.sql.incompatibleDateFormats.enabled': False,
+         'spark.rapids.sql.expression.cpuBridge.enabled': False})
+
+
+@disable_ansi_mode
+@pytest.mark.parametrize('date_format', non_year_date_formats, ids=idfn)
+def test_date_format_without_year_extended_year_enabled(date_format):
+    assert_gpu_and_cpu_are_equal_collect(
+        lambda spark: spark.range(1).selectExpr(
+            "date_format(timestamp_micros(327403411200000000L + id), '{}')".format(
+                date_format)),
+        {'spark.sql.session.timeZone': 'UTC',
+         'spark.rapids.sql.hasExtendedYearValues': True})
+
+
 @pytest.mark.parametrize('date_format', supported_date_formats, ids=idfn)
 @pytest.mark.parametrize('data_gen', [date_gen], ids=idfn)
 @allow_non_gpu('DateFormatClass', 'Cast')
@@ -1058,14 +1160,18 @@ def test_date_format_for_date_runtime_fallback(data_gen, date_format):
     # We will do a CPU fallback during runtime for timezones with transitions during 
     # years > 2200 as described in https://github.com/NVIDIA/spark-rapids/issues/6840
     assert_gpu_and_cpu_are_equal_collect(
-        lambda spark : unary_op_df(spark, data_gen).selectExpr("date_format(a, '{}')".format(date_format)))
+        lambda spark : unary_op_df(spark, data_gen).selectExpr(
+            "date_format(a, '{}')".format(date_format)),
+        {'spark.rapids.sql.hasExtendedYearValues': False})
     
 @pytest.mark.parametrize('date_format', supported_date_formats, ids=idfn)
 @pytest.mark.parametrize('data_gen', [tz_rules_date_gen], ids=idfn)
 @allow_non_gpu('ProjectExec')
 def test_date_format_for_date_tz_rules(data_gen, date_format):
     assert_gpu_and_cpu_are_equal_collect(
-        lambda spark : unary_op_df(spark, data_gen).selectExpr("date_format(a, '{}')".format(date_format)))
+        lambda spark : unary_op_df(spark, data_gen).selectExpr(
+            "date_format(a, '{}')".format(date_format)),
+        {'spark.rapids.sql.hasExtendedYearValues': False})
 
 @pytest.mark.parametrize('date_format', supported_date_formats, ids=idfn)
 # use 9999-12-30 instead of 9999-12-31 to avoid the issue: https://github.com/NVIDIA/spark-rapids/issues/10083
@@ -1074,21 +1180,27 @@ def test_date_format_for_time_runtime_fallback(data_gen, date_format):
     # We will do a CPU fallback during runtime for timezones with transitions during 
     # years > 2200 as described in https://github.com/NVIDIA/spark-rapids/issues/6840
     assert_gpu_and_cpu_are_equal_collect(
-        lambda spark : unary_op_df(spark, data_gen).selectExpr("date_format(a, '{}')".format(date_format)))
+        lambda spark : unary_op_df(spark, data_gen).selectExpr(
+            "date_format(a, '{}')".format(date_format)),
+        {'spark.rapids.sql.hasExtendedYearValues': False})
     
 @pytest.mark.parametrize('date_format', supported_date_formats, ids=idfn)
 # use 9999-12-30 instead of 9999-12-31 to avoid the issue: https://github.com/NVIDIA/spark-rapids/issues/10083
 @pytest.mark.parametrize('data_gen', [TimestampGen(end=datetime(2200, 12, 30, 23, 59, 59, 999999, tzinfo=timezone.utc))], ids=idfn)
 def test_date_format_for_time_tz_rules(data_gen, date_format):
     assert_gpu_and_cpu_are_equal_collect(
-        lambda spark : unary_op_df(spark, data_gen).selectExpr("date_format(a, '{}')".format(date_format)))
+        lambda spark : unary_op_df(spark, data_gen).selectExpr(
+            "date_format(a, '{}')".format(date_format)),
+        {'spark.rapids.sql.hasExtendedYearValues': False})
 
 @pytest.mark.parametrize('date_format', supported_date_formats + ['yyyyMMdd'], ids=idfn)
 # from 0001-02-01 to 9999-12-30 to avoid 'year 0 is out of range'
 @pytest.mark.parametrize('data_gen', [LongGen(min_val=int(datetime(1, 2, 1).timestamp()), max_val=int(datetime(2200, 12, 30).timestamp()))], ids=idfn)
 def test_from_unixtime(data_gen, date_format):
     assert_gpu_and_cpu_are_equal_collect(
-        lambda spark : unary_op_df(spark, data_gen, length=5).selectExpr("from_unixtime(a, '{}')".format(date_format)))
+        lambda spark : unary_op_df(spark, data_gen, length=5).selectExpr(
+            "from_unixtime(a, '{}')".format(date_format)),
+        {'spark.rapids.sql.hasExtendedYearValues': False})
 
 @pytest.mark.parametrize('date_format', supported_date_formats + ['yyyyMMdd'], ids=idfn)
 # from 0001-02-01 to 9999-12-30 to avoid 'year 0 is out of range'
@@ -1097,7 +1209,22 @@ def test_from_unixtime_runtime_fallback(data_gen, date_format):
     # We will do a CPU fallback during runtime for timezones with transitions during 
     # years > 2200 as described in https://github.com/NVIDIA/spark-rapids/issues/6840
     assert_gpu_and_cpu_are_equal_collect(
-        lambda spark : unary_op_df(spark, data_gen, length=5).selectExpr("from_unixtime(a, '{}')".format(date_format)))
+        lambda spark : unary_op_df(spark, data_gen, length=5).selectExpr(
+            "from_unixtime(a, '{}')".format(date_format)),
+        {'spark.rapids.sql.hasExtendedYearValues': False})
+
+
+@disable_ansi_mode
+@allow_non_gpu('ProjectExec', 'FromUnixTime')
+def test_from_unixtime_extended_year_fallback():
+    assert_gpu_fallback_collect(
+        lambda spark: spark.range(1).selectExpr(
+            "from_unixtime(327403411200L + id, 'yyyyMMdd')"),
+        'FromUnixTime',
+        {'spark.sql.session.timeZone': 'UTC',
+         'spark.rapids.sql.hasExtendedYearValues': True,
+         'spark.rapids.sql.incompatibleDateFormats.enabled': False,
+         'spark.rapids.sql.expression.cpuBridge.enabled': False})
 
 unsupported_date_formats = ['F']
 @pytest.mark.parametrize('date_format', unsupported_date_formats, ids=idfn)

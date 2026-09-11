@@ -406,6 +406,7 @@ abstract class UnixTimeExprMeta[A <: BinaryExpression with TimeZoneAwareExpressi
   var strfFormat: String = _
 
   protected def allowLegacyFormattingOnlyFormats: Boolean = false
+  protected def formatDirection: DateUtils.FormatDirection = DateUtils.Parsing
 
   override def tagExprForGpu(): Unit = {
     // Date and Timestamp work too
@@ -416,9 +417,11 @@ abstract class UnixTimeExprMeta[A <: BinaryExpression with TimeZoneAwareExpressi
           strfFormat = DateUtils.tagAndGetCudfFormat(this,
             sparkFormat,
             expr.left.dataType == DataTypes.StringType,
+            formatDirection,
             allowLegacyFormattingOnlyFormats = allowLegacyFormattingOnlyFormats)
           // The fused parser only accepts an unsigned four-digit year for this packed format.
-          if (expr.left.dataType == DataTypes.StringType && sparkFormat == "yyyyMMdd") {
+          if (expr.left.dataType == DataTypes.StringType && sparkFormat == "yyyyMMdd" &&
+              GpuOverrides.getTimeParserPolicy == CorrectedTimeParserPolicy) {
             YearParseUtil.tagParseStringAsDate(conf, this)
           }
         case None =>
@@ -627,7 +630,44 @@ object GpuToTimestamp {
 
   // EXCEPTION first tries CORRECTED parsing and then probes LEGACY parsing on failure. Formats
   // in this set must therefore match Spark under both parsers, including success/failure behavior.
-  val EXCEPTION_COMPATIBLE_FORMATS = CORRECTED_COMPATIBLE_FORMATS - "yyyyMMdd"
+  // TODO(#15977): Re-add MMyyyy after the fused parser preserves parser-policy disagreements.
+  val EXCEPTION_COMPATIBLE_FORMATS = Set(
+    "yyyy-MM-dd",
+    "yyyy/MM/dd",
+    "yyyy-MM",
+    "yyyy/MM",
+    "dd/MM/yyyy",
+    "yyyy-MM-dd HH:mm:ss",
+    "MM-dd",
+    "MM/dd",
+    "dd-MM",
+    "dd/MM",
+    "MM/yyyy",
+    "MM-yyyy",
+    "MM/dd/yyyy",
+    "MM-dd-yyyy"
+  )
+
+  // Formatting compatibility is independent of parser-policy compatibility. Keep this explicit
+  // so certifying a parsing format cannot accidentally certify the reverse direction.
+  val FORMATTING_COMPATIBLE_FORMATS = Set(
+    "yyyy-MM-dd",
+    "yyyy/MM/dd",
+    "yyyy-MM",
+    "yyyy/MM",
+    "dd/MM/yyyy",
+    "yyyy-MM-dd HH:mm:ss",
+    "MM-dd",
+    "MM/dd",
+    "dd-MM",
+    "dd/MM",
+    "MM/yyyy",
+    "MM-yyyy",
+    "MM/dd/yyyy",
+    "MM-dd-yyyy",
+    "yyyyMMdd",
+    "MMyyyy"
+  )
 
   // We are compatible with Spark for these formats when the timeParserPolicy is LEGACY. It
   // is possible that other formats may be supported but these are the only ones that we have
@@ -981,6 +1021,7 @@ class FromUnixTimeMeta(a: FromUnixTime,
         }
         strfFormat = DateUtils.tagAndGetCudfFormat(this, sparkFormat,
           a.left.dataType == DataTypes.StringType,
+          DateUtils.Formatting,
           inputFormat,
           allowLegacyFormattingOnlyFormats = allowLegacyFormattingOnlyFormats)
       case None =>

@@ -33,6 +33,10 @@ import org.apache.spark.sql.rapids.{ExceptionTimeParserPolicy, GpuToTimestamp,
  * Class for helper functions for Date
  */
 object DateUtils {
+  sealed trait FormatDirection
+  case object Parsing extends FormatDirection
+  case object Formatting extends FormatDirection
+
   val unsupportedCharacter = Set(
     'k', 'K','z', 'V', 'c', 'F', 'W', 'Q', 'q', 'G', 'A', 'n', 'N',
     'O', 'X', 'p', '\'', '[', ']', '#', '{', '}', 'Z', 'w', 'e', 'E', 'x', 'Z', 'Y')
@@ -221,6 +225,7 @@ object DateUtils {
       meta: RapidsMeta[_, _, _],
       sparkFormat: String,
       parseString: Boolean,
+      formatDirection: FormatDirection = Parsing,
       inputFormat: Option[String] = None,
       allowLegacyFormattingOnlyFormats: Boolean = false): String = {
     val formatToConvert = inputFormat.getOrElse(sparkFormat)
@@ -230,12 +235,11 @@ object DateUtils {
       GpuToTimestamp.LEGACY_COMPATIBLE_FORMATS
     }
     val timeParserPolicy = GpuOverrides.getTimeParserPolicy
-    val nonLegacyCompatibleFormats = if (parseString &&
-        timeParserPolicy == ExceptionTimeParserPolicy) {
-      GpuToTimestamp.EXCEPTION_COMPATIBLE_FORMATS
-    } else {
-      // Formatting does not have parser-policy disagreement, so use the CORRECTED set.
-      GpuToTimestamp.CORRECTED_COMPATIBLE_FORMATS
+    val nonLegacyCompatibleFormats = formatDirection match {
+      case Formatting => GpuToTimestamp.FORMATTING_COMPATIBLE_FORMATS
+      case Parsing if parseString && timeParserPolicy == ExceptionTimeParserPolicy =>
+        GpuToTimestamp.EXCEPTION_COMPATIBLE_FORMATS
+      case Parsing => GpuToTimestamp.CORRECTED_COMPATIBLE_FORMATS
     }
     var strfFormat: String = null
     if (timeParserPolicy == LegacyTimeParserPolicy) {
@@ -280,6 +284,12 @@ object DateUtils {
         case e: TimestampFormatConversionException =>
           meta.willNotWorkOnGpu(s"Failed to convert ${e.reason} ${e.getMessage}")
       }
+    }
+    if (formatDirection == Formatting && Option(strfFormat).exists(_.contains("%Y")) &&
+        meta.conf.hasExtendedYearValues && !meta.conf.incompatDateFormats) {
+      meta.willNotWorkOnGpu("Formatting the full range of supported years is not supported. " +
+          "If your years are limited to 4 positive digits set " +
+          s"${RapidsConf.HAS_EXTENDED_YEAR_VALUES} to false.")
     }
     strfFormat
   }
