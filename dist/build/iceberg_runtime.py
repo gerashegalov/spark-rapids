@@ -87,8 +87,8 @@ def coordinates(zip_handle, buildver, scala_version, property_lookup):
                     group_id,
                     resolve_maven_properties(artifact_id, overrides, property_lookup),
                     resolve_maven_properties(version, overrides, property_lookup)))
-        if (len(runtime_dependencies) != 1 and
-                not (len(runtime_dependencies) == 0 and system_path is not None)):
+        if ((system_path is None and len(runtime_dependencies) != 1) or
+                (system_path is not None and len(runtime_dependencies) != 0)):
             raise RuntimeError("Iceberg module %s has %d runtime dependencies" %
                                (module_artifact_id, len(runtime_dependencies)))
         result.update(runtime_dependencies)

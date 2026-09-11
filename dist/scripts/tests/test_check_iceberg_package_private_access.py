@@ -497,6 +497,23 @@ class IcebergPackagePrivateAccessTest(unittest.TestCase):
             finally:
                 archive.close()
 
+    def test_aggregator_rejects_system_and_maven_runtimes(self):
+        with temporary_directory() as root:
+            aggregator = os.path.join(root, "aggregator.jar")
+            real_module = "rapids-4-spark-iceberg-1-11-x_2.13"
+            write_aggregator(aggregator, [(real_module, RUNTIME_DEPENDENCY)])
+            properties = dict(ICEBERG_411_PROPERTIES)
+            properties[RUNTIME_DISCOVERY.SYSTEM_RUNTIME_PROPERTY] = \
+                "/usr/share/aws/iceberg/lib/iceberg-spark-runtime.jar"
+            archive = zipfile.ZipFile(aggregator, "r")
+            try:
+                with self.assertRaises(RuntimeError) as raised:
+                    RUNTIME_DISCOVERY.coordinates(
+                        archive, "413", "2.13", lambda name: properties.get(name))
+                self.assertIn("1 runtime dependencies", str(raised.exception))
+            finally:
+                archive.close()
+
     def test_real_module_requires_declared_spark_line_artifact_suffix(self):
         with temporary_directory() as root:
             aggregator = os.path.join(root, "aggregator.jar")
