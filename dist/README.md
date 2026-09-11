@@ -51,7 +51,9 @@ manifest. Fix failures by making the caller root-safe through
 `root-safe-module-classes.txt` or, for exceptional per-class placement, the applicable
 `unshimmed-*.txt` input above.
 
-Single-shim builds against a non-Maven runtime can add its absolute local jar path with
-`-Drapids.iceberg.audit.runtime.path=...`. This path also supplies the required audit
-runtime when a real Iceberg integration module has no Maven Iceberg runtime dependency.
-Missing or otherwise ambiguous runtime inputs fail the build.
+Single-shim builds where every real Iceberg integration module uses the same non-Maven
+runtime can add its absolute local jar path with
+`-Drapids.iceberg.audit.runtime.path=...`. This replaces Maven-coordinate discovery for
+the selected aggregator: every real Iceberg integration module must declare zero Maven
+Iceberg runtime dependencies, and the supplied path is used to audit all of them. Missing,
+empty, or otherwise ambiguous runtime inputs fail the build.

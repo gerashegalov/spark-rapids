@@ -26,7 +26,9 @@ def system_runtime_path(property_lookup):
     if value is None:
         return None
     value = str(value).strip()
-    return value or None
+    if not value:
+        raise RuntimeError("%s must not be empty" % SYSTEM_RUNTIME_PROPERTY)
+    return value
 
 
 def resolve_maven_properties(value, overrides, property_lookup):

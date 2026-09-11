@@ -497,6 +497,11 @@ class IcebergPackagePrivateAccessTest(unittest.TestCase):
             finally:
                 archive.close()
 
+    def test_empty_system_runtime_is_rejected(self):
+        with self.assertRaises(RuntimeError) as raised:
+            RUNTIME_DISCOVERY.system_runtime_path(lambda name: "")
+        self.assertIn(RUNTIME_DISCOVERY.SYSTEM_RUNTIME_PROPERTY, str(raised.exception))
+
     def test_aggregator_rejects_system_and_maven_runtimes(self):
         with temporary_directory() as root:
             aggregator = os.path.join(root, "aggregator.jar")
