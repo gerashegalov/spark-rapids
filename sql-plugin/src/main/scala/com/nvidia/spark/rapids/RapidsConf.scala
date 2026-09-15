@@ -690,6 +690,8 @@ class RapidsConf(conf: Map[String, String]) extends Logging {
 
   lazy val joinGathererSizeEstimateThreshold: Double = get(JOIN_GATHERER_SIZE_ESTIMATE_THRESHOLD)
 
+  lazy val hashTableReuse: Boolean = get(HASH_TABLE_REUSE)
+
   /**
    * Get join options based on the current configuration.
    * @param targetSize the target batch size in bytes to use for the join
