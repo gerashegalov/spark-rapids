@@ -2027,8 +2027,8 @@ This will force full Scala code rebuild in downstream modules.
                                         <include name="**/src/main/**/*.scala"/>
                                         <exclude name="**/target/**"/>
                                         <!-- The alias resolver is the single sanctioned legacy literal. -->
-                                        <exclude name="**/CudfConfKeys.java"/>
-                                        <containsregexp expression="(&quot;|')spark[.]rapids[.]"/>
+                                        <exclude name="sql-plugin-api/src/main/java/com/nvidia/spark/rapids/internal/config/CudfConfKeys.java"/>
+                                        <containsregexp expression="(&quot;|')+spark[.]rapids[.]"/>
                                     </fileset>
                                 </resourcecount>
                                 <fail message="Legacy spark.rapids.* configuration keys are forbidden in main sources; use spark.cudf.* and resolve compatibility through CudfConfKeys.">
