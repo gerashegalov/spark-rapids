@@ -421,7 +421,7 @@ abstract class UnixTimeExprMeta[A <: BinaryExpression with TimeZoneAwareExpressi
             allowLegacyFormattingOnlyFormats = allowLegacyFormattingOnlyFormats)
           // The fused parser only accepts an unsigned four-digit year for this packed format.
           if (expr.left.dataType == DataTypes.StringType && sparkFormat == "yyyyMMdd" &&
-              GpuOverrides.getTimeParserPolicy == CorrectedTimeParserPolicy) {
+              GpuOverrides.getTimeParserPolicy != LegacyTimeParserPolicy) {
             YearParseUtil.tagParseStringAsDate(conf, this)
           }
         case None =>
@@ -630,7 +630,6 @@ object GpuToTimestamp {
 
   // EXCEPTION first tries CORRECTED parsing and then probes LEGACY parsing on failure. Formats
   // in this set must therefore match Spark under both parsers, including success/failure behavior.
-  // TODO(#15977): Re-add MMyyyy after the fused parser preserves parser-policy disagreements.
   val EXCEPTION_COMPATIBLE_FORMATS = Set(
     "yyyy-MM-dd",
     "yyyy/MM/dd",
@@ -645,7 +644,9 @@ object GpuToTimestamp {
     "MM/yyyy",
     "MM-yyyy",
     "MM/dd/yyyy",
-    "MM-dd-yyyy"
+    "MM-dd-yyyy",
+    "yyyyMMdd",
+    "MMyyyy"
   )
 
   // Formatting compatibility is independent of parser-policy compatibility. Keep this explicit
@@ -781,19 +782,15 @@ object GpuToTimestamp {
           CastStrings.TIME_PARSER_POLICY_CORRECTED
         }
         CastStrings.parseTimestampWithFormat(
-          lhs.getBase, sparkFormat, parserPolicy)
+          lhs.getBase, sparkFormat, parserPolicy, failOnError)
       } catch {
-        case e: CastException =>
+        case e: CastException if e.isTimeParserPolicyDisagreement =>
           throw QueryExecutionErrors.failToParseDateTimeInNewParserError(
             e.getStringWithError, e)
-      }
-      closeOnExcept(parsed) { _ =>
-        if (failOnError && parsed.getNullCount > lhs.getBase.getNullCount) {
-          // ANSI mode + a row that was non-null in input but failed to parse.
-          // CPU may throw DateTimeParseException, DateTimeException or ParseException
+        case e: CastException =>
+          // CPU may throw DateTimeParseException, DateTimeException or ParseException.
           throw new IllegalArgumentException(
-            "Exception occurred when parsing timestamp in ANSI mode")
-        }
+            "Exception occurred when parsing timestamp in ANSI mode", e)
       }
       parsed
     } else {

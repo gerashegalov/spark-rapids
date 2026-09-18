@@ -643,6 +643,7 @@ if not is_before_spark_350():
 
 
 exception_policy_disagreement_cases = [
+    ("2024-05-06xxx", "yyyy-MM-dd"),
     ("2024-1-1", "yyyy-MM-dd"),
     ("2024/1/1", "yyyy/MM/dd"),
     ("2024-1", "yyyy-MM"),
@@ -657,6 +658,8 @@ exception_policy_disagreement_cases = [
     ("1-2024", "MM-yyyy"),
     ("1/1/2024", "MM/dd/yyyy"),
     ("1-1-2024", "MM-dd-yyyy"),
+    ("2024101", "yyyyMMdd"),
+    ("12024", "MMyyyy"),
 ]
 
 
@@ -1000,22 +1003,33 @@ def test_to_timestamp_yyyyMMdd_corrected_extended_year_fallback():
 
 
 @disable_ansi_mode
-@allow_non_gpu('ProjectExec', 'GetTimestamp')
-def test_to_timestamp_yyyyMMdd_exception_policy_fallback():
+def test_to_timestamp_yyyyMMdd_exception_policy():
     conf = {
         'spark.sql.legacy.timeParserPolicy': 'EXCEPTION',
         'spark.rapids.sql.hasExtendedYearValues': False,
         'spark.rapids.sql.expression.cpuBridge.enabled': False,
     }
-    assert_gpu_fallback_collect(
+    assert_gpu_and_cpu_are_equal_collect(
         lambda spark: spark.createDataFrame([("20240101",)], "a string")
             .selectExpr("to_timestamp(a, 'yyyyMMdd')"),
-        'GetTimestamp',
         conf)
 
 
 @disable_ansi_mode
 @allow_non_gpu('ProjectExec', 'GetTimestamp')
+def test_to_timestamp_yyyyMMdd_exception_extended_year_fallback():
+    data = [("+123450101",), ("-00010101",)]
+    assert_gpu_fallback_collect(
+        lambda spark: spark.createDataFrame(data, "a string")
+            .selectExpr("cast(to_timestamp(a, 'yyyyMMdd') as string)"),
+        'GetTimestamp',
+        {'spark.sql.legacy.timeParserPolicy': 'EXCEPTION',
+         'spark.sql.session.timeZone': 'UTC',
+         'spark.rapids.sql.hasExtendedYearValues': True,
+         'spark.rapids.sql.expression.cpuBridge.enabled': False})
+
+
+@disable_ansi_mode
 def test_to_timestamp_yyyyMMdd_exception_policy_disagreement():
     assert_gpu_and_cpu_error(
         lambda spark: spark.createDataFrame([("2024101",)], "a string")
@@ -1079,22 +1093,19 @@ def test_to_date_format_MMyyyy(data_gen):
 
 
 @disable_ansi_mode
-@allow_non_gpu('ProjectExec', 'GetTimestamp')
-def test_to_date_format_MMyyyy_exception_policy_fallback():
+def test_to_date_format_MMyyyy_exception_policy():
     conf = {
         'spark.sql.legacy.timeParserPolicy': 'EXCEPTION',
         'spark.rapids.sql.hasExtendedYearValues': False,
         'spark.rapids.sql.expression.cpuBridge.enabled': False,
     }
-    assert_gpu_fallback_collect(
+    assert_gpu_and_cpu_are_equal_collect(
         lambda spark: spark.createDataFrame([("012024",)], "a string")
             .select(f.to_date(f.col("a"), "MMyyyy")),
-        'GetTimestamp',
         conf)
 
 
 @disable_ansi_mode
-@allow_non_gpu('ProjectExec', 'GetTimestamp')
 def test_to_date_format_MMyyyy_exception_policy_disagreement():
     assert_gpu_and_cpu_error(
         lambda spark: spark.createDataFrame([("12024",)], "a string")
