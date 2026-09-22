@@ -31,6 +31,7 @@ NEWER_ONLY = "org/apache/iceberg/NewerOnly.class"
 OLDER_ONLY = "org/apache/iceberg/OlderOnly.class"
 NEWER_IMPL = "org/apache/iceberg/NewerImpl.class"
 OLDER_IMPL = "org/apache/iceberg/OlderImpl.class"
+PRIVATE_BUILD_INFO = "cudf-spark-private-version-info.properties"
 
 
 def write_jar(path, entries):
@@ -58,6 +59,7 @@ def create_artifacts(base_dir):
         SHARED: b"aggregator-shared-413",
         NEWER_ONLY: b"aggregator-newer-only",
         NEWER_IMPL: b"aggregator-newer-impl",
+        PRIVATE_BUILD_INFO: b"version=1.0\nrevision=abc123\ndate=newer\n",
     })
     write_jar(artifact_path(base_dir, "iceberg-common", "353"), {
         SHARED: b"module-shared-353",
@@ -67,6 +69,7 @@ def create_artifacts(base_dir):
         SHARED: b"aggregator-shared-353",
         OLDER_ONLY: b"aggregator-older-only",
         OLDER_IMPL: b"aggregator-older-impl",
+        PRIVATE_BUILD_INFO: b"version=1.0\nrevision=abc123\ndate=older\n",
     })
 
 
@@ -168,6 +171,11 @@ class RootSafeProviderSelectionTest(unittest.TestCase):
         self.assertFalse((parallel_world / OLDER_IMPL).exists())
         self.assertTrue((parallel_world / "spark413" / NEWER_IMPL).is_file())
         self.assertTrue((parallel_world / "spark353" / OLDER_IMPL).is_file())
+        self.assertEqual(
+            b"version=1.0\nrevision=abc123\ndate=newer\n",
+            read_bytes(parallel_world, PRIVATE_BUILD_INFO))
+        self.assertFalse((parallel_world / "spark413" / PRIVATE_BUILD_INFO).exists())
+        self.assertFalse((parallel_world / "spark353" / PRIVATE_BUILD_INFO).exists())
 
     def run_dedupe(self, target_dir):
         parallel_world = target_dir / "parallel-world"
@@ -213,6 +221,20 @@ class RootSafeProviderSelectionTest(unittest.TestCase):
                 self.assert_provider_selection(target_dir)
                 self.run_dedupe(target_dir)
                 self.assert_final_layout(target_dir)
+
+    def test_rejects_mixed_private_revisions_for_both_assemblers(self):
+        older_aggregator = artifact_path(self.project_dir, "aggregator", "353")
+        with zipfile.ZipFile(older_aggregator) as jar:
+            entries = {name: jar.read(name) for name in jar.namelist()}
+        entries[PRIVATE_BUILD_INFO] = b"version=1.0\nrevision=different\n"
+        write_jar(older_aggregator, entries)
+
+        for name, assemble in (
+                ("standard", self.assemble_standard),
+                ("fast", self.assemble_fast)):
+            with self.subTest(assembler=name):
+                with self.assertRaisesRegex(Exception, "revision differs"):
+                    assemble()
 
 
 if __name__ == "__main__":

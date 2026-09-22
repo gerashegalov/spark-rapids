@@ -267,6 +267,57 @@ for bv in buildver_list:
                 matching_members = select_matching_members(namelist, glob_list)
                 zip_handle.extractall(path=top_dist_jar_dir, members=matching_members)
 
+
+def read_build_info(path):
+    properties = {}
+    with open(path, 'r') as build_info:
+        for line in build_info:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                properties[key.strip()] = value.strip()
+    return properties
+
+
+private_build_info = 'cudf-spark-private-version-info.properties'
+private_build_info_paths = [
+    (buildver, os.path.join(top_dist_jar_dir, 'spark' + buildver, private_build_info))
+    for buildver in buildver_list
+]
+present_private_build_info = [
+    (buildver, path) for buildver, path in private_build_info_paths
+    if os.path.isfile(path)
+]
+if present_private_build_info:
+    if len(present_private_build_info) != len(private_build_info_paths):
+        missing = [
+            buildver for buildver, path in private_build_info_paths
+            if not os.path.isfile(path)
+        ]
+        raise Exception(
+            'cudf-spark-private build info is missing for: %s' % ', '.join(missing))
+
+    reference_buildver, reference_path = present_private_build_info[0]
+    reference_properties = read_build_info(reference_path)
+    for key in ('version', 'revision'):
+        if not reference_properties.get(key):
+            raise Exception('cudf-spark-private build info is missing %s: %s' %
+                            (key, reference_path))
+    for buildver, path in present_private_build_info[1:]:
+        properties = read_build_info(path)
+        for key in ('version', 'revision'):
+            if properties.get(key) != reference_properties[key]:
+                raise Exception(
+                    'cudf-spark-private %s differs between spark%s and spark%s: %s != %s'
+                    % (key, reference_buildver, buildver,
+                       reference_properties[key], properties.get(key)))
+
+    shutil.copyfile(reference_path, os.path.join(top_dist_jar_dir, private_build_info))
+    for _, path in present_private_build_info:
+        os.remove(path)
+elif not os.path.isfile(os.path.join(top_dist_jar_dir, private_build_info)):
+    raise Exception('cudf-spark-private build info is missing from the distribution')
+
 with open(runtime_manifest, 'w') as manifest:
     if set(iceberg_audit_runtimes) != set(buildver_list):
         raise Exception("Iceberg runtime discovery did not cover every build version")
