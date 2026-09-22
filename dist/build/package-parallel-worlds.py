@@ -205,6 +205,9 @@ maven_repository = project.getProperty('maven.local.repository')
 dist_dir = os.sep.join([source_basedir, 'dist'])
 iceberg_runtime = {}
 execfile(os.path.join(dist_dir, 'build', 'iceberg_runtime.py'), iceberg_runtime)
+build_info = {}
+execfile(os.path.join(dist_dir, 'build', 'build_info.py'), build_info)
+read_build_info = build_info['read_build_info']
 system_iceberg_runtime = iceberg_runtime["system_runtime_path"](project.getProperty)
 if system_iceberg_runtime and len(buildver_list) != 1:
     raise Exception("%s is supported only for single-shim builds" %
@@ -266,18 +269,6 @@ for bv in buildver_list:
                 glob_list = from_single_shim_or_each if bv == buildver_list[0] else from_each
                 matching_members = select_matching_members(namelist, glob_list)
                 zip_handle.extractall(path=top_dist_jar_dir, members=matching_members)
-
-
-def read_build_info(path):
-    properties = {}
-    with open(path, 'r') as build_info:
-        for line in build_info:
-            line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                key, value = line.split('=', 1)
-                properties[key.strip()] = value.strip()
-    return properties
-
 
 private_build_info = 'cudf-spark-private-version-info.properties'
 private_build_info_paths = [

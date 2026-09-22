@@ -136,6 +136,8 @@ class RootSafeProviderSelectionTest(unittest.TestCase):
             "\n"
             "def coordinates(zip_handle, buildver, scala_version, get_property):\n"
             "    return []\n")
+        (self.config_dir / "build" / "build_info.py").write_text(
+            (DIST_DIR / "build" / "build_info.py").read_text())
         create_artifacts(self.project_dir)
 
     def tearDown(self):

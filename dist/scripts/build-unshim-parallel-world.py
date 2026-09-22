@@ -32,6 +32,10 @@ import subprocess
 import sys
 import zipfile
 
+BUILD_HELPERS_DIR = Path(__file__).resolve().parents[1] / "build"
+sys.path.insert(0, str(BUILD_HELPERS_DIR))
+from build_info import read_build_info
+
 
 ARTIFACTS = ("sql-plugin-api", "aggregator")
 BUILDVER_RE = re.compile(r"^[0-9][0-9a-z]*$")
@@ -188,18 +192,6 @@ def root_safe_module_class_members(
                 if name.endswith(".class")
             ])
     return members
-
-
-def read_build_info(path):
-    properties = {}
-    with path.open() as build_info:
-        for line in build_info:
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                key, value = line.split("=", 1)
-                properties[key.strip()] = value.strip()
-    return properties
-
 
 def consolidate_private_build_info(parallel_world, sorted_buildvers):
     paths = [
