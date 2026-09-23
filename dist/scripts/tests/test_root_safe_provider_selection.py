@@ -85,9 +85,10 @@ class FakeAttributes:
 
 
 class FakeProject:
-    def __init__(self, source_dir, project_dir, target_dir, repository_dir):
+    def __init__(self, source_dir, project_dir, target_dir, repository_dir,
+                 buildvers="353,413", conventional=False):
         self.properties = {
-            "included_buildvers": "353,413",
+            "included_buildvers": buildvers,
             "spark.rapids.source.basedir": str(source_dir),
             "spark.rapids.project.basedir": str(project_dir),
             "project.version": "1.0",
@@ -95,7 +96,7 @@ class FakeProject:
             "project.build.directory": str(target_dir),
             "env.ART_URL": "",
             "maven.local.repository": str(repository_dir),
-            "should.build.conventional.jar": False,
+            "should.build.conventional.jar": conventional,
         }
 
     def getProperty(self, name):
@@ -143,13 +144,15 @@ class RootSafeProviderSelectionTest(unittest.TestCase):
     def tearDown(self):
         self.temp_dir.cleanup()
 
-    def assemble_standard(self):
-        target_dir = self.root / "standard-target"
+    def assemble_standard(self, buildvers="353,413", conventional=False,
+                          target_name="standard-target"):
+        target_dir = self.root / target_name
         (target_dir / "deps").mkdir(parents=True)
         globals_dict = {
             "attributes": FakeAttributes(),
             "project": FakeProject(
-                self.source_dir, self.project_dir, target_dir, self.root / "repository"),
+                self.source_dir, self.project_dir, target_dir, self.root / "repository",
+                buildvers, conventional),
             "execfile": execfile_compat,
             "self": self,
         }
@@ -237,6 +240,28 @@ class RootSafeProviderSelectionTest(unittest.TestCase):
             with self.subTest(assembler=name):
                 with self.assertRaisesRegex(Exception, "revision differs"):
                     assemble()
+
+    def test_rejects_incomplete_private_build_info_in_conventional_jar(self):
+        aggregator = artifact_path(self.project_dir, "aggregator", "413")
+        for missing_key in ("version", "revision"):
+            with self.subTest(missing_key=missing_key):
+                with zipfile.ZipFile(aggregator) as jar:
+                    entries = {name: jar.read(name) for name in jar.namelist()}
+                properties = {
+                    "version": "1.0",
+                    "revision": "abc123",
+                }
+                del properties[missing_key]
+                entries[PRIVATE_BUILD_INFO] = "".join(
+                    "%s=%s\n" % item for item in properties.items()).encode()
+                write_jar(aggregator, entries)
+
+                with self.assertRaisesRegex(Exception, "missing %s" % missing_key):
+                    self.assemble_standard(
+                        buildvers="413", conventional=True,
+                        target_name="conventional-%s-target" % missing_key)
+
+                create_artifacts(self.project_dir)
 
 
 if __name__ == "__main__":
