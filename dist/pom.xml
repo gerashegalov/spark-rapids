@@ -247,6 +247,9 @@
                                 <manifest>
                                     <mainClass>com.nvidia.spark.rapids.SparkRapidsJarTool</mainClass>
                                 </manifest>
+                                <manifestEntries>
+                                    <Implementation-Title>${project.name}</Implementation-Title>
+                                </manifestEntries>
                             </archive>
                             <classesDirectory>${project.build.directory}/parallel-world</classesDirectory>
                             <classifier>${jni.classifier}</classifier>
@@ -423,7 +426,7 @@
                                         <not>
                                             <and>
                                                 <contains string="${dist.jar.info}"
-                                                          substring="RAPIDS Accelerator for Apache Spark:"/>
+                                                          substring="${project.name}:"/>
                                                 <contains string="${dist.jar.info}"
                                                           substring="scala_library_version: ${scala.version}"/>
                                                 <contains string="${dist.jar.info}"

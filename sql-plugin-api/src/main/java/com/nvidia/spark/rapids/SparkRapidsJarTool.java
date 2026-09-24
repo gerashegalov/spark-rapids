@@ -39,12 +39,14 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Command-line utilities for a RAPIDS Accelerator for Apache Spark distribution JAR. */
+/** Command-line utilities for an executable Spark plugin distribution JAR. */
 public final class SparkRapidsJarTool {
   private static final String RAPIDS_BUILD_INFO = "rapids4spark-version-info.properties";
   private static final String PRIVATE_BUILD_INFO =
@@ -112,13 +114,14 @@ public final class SparkRapidsJarTool {
   private static void printBuildInfo(PrintStream out) throws IOException {
     File jarPath = getJarPath();
     try (JarFile jar = new JarFile(jarPath)) {
-      out.println("RAPIDS Accelerator for Apache Spark distribution");
+      String distributionTitle = distributionTitle(jar);
+      out.println(distributionTitle);
       out.println("JAR: " + jarPath.getAbsolutePath());
       out.println("Compute the payload SHA-256 with:");
       out.println("  java -jar <dist.jar> checksum");
       out.println();
 
-      printProperties(jar, RAPIDS_BUILD_INFO, "RAPIDS Accelerator for Apache Spark", out, true);
+      printProperties(jar, RAPIDS_BUILD_INFO, distributionTitle, out, true);
       printProperties(jar, CUDF_BUILD_INFO, "cuDF Java", out, true);
       if (!printProperties(jar, JNI_BUILD_INFO, "cuDF Spark JNI", out, false)) {
         printProperties(jar, LEGACY_JNI_BUILD_INFO, "cuDF Spark JNI", out, true);
@@ -139,6 +142,16 @@ public final class SparkRapidsJarTool {
 
       printNativeLibraries(jar, out);
     }
+  }
+
+  static String distributionTitle(JarFile jar) throws IOException {
+    Manifest manifest = jar.getManifest();
+    String title = manifest == null ? null :
+        manifest.getMainAttributes().getValue(Attributes.Name.IMPLEMENTATION_TITLE);
+    if (title == null || title.trim().isEmpty()) {
+      throw new IOException("Distribution JAR manifest is missing Implementation-Title");
+    }
+    return title.trim();
   }
 
   /**

@@ -18,6 +18,7 @@ package com.nvidia.spark.rapids;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -54,15 +55,33 @@ public class TestSparkRapidsJarTool {
     writeJar(renamedJar, reverse(renamedEntries), true, 1_700_000_000_000L);
     writeJar(changedPayloadJar, changedPayloadEntries, false, 1_800_000_000_000L);
 
+    assertEquals("Rapids-Plugin", title(rapidsJar));
+    assertEquals("cuDF-Plugin", title(renamedJar));
     assertEquals(checksum(rapidsJar), checksum(renamedJar));
     assertNotEquals(checksum(rapidsJar), checksum(changedPayloadJar));
+  }
+
+  @Test
+  public void testDistributionTitleIsRequired() throws IOException {
+    Map<String, byte[]> missingManifest = entries(
+        "unused", "26.10.0-SNAPSHOT", new byte[] {1});
+    missingManifest.remove("META-INF/MANIFEST.MF");
+    Path missingManifestJar = tempDir.resolve("missing-manifest.jar");
+    writeJar(missingManifestJar, missingManifest, false, 1_600_000_000_000L);
+
+    Path blankTitleJar = tempDir.resolve("blank-title.jar");
+    writeJar(blankTitleJar,
+        entries(" ", "26.10.0-SNAPSHOT", new byte[] {1}), false, 1_600_000_000_000L);
+
+    assertThrows(IOException.class, () -> title(missingManifestJar));
+    assertThrows(IOException.class, () -> title(blankTitleJar));
   }
 
   private static Map<String, byte[]> entries(
       String productName, String version, byte[] payload) {
     Map<String, byte[]> entries = new LinkedHashMap<>();
     entries.put("META-INF/MANIFEST.MF",
-        ("Manifest-Version: 1.0\nImplementation-Title: " + productName + "\n")
+        ("Manifest-Version: 1.0\nImplementation-Title: " + productName + "\n\n")
             .getBytes(StandardCharsets.UTF_8));
     entries.put("META-INF/maven/com.nvidia/plugin/pom.properties",
         ("artifactId=" + productName + "\nversion=" + version + "\n")
@@ -114,6 +133,12 @@ public class TestSparkRapidsJarTool {
   private static String checksum(Path path) throws IOException {
     try (JarFile jar = new JarFile(path.toFile())) {
       return SparkRapidsJarTool.payloadSha256(jar);
+    }
+  }
+
+  private static String title(Path path) throws IOException {
+    try (JarFile jar = new JarFile(path.toFile())) {
+      return SparkRapidsJarTool.distributionTitle(jar);
     }
   }
 }
