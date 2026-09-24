@@ -63,7 +63,7 @@ class GpuSinglePartitioningSuite extends AnyFunSuite {
               assertResult(0)(result.head._2)
               val resultBatch = result.head._1
               // verify this is a contiguous split table
-              assert(GpuPackedTableColumn.isBatchPacked(resultBatch))
+              assert(TestUtils.isBatchPacked(resultBatch))
               val packedColumn = resultBatch.column(0).asInstanceOf[GpuPackedTableColumn]
               val actual = packedColumn.getContiguousTable
               assertResult(expected.getBuffer.getLength)(actual.getBuffer.getLength)

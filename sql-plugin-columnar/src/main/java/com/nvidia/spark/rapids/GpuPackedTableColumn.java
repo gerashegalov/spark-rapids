@@ -44,11 +44,6 @@ public final class GpuPackedTableColumn extends GpuColumnVectorBase implements W
     return new ColumnarBatch(new ColumnVector[] { column }, (int) contigTable.getRowCount());
   }
 
-  /** Returns true if this columnar batch uses a packed table */
-  public static boolean isBatchPacked(ColumnarBatch batch) {
-    return batch.numCols() == 1 && batch.column(0) instanceof GpuPackedTableColumn;
-  }
-
   GpuPackedTableColumn(ContiguousTable contigTable) {
     super(NullType);
     this.contigTable = contigTable;

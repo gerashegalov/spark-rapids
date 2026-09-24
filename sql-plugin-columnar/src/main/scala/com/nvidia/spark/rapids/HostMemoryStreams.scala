@@ -138,12 +138,6 @@ trait HostMemoryInputStreamMixIn extends InputStream {
     }
   }
 
-  def readByteBuffer(length: Int): ByteBuffer = {
-    val bb = hmb.asByteBuffer(pos, length)
-    pos += length
-    bb
-  }
-
   override def skip(count: Long): Long = {
     val oldPos = pos
     pos = Math.min(pos + count, hmbLength)
