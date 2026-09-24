@@ -1060,6 +1060,7 @@
         <!-- end dyn.shim properties -->
 
         <rapids.module>.</rapids.module>
+        <spark.rapids.product.name>RAPIDS Accelerator for Apache Spark</spark.rapids.product.name>
         <allowConventionalDistJar>false</allowConventionalDistJar>
         <rapids.shimplify.skip>false</rapids.shimplify.skip>
         <rapids.build.info.skip>false</rapids.build.info.skip>

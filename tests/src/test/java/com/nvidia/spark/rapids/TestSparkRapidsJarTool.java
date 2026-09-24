@@ -77,6 +77,26 @@ public class TestSparkRapidsJarTool {
     assertThrows(IOException.class, () -> title(blankTitleJar));
   }
 
+  @Test
+  public void testPayloadChecksumIncludesNonSignatureEntries() throws IOException {
+    Map<String, byte[]> baseEntries = entries(
+        "Rapids-Plugin", "26.10.0-SNAPSHOT", new byte[] {1, 2, 3, 4});
+    Map<String, byte[]> invalidExtensionEntries = new LinkedHashMap<>(baseEntries);
+    invalidExtensionEntries.put("META-INF/SIG-PLUGIN.CONFIG", new byte[] {1});
+    Map<String, byte[]> misleadingDirectoryEntries = new LinkedHashMap<>(baseEntries);
+    misleadingDirectoryEntries.put("assets/NOTMETA-INF/SIG-PLUGIN", new byte[] {1});
+
+    Path baseJar = tempDir.resolve("base.jar");
+    Path invalidExtensionJar = tempDir.resolve("invalid-extension.jar");
+    Path misleadingDirectoryJar = tempDir.resolve("misleading-directory.jar");
+    writeJar(baseJar, baseEntries, false, 1_600_000_000_000L);
+    writeJar(invalidExtensionJar, invalidExtensionEntries, false, 1_600_000_000_000L);
+    writeJar(misleadingDirectoryJar, misleadingDirectoryEntries, false, 1_600_000_000_000L);
+
+    assertNotEquals(checksum(baseJar), checksum(invalidExtensionJar));
+    assertNotEquals(checksum(baseJar), checksum(misleadingDirectoryJar));
+  }
+
   private static Map<String, byte[]> entries(
       String productName, String version, byte[] payload) {
     Map<String, byte[]> entries = new LinkedHashMap<>();
@@ -90,6 +110,9 @@ public class TestSparkRapidsJarTool {
         ("<project><name>" + productName + "</name></project>")
             .getBytes(StandardCharsets.UTF_8));
     entries.put("META-INF/PLUGIN.SF", productName.getBytes(StandardCharsets.UTF_8));
+    entries.put("META-INF/SIG-PLUGIN", productName.getBytes(StandardCharsets.UTF_8));
+    entries.put("spark359/META-INF/SIG-PLUGIN.A1",
+        productName.getBytes(StandardCharsets.UTF_8));
     entries.put("rapids-4-spark-version-info.properties",
         ("version=" + version + "\n").getBytes(StandardCharsets.UTF_8));
     entries.put("spark359/cudf-spark-private-version-info.properties",

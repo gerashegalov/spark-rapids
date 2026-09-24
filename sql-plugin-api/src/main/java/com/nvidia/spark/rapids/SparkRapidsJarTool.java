@@ -214,9 +214,32 @@ public final class SparkRapidsJarTool {
     int slash = upperName.lastIndexOf('/');
     String directory = slash < 0 ? "" : upperName.substring(0, slash + 1);
     String fileName = slash < 0 ? upperName : upperName.substring(slash + 1);
-    return directory.endsWith("META-INF/") &&
-        (fileName.endsWith(".SF") || fileName.endsWith(".RSA") ||
-            fileName.endsWith(".DSA") || fileName.endsWith(".EC"));
+    if (!("META-INF/".equals(directory) || directory.endsWith("/META-INF/"))) {
+      return false;
+    }
+    if (fileName.endsWith(".SF") || fileName.endsWith(".RSA") ||
+        fileName.endsWith(".DSA") || fileName.endsWith(".EC")) {
+      return true;
+    }
+    if (!fileName.startsWith("SIG-")) {
+      return false;
+    }
+
+    int extensionIndex = fileName.lastIndexOf('.');
+    if (extensionIndex < 0) {
+      return true;
+    }
+    int extensionLength = fileName.length() - extensionIndex - 1;
+    if (extensionLength < 1 || extensionLength > 3) {
+      return false;
+    }
+    for (int index = extensionIndex + 1; index < fileName.length(); index++) {
+      char value = fileName.charAt(index);
+      if (!(value >= 'A' && value <= 'Z') && !(value >= '0' && value <= '9')) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private static void updateInt(MessageDigest digest, int value) {

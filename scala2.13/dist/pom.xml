@@ -248,7 +248,7 @@
                                     <mainClass>com.nvidia.spark.rapids.SparkRapidsJarTool</mainClass>
                                 </manifest>
                                 <manifestEntries>
-                                    <Implementation-Title>${project.name}</Implementation-Title>
+                                    <Implementation-Title>${spark.rapids.product.name}</Implementation-Title>
                                 </manifestEntries>
                             </archive>
                             <classesDirectory>${project.build.directory}/parallel-world</classesDirectory>
@@ -426,7 +426,7 @@
                                         <not>
                                             <and>
                                                 <contains string="${dist.jar.info}"
-                                                          substring="${project.name}:"/>
+                                                          substring="${spark.rapids.product.name}:"/>
                                                 <contains string="${dist.jar.info}"
                                                           substring="scala_library_version: ${scala.version}"/>
                                                 <contains string="${dist.jar.info}"
