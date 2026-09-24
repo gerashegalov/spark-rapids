@@ -288,6 +288,10 @@ case class LikeRuleMeta(
     r: DataFromReplacementRule)
   extends BinaryExprMeta[Like](a, conf, p, r) {
   override def tagExprForGpu(): Unit = {
+    if (a.escapeChar > 0x7f) {
+      willNotWorkOnGpu("non-ASCII LIKE escape characters are not supported")
+      return
+    }
     a.right match {
       case Literal(v: UTF8String, _) =>
         val pattern = v.toString
@@ -574,6 +578,11 @@ case class PercentileRuleMeta(
     r: DataFromReplacementRule)
   extends TypedImperativeAggExprMeta[Percentile](c, conf, p, r) {
   override def tagAggForGpu(): Unit = {
+    if (!SparkShimImpl.isExactPercentileInputTypeSupported(c.child.dataType)) {
+      willNotWorkOnGpu(
+        "exact percentile for floating-point inputs does not match Spark 5 interpolation semantics")
+    }
+
     // Check if the input percentage can be supported on GPU.
     GpuOverrides.extractLit(childExprs(1).wrapped.asInstanceOf[Expression]) match {
       case None =>
