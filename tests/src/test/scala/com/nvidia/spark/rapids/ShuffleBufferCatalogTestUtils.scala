@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2026, NVIDIA CORPORATION.
+ * Copyright (c) 2026, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.nvidia.spark.rapids.shims
 
-import com.nvidia.spark.rapids.{RapidsConf, RapidsMeta}
+package com.nvidia.spark.rapids
 
-object YearParseUtil {
-  def tagParseStringAsDate(conf: RapidsConf, meta: RapidsMeta[_, _, _]): Unit = {
-    if (conf.hasExtendedYearValues) {
-      meta.willNotWorkOnGpu("Parsing the full rage of supported years is not supported. " +
-          "If your years are limited to 4 positive digits set " +
-          s"${RapidsConf.HAS_EXTENDED_YEAR_VALUES} to false.")
-    }
-  }
+/** Gives suites outside this package the catalog internals their assertions need. */
+object ShuffleBufferCatalogTestUtils {
+  def bookkeepingSizes(catalog: ShuffleBufferCatalog): (Int, Int, Int) = catalog.bookkeepingSizes
 }
