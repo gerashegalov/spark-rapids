@@ -20,16 +20,6 @@ import java.util.concurrent.{Callable, ExecutorService, Future, TimeUnit}
 
 import org.apache.spark.sql.rapids.{ColumnarWriteTaskStatsTracker, GpuWriteTaskStatsTracker}
 
-
-/**
- * Stats related classes used by ThrottlingExecutor
- */
-case class ThrottlingExecutorStats (
-    var numTasksScheduled: Int,
-    var accumulatedThrottleTimeNs: Long,
-    var minThrottleTimeNs: Long,
-    var maxThrottleTimeNs: Long)
-
 /**
  * Only for GpuWriteTaskStatsTracker cases
  */
