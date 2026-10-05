@@ -38,9 +38,9 @@ trait GpuDataProducer[T] extends AutoCloseable {
   def hasNext: Boolean
 
   /**
-   * if hasNext returned true return the data. The reader is responsible for closing the
+   * If hasNext returned true, return the data. The reader is responsible for closing the
    * returned value if it needs to be closed. If there is no more data to be read then
-   * an instance of NotSuchElementException should be thrown.
+   * an instance of NoSuchElementException should be thrown.
    */
   def next: T
 

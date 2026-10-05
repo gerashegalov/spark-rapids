@@ -32,16 +32,17 @@ case object AcquireFailed extends AcquireStatus
 case class AcquireExcepted(exception: Throwable) extends AcquireStatus
 
 /**
- * ResourceManager interface to be implemented for AsyncRunners requiring different kinds of
+ * ResourcePool interface to be implemented for AsyncRunners requiring different kinds of
  * resources.
  *
- * Currently, only HostMemoryManager is implemented, which limits the maximum in-flight host
+ * Currently, only HostMemoryPool is implemented, which limits the maximum in-flight host
  * memory bytes. In the future, we can add more.
  */
 trait ResourcePool {
   /**
-   * Returns true if the task can be accepted, false otherwise.
-   * TrafficController will block the task from being scheduled until this method returns true.
+   * Attempts to acquire the resources required by the task, waiting up to the timeout in
+   * milliseconds. Returns [[AcquireSuccessful]] when the resources are acquired,
+   * [[AcquireFailed]] when the timeout expires, or [[AcquireExcepted]] when acquisition throws.
    */
   def acquireResource[T](task: AsyncRunner[T], timeout: Long): AcquireStatus
 
