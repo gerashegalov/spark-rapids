@@ -18,11 +18,7 @@ package org.apache.spark.sql.delta.catalog
 
 import java.util
 
-import org.apache.hadoop.fs.Path
-
-import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.connector.catalog.{Identifier, TableCatalog}
-import org.apache.spark.sql.delta.sources.DeltaSourceUtils
 
 /** Delta 4.3 accessors for catalog state that is intentionally package-private upstream. */
 object DeltaCatalogRestApiShim {
@@ -38,12 +34,11 @@ object DeltaCatalogRestApiShim {
   def shouldRouteCreate(
       catalog: DeltaCatalog,
       ident: Identifier,
-      properties: util.Map[String, String],
-      spark: SparkSession): Boolean = {
+      properties: util.Map[String, String]): Boolean = {
     isRestApiEnabled(catalog) &&
       !properties.containsKey(TableCatalog.PROP_LOCATION) &&
       !properties.containsKey(TableCatalog.PROP_EXTERNAL) &&
-      !isPathIdentifier(ident, spark)
+      !DeltaCatalogPathIdentifierAccess.isPathIdentifier(catalog, ident)
   }
 
   /**
@@ -53,23 +48,10 @@ object DeltaCatalogRestApiShim {
   def shouldRouteOrValidateReplace(
       catalog: DeltaCatalog,
       ident: Identifier,
-      properties: util.Map[String, String],
-      spark: SparkSession): Boolean = {
+      properties: util.Map[String, String]): Boolean = {
     isRestApiEnabled(catalog) &&
       (properties.containsKey(TableCatalog.PROP_LOCATION) ||
         properties.containsKey(TableCatalog.PROP_EXTERNAL) ||
-        !isPathIdentifier(ident, spark))
-  }
-
-  /** Matches Delta's SupportsPathIdentifier predicate without invoking catalog I/O. */
-  private def isPathIdentifier(ident: Identifier, spark: SparkSession): Boolean = {
-    try {
-      spark.sessionState.conf.runSQLonFile &&
-        ident.namespace().length == 1 &&
-        DeltaSourceUtils.isDeltaDataSourceName(ident.namespace().head) &&
-        new Path(ident.name()).isAbsolute
-    } catch {
-      case _: IllegalArgumentException => false
-    }
+        !DeltaCatalogPathIdentifierAccess.isPathIdentifier(catalog, ident))
   }
 }

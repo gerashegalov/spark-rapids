@@ -338,7 +338,7 @@ ci_scala213() {
         SPARK_HOME=$SPARK_HOME PYTHONPATH=$PYTHONPATH \
         TEST_PARALLEL=1 \
         TESTS=delta_lake_catalog_rest_test.py \
-        TEST= \
+        TEST='' \
         ./integration_tests/run_unity_catalog_server.sh \
           --delta-version 4.3.0 --run-dir "${WORKSPACE:-${TMPDIR:-/tmp}}" -- \
           ./integration_tests/run_pyspark_from_build.sh \

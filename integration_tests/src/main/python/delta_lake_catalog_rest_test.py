@@ -19,6 +19,7 @@ import re
 import stat
 import threading
 import uuid
+from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
@@ -177,6 +178,22 @@ class _DeltaCommitRejectingProxy:
         self._thread.join(timeout=5)
 
 
+@contextmanager
+def _proxied_unity_catalog(unity_catalog_server):
+    """Reload the cached catalog for a proxy URI, then evict it before the proxy closes."""
+    with _DeltaCommitRejectingProxy(unity_catalog_server["uri"]) as proxy:
+        conf = _catalog_conf({**unity_catalog_server, "uri": proxy.uri})
+
+        def reset_catalog(spark):
+            spark._jsparkSession.sessionState().catalogManager().reset()
+
+        with_cpu_session(reset_catalog, conf=conf)
+        try:
+            yield proxy, conf
+        finally:
+            with_cpu_session(reset_catalog, conf=conf)
+
+
 def _catalog_options(rest_api_enabled=None):
     jvm = spark_jvm()
     options = jvm.java.util.HashMap()
@@ -210,6 +227,41 @@ def _routing_properties(location=None, external=None):
     if external is not None:
         properties.put("external", str(external).lower())
     return properties
+
+
+def _tag_direct_delta_catalog_write(spark, catalog, replace=False):
+    """Exercise the Delta 4.3 provider with a physical write using a direct DeltaCatalog."""
+    jvm = spark_jvm()
+    empty_map = getattr(getattr(jvm.scala.collection.immutable, "Map$"), "MODULE$").empty()
+    empty_seq = getattr(getattr(jvm.scala.collection.immutable, "Nil$"), "MODULE$")
+    no_value = jvm.scala.Option.empty()
+    table_spec_args = [
+        empty_map, jvm.scala.Option.apply("delta"), empty_map,
+        no_value, no_value, no_value, no_value, False,
+    ]
+    if not spark.version.startswith("4.0."):
+        # Spark 4.1 adds table constraints to TableSpec.
+        table_spec_args.append(empty_seq)
+    table_spec = jvm.org.apache.spark.sql.catalyst.plans.logical.TableSpec(*table_spec_args)
+    ident = _identifier(spark, "default", f"tagging_{uuid.uuid4().hex}")
+    query = spark.range(1)._jdf.queryExecution().analyzed()
+    execs = jvm.org.apache.spark.sql.execution.datasources.v2
+    rapids = jvm.com.nvidia.spark.rapids
+    if replace:
+        cpu_exec = execs.AtomicReplaceTableAsSelectExec(
+            catalog, ident, empty_seq, query, table_spec, empty_map, True, None)
+        meta = rapids.AtomicReplaceTableAsSelectExecMeta(
+            cpu_exec, rapids.RapidsConf(empty_map), no_value,
+            rapids.NoRuleDataFromReplacementRule())
+    else:
+        cpu_exec = execs.AtomicCreateTableAsSelectExec(
+            catalog, ident, empty_seq, query, table_spec, empty_map, False)
+        meta = rapids.AtomicCreateTableAsSelectExecMeta(
+            cpu_exec, rapids.RapidsConf(empty_map), no_value,
+            rapids.NoRuleDataFromReplacementRule())
+    meta.initReasons()
+    jvm.com.nvidia.spark.rapids.delta.delta43x.Delta43xProvider.tagForGpu(cpu_exec, meta)
+    return meta.explain(True)
 
 
 def _assert_rest_cpu_plans(plans, callback, expected_cpu_class):
@@ -437,20 +489,73 @@ def test_delta_rest_api_client_and_routing_detection():
         assert shim.isRestApiEnabled(enabled)
         assert not shim.isRestApiEnabled(disabled)
         assert shim.shouldRouteCreate(
-            enabled, managed, _routing_properties(), spark._jsparkSession)
+            enabled, managed, _routing_properties())
         assert not shim.shouldRouteCreate(
-            enabled, managed, _routing_properties(location="/tmp/external"),
-            spark._jsparkSession)
+            enabled, managed, _routing_properties(location="/tmp/external"))
         assert not shim.shouldRouteCreate(
-            enabled, path, _routing_properties(), spark._jsparkSession)
+            enabled, path, _routing_properties())
         assert shim.shouldRouteOrValidateReplace(
-            enabled, managed, _routing_properties(), spark._jsparkSession)
+            enabled, managed, _routing_properties())
         assert shim.shouldRouteOrValidateReplace(
-            enabled, managed, _routing_properties(external=True), spark._jsparkSession)
+            enabled, managed, _routing_properties(external=True))
         assert not shim.shouldRouteOrValidateReplace(
-            enabled, path, _routing_properties(), spark._jsparkSession)
+            enabled, path, _routing_properties())
+
+        # The catalog's captured session, not the active caller session, owns path routing.
+        catalog_session = spark._jsparkSession.newSession()
+        catalog_session.conf().set("spark.sql.runSQLOnFiles", "true")
+        caller_session = spark._jsparkSession.newSession()
+        caller_session.conf().set("spark.sql.runSQLOnFiles", "false")
+        jvm_session = spark_jvm().org.apache.spark.sql.SparkSession
+        try:
+            jvm_session.setActiveSession(catalog_session)
+            path_catalog = _new_delta_catalog()
+            jvm_session.setActiveSession(caller_session)
+            assert path_catalog.spark().equals(catalog_session)
+            assert path_catalog.spark().sessionState().conf().runSQLonFile()
+            assert not caller_session.sessionState().conf().runSQLonFile()
+            assert not shim.shouldRouteCreate(
+                path_catalog, path, _routing_properties())
+
+            # In the reverse mismatch, the caller would incorrectly skip CPU REST routing.
+            catalog_session.conf().set("spark.sql.runSQLOnFiles", "false")
+            caller_session.conf().set("spark.sql.runSQLOnFiles", "true")
+            jvm_session.setActiveSession(catalog_session)
+            managed_catalog = _new_delta_catalog()
+            jvm_session.setActiveSession(caller_session)
+            assert managed_catalog.spark().equals(catalog_session)
+            assert not managed_catalog.spark().sessionState().conf().runSQLonFile()
+            assert caller_session.sessionState().conf().runSQLonFile()
+            assert shim.isRestApiEnabled(managed_catalog)
+            assert shim.shouldRouteCreate(
+                managed_catalog, path, _routing_properties())
+            assert shim.shouldRouteOrValidateReplace(
+                managed_catalog, path, _routing_properties())
+        finally:
+            jvm_session.setActiveSession(spark._jsparkSession)
 
     with_cpu_session(check)
+
+
+@delta_lake
+@unity_catalog
+def test_delta_rest_direct_catalog_provider_tags_ctas_and_rtas(unity_catalog_server):
+    conf = _catalog_conf(unity_catalog_server)
+
+    def check(spark):
+        catalog = spark._jsparkSession.sessionState().catalogManager().catalog("unity")
+        delegate_field = catalog.getClass().getDeclaredField("delegate")
+        delegate_field.setAccessible(True)
+        delta_catalog = delegate_field.get(catalog)
+        shim = spark_jvm().org.apache.spark.sql.delta.catalog.DeltaCatalogRestApiShim
+        assert shim.isRestApiEnabled(delta_catalog)
+
+        # No catalog-owned feature property: the initialized REST client alone must tag both.
+        for replace in (False, True):
+            reason = _tag_direct_delta_catalog_write(spark, delta_catalog, replace=replace)
+            assert "Unity Catalog Delta REST API operations must run on CPU" in reason, reason
+
+    with_cpu_session(check, conf=conf)
 
 
 @allow_non_gpu("AtomicReplaceTableExec", "CreateTableExec", *delta_meta_allow)
@@ -493,9 +598,7 @@ def test_delta_rest_schema_only_create_and_replace_fall_back(unity_catalog_serve
 @unity_catalog
 def test_delta_rest_domain_metadata_intent_reaches_catalog(unity_catalog_server):
     _, table = _new_table_name("delta_rest_domain_metadata")
-    with _DeltaCommitRejectingProxy(unity_catalog_server["uri"]) as proxy:
-        proxied_server = {**unity_catalog_server, "uri": proxy.uri}
-        conf = _catalog_conf(proxied_server)
+    with _proxied_unity_catalog(unity_catalog_server) as (proxy, conf):
         try:
             _assert_rest_fallback(
                 lambda spark: spark.sql(f"""
@@ -558,9 +661,7 @@ def test_delta_rest_non_delta_catalog_write_stays_on_cpu(unity_catalog_server):
 @unity_catalog
 def test_delta_rest_managed_ctas_and_rtas_fall_back(unity_catalog_server):
     _, table = _new_table_name("delta_rest_create_replace")
-    with _DeltaCommitRejectingProxy(unity_catalog_server["uri"]) as proxy:
-        proxied_server = {**unity_catalog_server, "uri": proxy.uri}
-        conf = _catalog_conf(proxied_server)
+    with _proxied_unity_catalog(unity_catalog_server) as (proxy, conf):
         try:
             _assert_rest_fallback(
                 lambda spark: spark.sql(f"""
@@ -674,9 +775,7 @@ def test_delta_rest_replace_validation_propagates_and_preserves_table(
 def test_delta_rest_server_commit_rejection_propagates_and_aborts(unity_catalog_server):
     _, table = _new_table_name("delta_rest_server_rejection")
 
-    with _DeltaCommitRejectingProxy(unity_catalog_server["uri"]) as proxy:
-        proxied_server = {**unity_catalog_server, "uri": proxy.uri}
-        conf = _catalog_conf(proxied_server)
+    with _proxied_unity_catalog(unity_catalog_server) as (proxy, conf):
         try:
             _assert_rest_fallback(
                 lambda spark: spark.sql(f"""
@@ -736,9 +835,7 @@ def test_delta_rest_server_commit_rejection_propagates_and_aborts(unity_catalog_
 @unity_catalog
 def test_delta_rest_metadata_changing_writes_fall_back(unity_catalog_server):
     _, table = _new_table_name("delta_rest_metadata_writes")
-    with _DeltaCommitRejectingProxy(unity_catalog_server["uri"]) as proxy:
-        proxied_server = {**unity_catalog_server, "uri": proxy.uri}
-        conf = _catalog_conf(proxied_server)
+    with _proxied_unity_catalog(unity_catalog_server) as (proxy, conf):
         try:
             _assert_rest_fallback(
                 lambda spark: spark.sql(f"""
@@ -894,7 +991,8 @@ def test_delta_rest_failed_rtas_preserves_table(
                     protected_modes[path] = stat.S_IMODE(os.stat(path).st_mode)
                     os.chmod(path, 0o500)
 
-            error_match = "Injected create failure" if failure_stage == "data-file" else None
+            error_match = "Injected create failure" if failure_stage == "data-file" else \
+                rf"{re.escape(delta_log_path)}.*Permission denied"
             _assert_rest_failure(
                 lambda spark: spark.sql(f"""
                     REPLACE TABLE {table} USING DELTA

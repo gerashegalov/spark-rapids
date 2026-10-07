@@ -52,6 +52,8 @@ object Delta43xProvider extends DeltaProviderBase with Logging {
   private val UNITY_CATALOG_CLASS_NAME = "io.unitycatalog.spark.UCSingleCatalog"
   private val REST_API_FALLBACK_REASON =
     "Delta 4.3 Unity Catalog Delta REST API operations must run on CPU"
+  private val CATALOG_MANAGED_FALLBACK_REASON =
+    "Delta 4.3 catalog-managed table writes are not supported on GPU"
 
   override protected def getCDFRelationStrategy = Delta43xCDFRelationStrategy
 
@@ -110,10 +112,12 @@ object Delta43xProvider extends DeltaProviderBase with Logging {
       ident: Identifier,
       properties: Map[String, String],
       spark: SparkSession): Unit = {
-    if (isDeltaProvider(properties, spark) &&
-        (DeltaCatalogRestApiShim.shouldRouteCreate(catalog, ident, properties.asJava, spark) ||
-          isCatalogManagedByProperty(properties, spark))) {
-      meta.willNotWorkOnGpu(REST_API_FALLBACK_REASON)
+    if (isDeltaProvider(properties, spark)) {
+      if (DeltaCatalogRestApiShim.shouldRouteCreate(catalog, ident, properties.asJava)) {
+        meta.willNotWorkOnGpu(REST_API_FALLBACK_REASON)
+      } else if (isCatalogManagedByProperty(properties, spark)) {
+        meta.willNotWorkOnGpu(CATALOG_MANAGED_FALLBACK_REASON)
+      }
     }
   }
 
@@ -123,11 +127,13 @@ object Delta43xProvider extends DeltaProviderBase with Logging {
       ident: Identifier,
       properties: Map[String, String],
       spark: SparkSession): Unit = {
-    if (isDeltaProvider(properties, spark) &&
-        (DeltaCatalogRestApiShim.shouldRouteOrValidateReplace(
-          catalog, ident, properties.asJava, spark) ||
-          isCatalogManagedByProperty(properties, spark))) {
-      meta.willNotWorkOnGpu(REST_API_FALLBACK_REASON)
+    if (isDeltaProvider(properties, spark)) {
+      if (DeltaCatalogRestApiShim.shouldRouteOrValidateReplace(
+          catalog, ident, properties.asJava)) {
+        meta.willNotWorkOnGpu(REST_API_FALLBACK_REASON)
+      } else if (isCatalogManagedByProperty(properties, spark)) {
+        meta.willNotWorkOnGpu(CATALOG_MANAGED_FALLBACK_REASON)
+      }
     }
   }
 
