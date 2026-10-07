@@ -968,11 +968,9 @@ class SpillableDeviceBufferHandle private (
             var stagingHost: Option[SpillableHostBufferHandle] =
               Some(SpillableHostBufferHandle.createHostHandleFromDeviceBuff(buf, taskPriority))
             synchronized {
-              spilling = false
               if (closed) {
                 stagingHost.foreach(_.close())
                 stagingHost = None
-                doClose()
               } else {
                 host = stagingHost
               }
@@ -984,6 +982,15 @@ class SpillableDeviceBufferHandle private (
       } else {
         0
       }
+    }
+  }
+
+  override def releaseSpilled(): Unit = synchronized {
+    super.releaseSpilled()
+    spilling = false
+    if (closed) {
+      host.foreach(_.close())
+      host = None
     }
   }
 
