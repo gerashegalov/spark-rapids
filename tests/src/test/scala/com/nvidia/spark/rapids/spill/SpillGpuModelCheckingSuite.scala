@@ -43,11 +43,11 @@ class SpillGpuModelCheckingSuite extends SparkQueryCompareTestSuite {
     }
   }
 
-  private def graph(): Graph = {
-    val states = explore().map(_.state)
+  private def graph(transition: (State, Action) => Option[State] = next): Graph = {
+    val states = explore(transition).map(_.state)
     val ids = states.zipWithIndex.map { case (state, index) => state -> index.toLong }.toMap
     val transitions = states.zipWithIndex.flatMap { case (state, index) =>
-      actions.flatMap(action => next(state, action).map(ids(_))).map(index.toLong -> _)
+      actions.flatMap(action => transition(state, action).map(ids(_))).map(index.toLong -> _)
     }.toSet
     val terminalLoops = states.indices.map(_.toLong).filterNot(source =>
       transitions.exists(_._1 == source)).map(source => source -> source)
@@ -62,15 +62,18 @@ class SpillGpuModelCheckingSuite extends SparkQueryCompareTestSuite {
     spark.createDataFrame(rows, StructType(Seq(StructField("state_id", LongType))))
   }
 
-  private def checkedResult(frame: DataFrame, requireRows: Boolean = false): Set[Long] = {
+  private def checkedResult(frame: DataFrame, requiredGpuJoins: Int,
+      requireRows: Boolean = false): Set[Long] = {
     val result = ids(frame)
-    val gpuJoin = TestUtils.findOperator(frame.queryExecution.executedPlan,
-      _.isInstanceOf[GpuBroadcastHashJoinExec])
-    assert(gpuJoin.isDefined, s"CTL query did not use a GPU join:\n" +
-      frame.queryExecution.executedPlan)
-    assert(gpuJoin.get.metrics.get("numOutputRows").exists { metric =>
-      metric.value >= (if (requireRows) 1L else 0L)
-    })
+    val plan = frame.queryExecution.executedPlan
+    val gpuJoins = plan.collect { case join: GpuBroadcastHashJoinExec => join }
+    assert(gpuJoins.size >= requiredGpuJoins,
+      s"CTL query expected $requiredGpuJoins GPU joins, found ${gpuJoins.size}:\n$plan")
+    assert(gpuJoins.forall(_.metrics.get("numOutputRows").isDefined))
+    if (requireRows) {
+      assert(result.nonEmpty)
+      assert(gpuJoins.head.metrics("numOutputRows").value > 0L)
+    }
     result
   }
 
@@ -89,8 +92,12 @@ class SpillGpuModelCheckingSuite extends SparkQueryCompareTestSuite {
       val candidates = predecessor(edges, prior)
         .join(broadcast(relation(spark, allowed)), Seq("state_id"))
       val nextStates = prior.union(candidates).distinct()
-      val result = checkedResult(nextStates)
+      val result = checkedResult(nextStates, requiredGpuJoins = 2)
       val plan = nextStates.queryExecution.executedPlan
+      if (result.size > current.size) {
+        val gpuJoins = plan.collect { case join: GpuBroadcastHashJoinExec => join }
+        assert(gpuJoins.forall(_.metrics("numOutputRows").value > 0L))
+      }
       assert(TestUtils.findOperator(plan, _.isInstanceOf[GpuUnionExec]).isDefined)
       assert(TestUtils.findOperator(plan, _.isInstanceOf[GpuHashAggregateExec]).isDefined)
       result
@@ -104,10 +111,19 @@ class SpillGpuModelCheckingSuite extends SparkQueryCompareTestSuite {
   }
 
   private def complement(spark: SparkSession,
-      all: Set[Long], excluded: Set[Long]): Set[Long] = {
+      all: Set[Long], excluded: Set[Long], requireRows: Boolean = false): Set[Long] = {
     val remaining = relation(spark, all)
       .join(broadcast(relation(spark, excluded)), Seq("state_id"), "left_anti")
-    checkedResult(remaining)
+    checkedResult(remaining, requiredGpuJoins = 1, requireRows = requireRows)
+  }
+
+  private def edgeRelation(spark: SparkSession, graph: Graph): DataFrame = {
+    val rows = spark.sparkContext.parallelize(graph.edges.toSeq.map {
+      case (source, target) => Row(source, target)
+    }, 1)
+    val schema = StructType(Seq(StructField("source_id", LongType),
+      StructField("target_id", LongType)))
+    spark.createDataFrame(rows, schema)
   }
 
   test("GPU predecessor joins evaluate EX, EU, and AG over spill lifecycle graph") {
@@ -115,16 +131,12 @@ class SpillGpuModelCheckingSuite extends SparkQueryCompareTestSuite {
     assert(model.states.nonEmpty)
     assert(model.edges.nonEmpty)
     withGpuSparkSession { spark =>
-      val rows = spark.sparkContext.parallelize(model.edges.toSeq.map {
-        case (source, target) => Row(source, target)
-      }, 1)
-      val schema = StructType(Seq(StructField("source_id", LongType),
-        StructField("target_id", LongType)))
-      val edges = spark.createDataFrame(rows, schema)
+      val edges = edgeRelation(spark, model)
       val open = model.ids.filter(id => !model.states(id.toInt).closed)
       val host = model.ids.filter(id => model.states(id.toInt).hostOwned)
 
-      assert(checkedResult(predecessor(edges, relation(spark, host)), requireRows = true) ==
+      assert(checkedResult(predecessor(edges, relation(spark, host)),
+        requiredGpuJoins = 1, requireRows = true) ==
         model.predecessor(host))
       assert(until(spark, edges, open, host) == model.until(open, host))
       val gpuAgOpen = complement(spark, model.ids,
@@ -135,10 +147,20 @@ class SpillGpuModelCheckingSuite extends SparkQueryCompareTestSuite {
 
       val safe = model.ids.filter(id => violations(model.states(id.toInt)).isEmpty)
       val gpuAgSafe = complement(spark, model.ids,
-        until(spark, edges, model.ids, model.ids -- safe))
+        until(spark, edges, model.ids, model.ids -- safe), requireRows = true)
       val cpuAgSafe = model.ids -- model.until(model.ids, model.ids -- safe)
       assert(gpuAgSafe == cpuAgSafe)
       assert(gpuAgSafe.contains(0L))
+
+      val unsafe = graph(prematureRelease)
+      val unsafeEdges = edgeRelation(spark, unsafe)
+      val unsafeSafe = unsafe.ids.filter(id => violations(unsafe.states(id.toInt)).isEmpty)
+      assert(unsafeSafe.size < unsafe.ids.size)
+      val gpuAgUnsafe = complement(spark, unsafe.ids,
+        until(spark, unsafeEdges, unsafe.ids, unsafe.ids -- unsafeSafe))
+      val cpuAgUnsafe = unsafe.ids -- unsafe.until(unsafe.ids, unsafe.ids -- unsafeSafe)
+      assert(gpuAgUnsafe == cpuAgUnsafe)
+      assert(!gpuAgUnsafe.contains(0L))
     }
   }
 }
