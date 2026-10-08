@@ -19,7 +19,7 @@ package com.nvidia.spark.rapids.spill
 import java.util.concurrent.{Callable, CountDownLatch, Executors, TimeUnit}
 
 import ai.rapids.cudf.{Cuda, DeviceMemoryBuffer, HostMemoryBuffer}
-import com.nvidia.spark.rapids.Arm.withResource
+import com.nvidia.spark.rapids.Arm.{closeOnExcept, withResource}
 
 class SpillLifecycleReplaySuite extends SpillUnitTestBase {
   private val timeoutSeconds = 15L
@@ -63,12 +63,13 @@ class SpillLifecycleReplaySuite extends SpillUnitTestBase {
   }
 
   private def createHandle(): SpillableDeviceBufferHandle = {
-    val deviceBuffer = DeviceMemoryBuffer.allocate(expectedBytes.length)
-    withResource(HostMemoryBuffer.allocate(expectedBytes.length)) { hostBuffer =>
-      hostBuffer.setBytes(0, expectedBytes, 0, expectedBytes.length)
-      deviceBuffer.copyFromHostBuffer(hostBuffer)
+    closeOnExcept(DeviceMemoryBuffer.allocate(expectedBytes.length)) { deviceBuffer =>
+      withResource(HostMemoryBuffer.allocate(expectedBytes.length)) { hostBuffer =>
+        hostBuffer.setBytes(0, expectedBytes, 0, expectedBytes.length)
+        deviceBuffer.copyFromHostBuffer(hostBuffer)
+      }
+      SpillableDeviceBufferHandle(deviceBuffer)
     }
-    SpillableDeviceBufferHandle(deviceBuffer)
   }
 
   private def assertContents(buffer: DeviceMemoryBuffer): Unit = {
@@ -125,14 +126,14 @@ class SpillLifecycleReplaySuite extends SpillUnitTestBase {
         },
         handle => {
           assert(handle.host.isDefined)
-          assertContents(borrowed)
-          borrowed.close()
+          val materialized = borrowed
           borrowed = null
+          withResource(materialized)(assertContents)
           withResource(handle.materialize())(assertContents)
         })
     } finally {
-      if (borrowed != null) {
-        borrowed.close()
+      Option(borrowed).foreach { buffer =>
+        withResource(buffer)(_ => ())
       }
     }
   }
