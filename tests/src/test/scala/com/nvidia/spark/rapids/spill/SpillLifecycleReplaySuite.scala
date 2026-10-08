@@ -62,6 +62,29 @@ class SpillLifecycleReplaySuite extends SpillUnitTestBase {
     }
   }
 
+  private class FailingHostStore extends SpillableHostStore(Some(1024L)) {
+    private var copies = 0
+
+    override def makeBuilder(
+        handle: SpillableHostBufferHandle): SpillableHostBufferHandleBuilder = {
+      val underlying = super.makeBuilder(handle)
+      new SpillableHostBufferHandleBuilder {
+        override def copyNext(buffer: DeviceMemoryBuffer, length: Long,
+            stream: Cuda.Stream): Unit = {
+          copies += 1
+          if (copies == 2) {
+            throw new IllegalStateException("injected host copy failure")
+          }
+          underlying.copyNext(buffer, length, stream)
+        }
+
+        override def build: SpillableHostBufferHandle = underlying.build
+
+        override def close(): Unit = underlying.close()
+      }
+    }
+  }
+
   private def createHandle(): SpillableDeviceBufferHandle = {
     closeOnExcept(DeviceMemoryBuffer.allocate(expectedBytes.length)) { deviceBuffer =>
       withResource(HostMemoryBuffer.allocate(expectedBytes.length)) { hostBuffer =>
@@ -83,7 +106,8 @@ class SpillLifecycleReplaySuite extends SpillUnitTestBase {
 
   private def runScenario(
       atCopy: SpillableDeviceBufferHandle => Unit,
-      atPublication: SpillableDeviceBufferHandle => Unit): Unit = {
+      atPublication: SpillableDeviceBufferHandle => Unit,
+      afterRelease: SpillableDeviceBufferHandle => Unit = _ => ()): Unit = {
     val hostStore = new PausingHostStore
     val deviceStore = new PausingDeviceStore
     SpillFramework.stores.hostStore = hostStore
@@ -101,6 +125,7 @@ class SpillLifecycleReplaySuite extends SpillUnitTestBase {
       atPublication(handle)
       deviceStore.resumeRelease.countDown()
       assertResult(handle.approxSizeInBytes)(spilled.get(timeoutSeconds, TimeUnit.SECONDS))
+      afterRelease(handle)
       handle.close()
       assertResult(0)(deviceStore.numHandles)
       assertResult(0)(hostStore.numHandles)
@@ -130,6 +155,10 @@ class SpillLifecycleReplaySuite extends SpillUnitTestBase {
           borrowed = null
           withResource(materialized)(assertContents)
           withResource(handle.materialize())(assertContents)
+        },
+        handle => {
+          assert(handle.dev.isEmpty)
+          withResource(handle.materialize())(assertContents)
         })
     } finally {
       Option(borrowed).foreach { buffer =>
@@ -154,5 +183,27 @@ class SpillLifecycleReplaySuite extends SpillUnitTestBase {
         handle.close()
         assert(handle.dev.isDefined)
       })
+  }
+
+  test("failed spill plan releases earlier completed device buffers") {
+    val hostStore = new FailingHostStore
+    val deviceStore = new SpillableDeviceStore
+    SpillFramework.stores.hostStore = hostStore
+    SpillFramework.stores.deviceStore = deviceStore
+
+    withResource(createHandle()) { first =>
+      withResource(createHandle()) { second =>
+        val failure = intercept[IllegalStateException] {
+          deviceStore.spill(first.approxSizeInBytes + second.approxSizeInBytes)
+        }
+        assertResult("injected host copy failure")(failure.getMessage)
+        val completed = Seq(first, second).filter(_.host.isDefined)
+        assertResult(1)(completed.size)
+        assert(completed.head.dev.isEmpty)
+        withResource(completed.head.materialize())(assertContents)
+      }
+    }
+    assertResult(0)(deviceStore.numHandles)
+    assertResult(0)(hostStore.numHandles)
   }
 }

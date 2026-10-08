@@ -1768,9 +1768,11 @@ trait SpillableStore[T <: SpillableHandle]
         com.nvidia.spark.rapids.jni.RmmSpark.spillRangeStart()
         try {
           val plan = makeSpillPlan(spillNeeded)
-          val amountSpilled = plan.trySpill()
-          postSpill(plan)
-          amountSpilled
+          try {
+            plan.trySpill()
+          } finally {
+            postSpill(plan)
+          }
         } finally {
           com.nvidia.spark.rapids.jni.RmmSpark.spillRangeDone()
         }
