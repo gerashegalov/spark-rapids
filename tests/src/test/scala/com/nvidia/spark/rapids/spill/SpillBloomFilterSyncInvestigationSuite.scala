@@ -18,7 +18,8 @@ package com.nvidia.spark.rapids.spill
 
 import java.util.concurrent.{Callable, CountDownLatch, Executors, TimeUnit}
 
-import ai.rapids.cudf.{ColumnVector, Cuda, DeviceMemoryBuffer, Scalar}
+import ai.rapids.cudf.{ColumnVector, Cuda, DeviceMemoryBuffer, NvtxColor, NvtxRange, Rmm,
+  RmmAllocationMode, Scalar}
 import com.nvidia.spark.rapids.Arm.{closeOnExcept, withResource}
 import com.nvidia.spark.rapids.GpuBloomFilter
 import com.nvidia.spark.rapids.jni.BloomFilter
@@ -28,6 +29,16 @@ class SpillBloomFilterSyncInvestigationSuite extends SpillUnitTestBase {
   private val probeRows = 8 * 1024 * 1024
   private val probeHashes = 512
   private val filterBits = 4L * 1024 * 1024
+
+  override def afterEach(): Unit = {
+    try {
+      super.afterEach()
+    } finally {
+      if (java.lang.Boolean.getBoolean("ctl.spill.rmmAsync") && Rmm.isInitialized) {
+        Rmm.shutdown()
+      }
+    }
+  }
 
   private def await(latch: CountDownLatch): Unit = {
     assert(latch.await(timeoutSeconds, TimeUnit.SECONDS))
@@ -81,12 +92,24 @@ class SpillBloomFilterSyncInvestigationSuite extends SpillUnitTestBase {
 
   test("Bloom probe completion marker remains pending across concurrent spill close") {
     assert(Cuda.isPtdsEnabled())
+    val unguarded = java.lang.Boolean.getBoolean("ctl.spill.unguarded")
+    val asyncPool = java.lang.Boolean.getBoolean("ctl.spill.rmmAsync")
+    val attemptReuse = java.lang.Boolean.getBoolean("ctl.spill.reuse")
+    val overwriteReused = java.lang.Boolean.getBoolean("ctl.spill.overwrite")
+    assert(!attemptReuse || (unguarded && asyncPool))
+    assert(!overwriteReused || attemptReuse)
+    if (asyncPool) {
+      Rmm.initialize(RmmAllocationMode.CUDA_ASYNC, null, 512L * 1024 * 1024)
+    }
+    val resource = Option(Rmm.getCurrentDeviceResource).map(_.getClass.getName).getOrElse("none")
+    info(s"RMM resource=$resource, async=$asyncPool, unguarded=$unguarded")
     val hostStore = new PausingHostStore
     val deviceStore = new PausingDeviceStore
     SpillFramework.stores.hostStore = hostStore
     SpillFramework.stores.deviceStore = deviceStore
 
     val filterBuffer = createFilterBuffer()
+    val filterAddress = filterBuffer.getAddress
     val bloomFilter = closeOnExcept(filterBuffer)(new GpuBloomFilter(_))
     withResource(bloomFilter) { _ =>
       withResource(Scalar.fromLong(42L)) { value =>
@@ -99,7 +122,10 @@ class SpillBloomFilterSyncInvestigationSuite extends SpillUnitTestBase {
             try {
               val probe = probeExecutor.submit(new Callable[ColumnVector] {
                 override def call(): ColumnVector = {
-                  closeOnExcept(bloomFilter.mightContainLong(input)) { result =>
+                  val probed = withResource(new NvtxRange("CtlBloomProbeCall", NvtxColor.BLUE)) {
+                    _ => bloomFilter.mightContainLong(input)
+                  }
+                  closeOnExcept(probed) { result =>
                     completion.record()
                     result
                   }
@@ -112,21 +138,61 @@ class SpillBloomFilterSyncInvestigationSuite extends SpillUnitTestBase {
                   override def call(): Long = deviceStore.spill(filterBuffer.getLength)
                 })
                 await(hostStore.copyFinished)
-                filterBuffer.incRefCount()
-                guardHeld = true
+                if (!unguarded) {
+                  filterBuffer.incRefCount()
+                  guardHeld = true
+                }
                 hostStore.resumeCopy.countDown()
                 await(deviceStore.beforeSynchronization)
                 val pendingBeforeClose = !completion.hasCompleted
                 val referencesBeforeClose = filterBuffer.getRefCount
-                assertResult(2)(referencesBeforeClose)
-                bloomFilter.close()
+                assertResult(if (unguarded) 1 else 2)(referencesBeforeClose)
+                // A production overlap could involve one task completing and closing its
+                // Bloom expression while another task's allocation failure spills the filter.
+                // This forced close tests the ordering, not whether a real task completion
+                // leaves the Bloom probe running.
+                val closeStarted = System.nanoTime()
+                withResource(new NvtxRange("CtlBloomHandleClose", NvtxColor.RED)) { _ =>
+                  bloomFilter.close()
+                }
+                val closeElapsedNanos = System.nanoTime() - closeStarted
                 val pendingAfterClose = !completion.hasCompleted
-                assertResult(1)(filterBuffer.getRefCount)
+                assertResult(if (unguarded) 0 else 1)(filterBuffer.getRefCount)
                 info(s"pending after return=$pendingAfterReturn, before close=" +
-                  s"$pendingBeforeClose, after close=$pendingAfterClose")
-                deviceStore.resumeSynchronization.countDown()
-                assertResult(filterBuffer.getLength)(spilled.get(timeoutSeconds, TimeUnit.SECONDS))
-                assert(pendingAfterReturn && pendingBeforeClose && pendingAfterClose)
+                  s"$pendingBeforeClose, after close=$pendingAfterClose, " +
+                  s"close elapsed ns=$closeElapsedNanos")
+                def finishSpill(): Unit = {
+                  deviceStore.resumeSynchronization.countDown()
+                  val spilledBytes = spilled.get(timeoutSeconds, TimeUnit.SECONDS)
+                  assertResult(filterBuffer.getLength)(spilledBytes)
+                  assert(pendingAfterReturn && pendingBeforeClose &&
+                    (unguarded || pendingAfterClose))
+                }
+                if (attemptReuse) {
+                  withResource(DeviceMemoryBuffer.allocate(filterBuffer.getLength)) { reused =>
+                    info(s"filter address=$filterAddress, replacement address=" +
+                      s"${reused.getAddress}, same=${filterAddress == reused.getAddress}")
+                    if (overwriteReused) {
+                      assertResult(filterAddress)(reused.getAddress)
+                      Cuda.memset(reused.getAddress + 16L, 0.toByte, reused.getLength - 16L)
+                    }
+                    try {
+                      finishSpill()
+                      if (overwriteReused) {
+                        withResource(result.copyToHost()) { hostResult =>
+                          val falseTailCount = (probeRows - 4096 until probeRows)
+                            .count(index => !hostResult.getBoolean(index))
+                          info(s"false results in final 4096 rows=$falseTailCount")
+                          assert(falseTailCount > 0)
+                        }
+                      }
+                    } finally {
+                      Cuda.deviceSynchronize()
+                    }
+                  }
+                } else {
+                  finishSpill()
+                }
               }
             } finally {
               hostStore.resumeCopy.countDown()
