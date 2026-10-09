@@ -16,7 +16,6 @@ import http.client
 import json
 import os
 import re
-import stat
 import threading
 import uuid
 from contextlib import contextmanager
@@ -976,40 +975,26 @@ def test_delta_rest_failed_rtas_preserves_table(
         before_catalog = _catalog_identity_state(
             unity_catalog_server["tables_api"], table)
 
-        protected_modes = {}
-        try:
-            if failure_stage == "data-file":
-                credential_fs.failNextCreateEndingWith(".parquet")
-            else:
-                delta_log_path = os.path.join(
-                    urlparse(before_detail["location"]).path, "_delta_log")
-                protected_paths = [delta_log_path]
-                staged_commits_path = os.path.join(delta_log_path, "_staged_commits")
-                if os.path.isdir(staged_commits_path):
-                    protected_paths.append(staged_commits_path)
-                for path in protected_paths:
-                    protected_modes[path] = stat.S_IMODE(os.stat(path).st_mode)
-                    os.chmod(path, 0o500)
-
-            error_match = "Injected create failure" if failure_stage == "data-file" else \
-                rf"{re.escape(delta_log_path)}.*Permission denied"
-            _assert_rest_failure(
-                lambda spark: spark.sql(f"""
-                    REPLACE TABLE {table} USING DELTA
-                    TBLPROPERTIES ('user.atomicity.property' = 'preserved')
-                    AS SELECT 2L AS id, 'failed' AS value
-                    """).collect(), conf=conf,
-                expected_cpu_class="AtomicReplaceTableAsSelectExec",
-                error_match=error_match)
-        finally:
-            restore_error = None
-            for path, mode in protected_modes.items():
-                try:
-                    os.chmod(path, mode)
-                except OSError as error:
-                    restore_error = restore_error or error
-            if restore_error is not None:
-                raise restore_error
+        fail_suffix = ".parquet" if failure_stage == "data-file" else ".json"
+        credential_fs.failNextCreateEndingWith(fail_suffix)
+        _assert_rest_failure(
+            lambda spark: spark.sql(f"""
+                REPLACE TABLE {table} USING DELTA
+                TBLPROPERTIES ('user.atomicity.property' = 'preserved')
+                AS SELECT 2L AS id, 'failed' AS value
+                """).collect(), conf=conf,
+            expected_cpu_class="AtomicReplaceTableAsSelectExec",
+            error_match="Injected create failure")
+        failed_uri = credential_fs.getLastFailedCreatePath()
+        assert failed_uri, "The injected filesystem failure did not record its target path"
+        if failure_stage == "delta-commit":
+            delta_log_path = os.path.realpath(os.path.join(
+                urlparse(before_detail["location"]).path, "_delta_log"))
+            staged_commits_path = os.path.join(delta_log_path, "_staged_commits")
+            failed_path = os.path.realpath(urlparse(failed_uri).path)
+            assert os.path.commonpath([staged_commits_path, failed_path]) == \
+                staged_commits_path
+            assert not os.path.exists(failed_path)
 
         assert with_cpu_session(
             lambda spark: _preserved_table_state(spark, table), conf=conf) == before_state
