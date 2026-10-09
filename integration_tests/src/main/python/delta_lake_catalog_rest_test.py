@@ -977,12 +977,16 @@ def test_delta_rest_failed_rtas_preserves_table(
 
         fail_suffix = ".parquet" if failure_stage == "data-file" else ".json"
         credential_fs.failNextCreateEndingWith(fail_suffix)
+        failure_conf = dict(conf)
+        if failure_stage == "delta-commit":
+            # A one-shot staged-commit failure is otherwise retried by Delta.
+            failure_conf["spark.databricks.delta.maxNonConflictCommitAttempts"] = "0"
         _assert_rest_failure(
             lambda spark: spark.sql(f"""
                 REPLACE TABLE {table} USING DELTA
                 TBLPROPERTIES ('user.atomicity.property' = 'preserved')
                 AS SELECT 2L AS id, 'failed' AS value
-                """).collect(), conf=conf,
+                """).collect(), conf=failure_conf,
             expected_cpu_class="AtomicReplaceTableAsSelectExec",
             error_match="Injected create failure")
         failed_uri = credential_fs.getLastFailedCreatePath()
