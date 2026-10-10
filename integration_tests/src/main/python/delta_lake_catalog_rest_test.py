@@ -60,6 +60,7 @@ class _DeltaCommitRejectingProxy:
         self._reject_next = False
         self.rejected_body = None
         self.commit_requests = []
+        self._create_request_paths = []
         self.errors = []
         proxy = self
 
@@ -105,13 +106,21 @@ class _DeltaCommitRejectingProxy:
         with self._lock:
             return self.commit_requests[index:]
 
+    def create_request_paths(self):
+        with self._lock:
+            return list(self._create_request_paths)
+
     def _record_and_take_rejection(self, handler, body):
         path = handler.path.split("?", 1)[0]
         is_commit = handler.command == "POST" and "/delta/v1/" in path and \
             b'"add-commit"' in body
+        is_create = handler.command == "POST" and "/delta/v1/" in path and \
+            path.endswith(("/staging-tables", "/tables"))
         with self._lock:
             if is_commit:
                 self.commit_requests.append(json.loads(body))
+            if is_create:
+                self._create_request_paths.append(path)
             if not is_commit or not self._reject_next:
                 return False
             self._reject_next = False
@@ -228,14 +237,19 @@ def _routing_properties(location=None, external=None):
     return properties
 
 
-def _tag_direct_delta_catalog_write(spark, catalog, replace=False):
+def _tag_direct_delta_catalog_write(
+        spark, catalog, replace=False, provider="delta", table_properties=None):
     """Exercise the Delta 4.3 provider with a physical write using a direct DeltaCatalog."""
     jvm = spark_jvm()
     empty_map = getattr(getattr(jvm.scala.collection.immutable, "Map$"), "MODULE$").empty()
     empty_seq = getattr(getattr(jvm.scala.collection.immutable, "Nil$"), "MODULE$")
     no_value = jvm.scala.Option.empty()
+    properties = empty_map
+    for key, value in (table_properties or {}).items():
+        properties = properties.updated(key, value)
+    provider_option = no_value if provider is None else jvm.scala.Option.apply(provider)
     table_spec_args = [
-        empty_map, jvm.scala.Option.apply("delta"), empty_map,
+        properties, provider_option, empty_map,
         no_value, no_value, no_value, no_value, False,
     ]
     if not spark.version.startswith("4.0."):
@@ -258,6 +272,10 @@ def _tag_direct_delta_catalog_write(spark, catalog, replace=False):
         meta = rapids.AtomicCreateTableAsSelectExecMeta(
             cpu_exec, rapids.RapidsConf(empty_map), no_value,
             rapids.NoRuleDataFromReplacementRule())
+    if provider is None:
+        assert cpu_exec.properties().get("provider").isEmpty()
+        for key, value in (table_properties or {}).items():
+            assert cpu_exec.properties().get(key).get() == value
     meta.initReasons()
     jvm.com.nvidia.spark.rapids.delta.delta43x.Delta43xProvider.tagForGpu(cpu_exec, meta)
     return meta.explain(True)
@@ -404,7 +422,7 @@ def _assert_failed_create_did_not_publish(credential_fs, storage_root):
         name for name in os.listdir(delta_log) if re.fullmatch(r"[0-9]{20}\.json", name)
     ]
     assert published_commits == [], \
-        f"The aborted catalog stage published Delta commits: {published_commits}"
+        f"The failed create published Delta commits: {published_commits}"
 
 
 def _assert_row_tracking_commit_reaches_catalog(
@@ -539,7 +557,7 @@ def test_delta_rest_api_client_and_routing_detection():
 @delta_lake
 @unity_catalog
 def test_delta_rest_direct_catalog_provider_tags_ctas_and_rtas(unity_catalog_server):
-    conf = _catalog_conf(unity_catalog_server)
+    conf = {**_catalog_conf(unity_catalog_server), "spark.sql.sources.default": "delta"}
 
     def check(spark):
         catalog = spark._jsparkSession.sessionState().catalogManager().catalog("unity")
@@ -553,8 +571,39 @@ def test_delta_rest_direct_catalog_provider_tags_ctas_and_rtas(unity_catalog_ser
         for replace in (False, True):
             reason = _tag_direct_delta_catalog_write(spark, delta_catalog, replace=replace)
             assert "Unity Catalog Delta REST API operations must run on CPU" in reason, reason
+            # Delta treats only the exact lowercase "provider" key as a provider override.
+            reason = _tag_direct_delta_catalog_write(
+                spark, delta_catalog, replace=replace, provider=None,
+                table_properties={"Provider": "parquet"})
+            assert "Unity Catalog Delta REST API operations must run on CPU" in reason, reason
 
     with_cpu_session(check, conf=conf)
+
+
+@delta_lake
+@unity_catalog
+def test_delta_rest_direct_catalog_non_delta_default_stays_on_cpu():
+    def check(spark):
+        catalog_session = spark._jsparkSession.newSession()
+        catalog_session.conf().set("spark.sql.sources.default", "parquet")
+        jvm_session = spark_jvm().org.apache.spark.sql.SparkSession
+        try:
+            jvm_session.setActiveSession(catalog_session)
+            catalog = _new_delta_catalog(False)
+        finally:
+            jvm_session.setActiveSession(spark._jsparkSession)
+
+        assert catalog.spark().equals(catalog_session)
+        assert spark.conf.get("spark.sql.sources.default") == "delta"
+        assert catalog_session.conf().get("spark.sql.sources.default") == "parquet"
+        shim = spark_jvm().org.apache.spark.sql.delta.catalog.DeltaCatalogRestApiShim
+        assert not shim.isRestApiEnabled(catalog)
+        for replace in (False, True):
+            reason = _tag_direct_delta_catalog_write(
+                spark, catalog, replace=replace, provider=None)
+            assert "non-Delta catalog writes must run on CPU" in reason, reason
+
+    with_cpu_session(check, conf={"spark.sql.sources.default": "delta"})
 
 
 @allow_non_gpu("AtomicReplaceTableExec", "CreateTableExec", *delta_meta_allow)
@@ -673,6 +722,11 @@ def test_delta_rest_managed_ctas_and_rtas_fall_back(unity_catalog_server):
                         (1L, 'one'), (2L, 'two') AS source(id, value)
                     """).collect(),
                 conf=conf, expected_cpu_class="AtomicCreateTableAsSelectExec")
+            create_paths = proxy.create_request_paths()
+            assert len(create_paths) == 2, create_paths
+            assert create_paths[0].endswith("/staging-tables"), create_paths
+            assert create_paths[1].endswith("/tables"), create_paths
+            assert create_paths[0].rsplit("/", 1)[0] == create_paths[1].rsplit("/", 1)[0]
             detail = with_cpu_session(
                 lambda spark: spark.sql(f"DESCRIBE DETAIL {table}").first().asDict(), conf=conf)
             table_info = unity_catalog_server["tables_api"].getTable(table, None, None)
@@ -912,39 +966,45 @@ def test_delta_rest_metadata_changing_writes_fall_back(unity_catalog_server):
 @unity_catalog
 @pytest.mark.parametrize("fail_suffix", [".parquet", ".json"],
                          ids=["data-file", "delta-commit"])
-def test_delta_rest_failed_ctas_aborts_staging(unity_catalog_server, fail_suffix):
+def test_delta_rest_failed_ctas_does_not_publish_partial_table(
+        unity_catalog_server, fail_suffix):
     table_name, table = _new_table_name("delta_rest_failed_create")
-    conf = _catalog_conf(unity_catalog_server)
     credential_fs = spark_jvm().com.nvidia.spark.rapids.tests.delta.CredentialTestFileSystem
 
-    try:
-        credential_fs.failNextCreateEndingWith(fail_suffix)
-        _assert_rest_failure(
-            lambda spark: spark.sql(f"""
-                CREATE TABLE {table} USING DELTA
-                AS SELECT 1L AS id, 'failed' AS value
-                """).collect(), conf=conf,
-            expected_cpu_class="AtomicCreateTableAsSelectExec",
-            error_match="Injected create failure")
-        assert with_cpu_session(
-            lambda spark: spark.sql(
-                f"SHOW TABLES IN unity.default LIKE '{table_name}'").collect(), conf=conf) == []
-        _assert_failed_create_did_not_publish(
-            credential_fs, unity_catalog_server["storage_root"])
+    with _proxied_unity_catalog(unity_catalog_server) as (proxy, conf):
+        try:
+            credential_fs.failNextCreateEndingWith(fail_suffix)
+            _assert_rest_failure(
+                lambda spark: spark.sql(f"""
+                    CREATE TABLE {table} USING DELTA
+                    AS SELECT 1L AS id, 'failed' AS value
+                    """).collect(), conf=conf,
+                expected_cpu_class="AtomicCreateTableAsSelectExec",
+                error_match="Injected create failure")
+            create_paths = proxy.create_request_paths()
+            assert len(create_paths) == 1, create_paths
+            assert create_paths[0].endswith("/staging-tables"), create_paths
+            assert with_cpu_session(
+                lambda spark: spark.sql(
+                    f"SHOW TABLES IN unity.default LIKE '{table_name}'").collect(),
+                conf=conf) == []
+            _assert_failed_create_did_not_publish(
+                credential_fs, unity_catalog_server["storage_root"])
 
-        _assert_rest_fallback(
-            lambda spark: spark.sql(f"""
-                CREATE TABLE {table} USING DELTA
-                AS SELECT 2L AS id, 'retry' AS value
-                """).collect(), conf=conf,
-            expected_cpu_class="AtomicCreateTableAsSelectExec")
-        assert _table_rows(table, conf) == [(2, "retry")]
-        history = with_cpu_session(
-            lambda spark: spark.sql(f"DESCRIBE HISTORY {table}").collect(), conf=conf)
-        assert len(history) == 1
-    finally:
-        credential_fs.clearInjectedFailure()
-        _drop_table(table, conf)
+            _assert_rest_fallback(
+                lambda spark: spark.sql(f"""
+                    CREATE TABLE {table} USING DELTA
+                    AS SELECT 2L AS id, 'retry' AS value
+                    """).collect(), conf=conf,
+                expected_cpu_class="AtomicCreateTableAsSelectExec")
+            assert _table_rows(table, conf) == [(2, "retry")]
+            history = with_cpu_session(
+                lambda spark: spark.sql(f"DESCRIBE HISTORY {table}").collect(), conf=conf)
+            assert len(history) == 1
+            assert proxy.errors == []
+        finally:
+            credential_fs.clearInjectedFailure()
+            _drop_table(table, conf)
 
 
 @allow_non_gpu("AppendDataExecV1", "AtomicCreateTableAsSelectExec",

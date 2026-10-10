@@ -16,8 +16,6 @@
 
 package com.nvidia.spark.rapids.delta.delta43x
 
-import java.util.Locale
-
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
@@ -54,6 +52,8 @@ object Delta43xProvider extends DeltaProviderBase with Logging {
     "Delta 4.3 Unity Catalog Delta REST API operations must run on CPU"
   private val CATALOG_MANAGED_FALLBACK_REASON =
     "Delta 4.3 catalog-managed table writes are not supported on GPU"
+  private val NON_DELTA_FALLBACK_REASON =
+    "Delta 4.3 non-Delta catalog writes must run on CPU"
 
   override protected def getCDFRelationStrategy = Delta43xCDFRelationStrategy
 
@@ -100,9 +100,9 @@ object Delta43xProvider extends DeltaProviderBase with Logging {
   private def isDeltaProvider(
       properties: Map[String, String],
       spark: SparkSession): Boolean = {
-    val provider = properties.collectFirst {
-      case (key, value) if key.toLowerCase(Locale.ROOT) == TableCatalog.PROP_PROVIDER => value
-    }.getOrElse(spark.sessionState.conf.getConf(SQLConf.DEFAULT_DATA_SOURCE_NAME))
+    // Match DeltaCatalog.getProvider: the exact key and the catalog's captured session.
+    val provider = properties.getOrElse(TableCatalog.PROP_PROVIDER,
+      spark.sessionState.conf.getConf(SQLConf.DEFAULT_DATA_SOURCE_NAME))
     org.apache.spark.sql.delta.sources.DeltaSourceUtils.isDeltaDataSourceName(provider)
   }
 
@@ -110,14 +110,13 @@ object Delta43xProvider extends DeltaProviderBase with Logging {
       meta: RapidsMeta[_, _, _],
       catalog: DeltaCatalog,
       ident: Identifier,
-      properties: Map[String, String],
-      spark: SparkSession): Unit = {
-    if (isDeltaProvider(properties, spark)) {
-      if (DeltaCatalogRestApiShim.shouldRouteCreate(catalog, ident, properties.asJava)) {
-        meta.willNotWorkOnGpu(REST_API_FALLBACK_REASON)
-      } else if (isCatalogManagedByProperty(properties, spark)) {
-        meta.willNotWorkOnGpu(CATALOG_MANAGED_FALLBACK_REASON)
-      }
+      properties: Map[String, String]): Unit = {
+    if (!isDeltaProvider(properties, catalog.spark)) {
+      meta.willNotWorkOnGpu(NON_DELTA_FALLBACK_REASON)
+    } else if (DeltaCatalogRestApiShim.shouldRouteCreate(catalog, ident, properties.asJava)) {
+      meta.willNotWorkOnGpu(REST_API_FALLBACK_REASON)
+    } else if (isCatalogManagedByProperty(properties, catalog.spark)) {
+      meta.willNotWorkOnGpu(CATALOG_MANAGED_FALLBACK_REASON)
     }
   }
 
@@ -125,15 +124,14 @@ object Delta43xProvider extends DeltaProviderBase with Logging {
       meta: RapidsMeta[_, _, _],
       catalog: DeltaCatalog,
       ident: Identifier,
-      properties: Map[String, String],
-      spark: SparkSession): Unit = {
-    if (isDeltaProvider(properties, spark)) {
-      if (DeltaCatalogRestApiShim.shouldRouteOrValidateReplace(
-          catalog, ident, properties.asJava)) {
-        meta.willNotWorkOnGpu(REST_API_FALLBACK_REASON)
-      } else if (isCatalogManagedByProperty(properties, spark)) {
-        meta.willNotWorkOnGpu(CATALOG_MANAGED_FALLBACK_REASON)
-      }
+      properties: Map[String, String]): Unit = {
+    if (!isDeltaProvider(properties, catalog.spark)) {
+      meta.willNotWorkOnGpu(NON_DELTA_FALLBACK_REASON)
+    } else if (DeltaCatalogRestApiShim.shouldRouteOrValidateReplace(
+        catalog, ident, properties.asJava)) {
+      meta.willNotWorkOnGpu(REST_API_FALLBACK_REASON)
+    } else if (isCatalogManagedByProperty(properties, catalog.spark)) {
+      meta.willNotWorkOnGpu(CATALOG_MANAGED_FALLBACK_REASON)
     }
   }
 
@@ -200,8 +198,7 @@ object Delta43xProvider extends DeltaProviderBase with Logging {
         meta,
         cpuExec.catalog.asInstanceOf[DeltaCatalog],
         cpuExec.ident,
-        cpuExec.properties,
-        cpuExec.session)
+        cpuExec.properties)
     }
     tagIfUnsupportedWriterFeatures(
       meta, cpuExec.properties, cpuExec.partitioning.nonEmpty, cpuExec.session)
@@ -216,8 +213,7 @@ object Delta43xProvider extends DeltaProviderBase with Logging {
         meta,
         cpuExec.catalog.asInstanceOf[DeltaCatalog],
         cpuExec.ident,
-        cpuExec.properties,
-        cpuExec.session)
+        cpuExec.properties)
       tagIfTargetTableUnsupported(meta, cpuExec)
     }
     tagIfUnsupportedWriterFeatures(

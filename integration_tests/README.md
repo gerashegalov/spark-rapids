@@ -623,8 +623,11 @@ The suites only apply to a narrow, pinned combination: Scala 2.13, Delta Lake 4.
 Unity Catalog 0.6.0, and Spark 4.0.1 or 4.1.1. The 4.2 implementation validates the expected 0.6.0
 `UCSingleCatalog` staging shape and falls back if that shape is not recognized. The 4.3 suite
 verifies that the CPU Delta catalog retains REST staging and commit control, including catalog
-identity, managed location, credentials, metadata-changing operations, and abort cleanup, while
-reads and classic path tables can still use the GPU.
+identity, managed location, credentials, and metadata-changing operations. Failed staged writes
+are checked for partial table or Delta commit publication. Catalog staging-record cleanup is out
+of scope: Delta 4.3.0's staged-table abort does not remove those records, and Unity Catalog 0.6.0
+provides no staging-delete REST operation.
+Reads and classic path tables can still use the GPU.
 
 In Delta 4.3.0, dynamic partition overwrite, UPDATE, and MERGE write generated row-tracking
 domain metadata into the staged commit referenced by the REST `add-commit` update; these
