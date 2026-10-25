@@ -20,7 +20,6 @@
 {"spark": "343"}
 {"spark": "344"}
 {"spark": {"introduced": "350"}}
-{"spark": "356"}
 {"spark": "357"}
 {"spark": "358"}
 {"spark": "359"}
