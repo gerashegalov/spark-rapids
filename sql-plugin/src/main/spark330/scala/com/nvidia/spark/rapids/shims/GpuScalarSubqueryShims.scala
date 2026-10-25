@@ -22,8 +22,7 @@
 {"spark": "350db143"}
 {"spark": {"introduced": "400"}}
 {"spark": {"introduced": "402"}}
-{"spark": "420"}
-{"spark": "500"}
+{"spark": {"introduced": "420"}}
 spark-rapids-shim-json-lines ***/
 
 package com.nvidia.spark.rapids.shims

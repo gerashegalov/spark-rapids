@@ -17,8 +17,7 @@
 /*** spark-rapids-shim-json-lines
 {"spark": {"introduced": "400"}}
 {"spark": {"introduced": "402"}}
-{"spark": "420"}
-{"spark": "500"}
+{"spark": {"introduced": "420"}}
 spark-rapids-shim-json-lines ***/
 
 package org.apache.spark.sql.execution.datasources.v2.rapids

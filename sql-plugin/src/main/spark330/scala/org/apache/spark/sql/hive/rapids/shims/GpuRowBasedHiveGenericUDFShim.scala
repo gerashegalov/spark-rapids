@@ -26,8 +26,7 @@
 {"spark": {"introduced": "358"}}
 {"spark": {"introduced": "400"}}
 {"spark": {"introduced": "402"}}
-{"spark": "420"}
-{"spark": "500"}
+{"spark": {"introduced": "420"}}
 spark-rapids-shim-json-lines ***/
 
 package org.apache.spark.sql.hive.rapids.shims

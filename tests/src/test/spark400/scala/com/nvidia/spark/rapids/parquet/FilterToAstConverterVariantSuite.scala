@@ -19,8 +19,7 @@
 {"spark": "400db173"}
 {"spark": {"introduced": "402"}}
 {"spark": "410db183"}
-{"spark": "420"}
-{"spark": "500"}
+{"spark": {"introduced": "420"}}
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.parquet
 
