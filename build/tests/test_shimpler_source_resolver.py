@@ -62,6 +62,21 @@ class SourceResolverTest(unittest.TestCase):
                          {'src/main/scala/pkg/Example.scala', 'src/test/java/pkg/Other.java'})
         self.assertEqual(discover_shim_modules(self.temp.name), [str(self.module)])
 
+    def test_scan_rejects_unsorted_or_duplicate_selectors(self):
+        for selectors in (['{"spark":"356"}', '{"spark":"355"}'],
+                          ['{"spark":"355"}', '{"spark":{"introduced":"355"}}']):
+            self.source('355', 'Example.scala', selectors)
+            with self.assertRaisesRegex(ValueError, 'unique and sorted'):
+                self.scan()
+
+    def test_scan_rejects_multiple_selector_blocks(self):
+        source = self.source('355', 'Example.scala', ['{"spark":"355"}'])
+        with open(source, 'a', encoding='utf-8') as output:
+            output.write('/*** spark-rapids-shim-json-lines\n'
+                         '{"spark":"356"}\nspark-rapids-shim-json-lines ***/\n')
+        with self.assertRaisesRegex(ValueError, 'Malformed shim selector block'):
+            self.scan()
+
     def test_nearest_overlay_and_exact_only(self):
         first = self.source('355', 'Example.scala', ['{"spark":{"introduced":"355"}}'])
         overlay = self.source('357', 'Example.scala', ['{"spark":{"introduced":"357"}}'])
@@ -159,12 +174,13 @@ class SourceResolverTest(unittest.TestCase):
                     selected = resolve_sources(graph, variants, target)[logical]
                     self.assertIn('/src/main/%s/' % owner, selected.physical_path)
 
-    def test_source_inspector_uses_candidate_lineage_and_infers_scala_tree(self):
+    def test_source_inspector_reports_actual_selection_and_infers_scala_tree(self):
         command = [str(ROOT / 'build' / 'shimpler'), 'sources', '--target', '359',
                    '--module', 'sql-plugin', '--format=json']
         output = subprocess.check_output(command, universal_newlines=True)
         result = json.loads(output)
         self.assertEqual(result['scala'], '2.12')
+        self.assertTrue(all(row['selector_kind'] == 'exact' for row in result['sources']))
         self.assertTrue(any(row['physical_path'].endswith('PartitionedFileUtilsShim.scala')
                             for row in result['sources']))
         command[3] = '500'

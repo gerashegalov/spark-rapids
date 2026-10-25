@@ -58,10 +58,13 @@ def scan_module_sources(module_root, valid_targets):
                             continue
                         physical = os.path.join(directory, filename)
                         with open(physical, 'r') as source_file:
-                            match = SHIM_COMMENT.search(source_file.read())
+                            contents = source_file.read()
+                        match = SHIM_COMMENT.search(contents)
                         if match is None:
                             unannotated.append(physical)
                             continue
+                        if contents.count('spark-rapids-shim-json-lines') != 2:
+                            raise ValueError('Malformed shim selector block in %s' % physical)
                         lines = [line.strip() for line in match.group(1).splitlines() if line.strip()]
                         if not lines:
                             raise ValueError('Empty shim selector block in %s' % physical)
@@ -71,6 +74,9 @@ def scan_module_sources(module_root, valid_targets):
                                               for line in lines)
                         except ValueError as error:
                             raise ValueError('%s: %s' % (physical, error))
+                        anchors = [min(selector.targets) for selector in selectors]
+                        if anchors != sorted(set(anchors)):
+                            raise ValueError('%s: shim selectors must be unique and sorted' % physical)
                         relative = os.path.relpath(physical, language_root)
                         logical = os.path.join('src', scope, language, relative).replace(os.sep, '/')
                         variants.append(SourceVariant(logical, physical, selectors))
@@ -111,8 +117,8 @@ def _matching_selection(variant, lineage):
     return min(matches) if matches else None
 
 
-def resolve_sources(graph, variants, target):
-    """Select the nearest applicable physical variant of each logical source."""
+def resolve_sources_with_ties(graph, variants, target):
+    """Select nearest variants and return equal-distance source conflicts."""
     lineage = source_lineage(graph, target)
     selected = {}
     ties = {}
@@ -130,12 +136,18 @@ def resolve_sources(graph, variants, target):
         elif distance == previous[0]:
             ties.setdefault(variant.logical_path,
                             [previous[1].physical_path]).append(variant.physical_path)
+    return dict((logical, pair[1]) for logical, pair in selected.items()), ties
+
+
+def resolve_sources(graph, variants, target):
+    """Select the nearest applicable physical variant of each logical source."""
+    selected, ties = resolve_sources_with_ties(graph, variants, target)
     if ties:
         logical = sorted(ties)[0]
         first, second = sorted(ties[logical])[:2]
         raise ValueError('Ambiguous shim sources for %s at %s: %s and %s' %
                          (target, logical, first, second))
-    return dict((logical, pair[1]) for logical, pair in selected.items())
+    return selected
 
 
 def candidate_inherited_sources(graph, variants):
