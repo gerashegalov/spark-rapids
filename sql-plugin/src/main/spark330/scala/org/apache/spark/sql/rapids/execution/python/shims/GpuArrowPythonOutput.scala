@@ -19,7 +19,6 @@
 {"spark": "330db"}
 {"spark": "332db"}
 {"spark": {"introduced": "350"}}
-{"spark": "359"}
 spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.rapids.execution.python.shims
 

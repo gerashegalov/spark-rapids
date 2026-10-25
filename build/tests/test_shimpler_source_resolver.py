@@ -59,6 +59,7 @@ LEGACY_SOURCE_SNAPSHOTS = {
     '356': (251, 'ea363a06407b273379bfc65f6ec28126790eca69e3202c807c7fbc567251a849'),
     '357': (251, 'dab6ab2e33b38ac17ca85e4a279e19b72a675ae45b6bee39000511a252123582'),
     '358': (251, '1606d7d71fb13b7c2aecb2413104311b26ceaaf40000fb8beea266fef2ebb79d'),
+    '359': (255, 'ab579153d940febdf8ccae8ca7cd1f69a8ecb00312c8fb0d3be8a090c16d7921'),
 }
 
 
@@ -211,6 +212,9 @@ class SourceResolverTest(unittest.TestCase):
                     elif selector.kind == 'introduced' and selector.targets == ('350',):
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in ('350', '351'))
+                    elif selector.kind == 'introduced' and selector.targets == ('358',):
+                        selectors.extend(SourceSelector('exact', (target,), {})
+                                         for target in ('358', '359'))
                     else:
                         selectors.append(selector)
                 legacy_variants.append(variant._replace(selectors=tuple(selectors)))
@@ -268,8 +272,10 @@ class SourceResolverTest(unittest.TestCase):
         output = subprocess.check_output(command, universal_newlines=True)
         result = json.loads(output)
         self.assertEqual(result['scala'], '2.12')
-        self.assertTrue(all(row['selector_kind'] == 'exact' for row in result['sources']))
+        self.assertTrue(any(row['selector_kind'] == 'introduced' for row in result['sources']))
+        self.assertTrue(any(row['selector_kind'] == 'exact' for row in result['sources']))
         self.assertTrue(any(row['physical_path'].endswith('PartitionedFileUtilsShim.scala')
+                            and row['introduction_target'] == '358'
                             for row in result['sources']))
         command[3] = '500'
         result = json.loads(subprocess.check_output(command, universal_newlines=True))

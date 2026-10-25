@@ -19,7 +19,6 @@
 {"spark": "330db"}
 {"spark": "332db"}
 {"spark": {"introduced": "350"}}
-{"spark": "359"}
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.$_spark.version.classifier_
 
