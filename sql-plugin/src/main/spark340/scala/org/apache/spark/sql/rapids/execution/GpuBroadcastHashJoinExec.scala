@@ -23,7 +23,6 @@
 {"spark": {"introduced": "350"}}
 {"spark": {"introduced": "400"}}
 {"spark": {"introduced": "402"}}
-{"spark": "413"}
 spark-rapids-shim-json-lines ***/
 
 package org.apache.spark.sql.rapids.execution

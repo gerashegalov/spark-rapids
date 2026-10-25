@@ -108,6 +108,8 @@ class SourceGraphTest(unittest.TestCase):
                          ['411', '404', '403', '402', '401', '400'])
         self.assertEqual(source_lineage(scala_213_graph, '412'),
                          ['412', '411', '404', '403', '402', '401', '400'])
+        self.assertEqual(source_lineage(scala_213_graph, '413'),
+                         ['413', '412', '411', '404', '403', '402', '401', '400'])
         self.assertEqual(source_lineage(scala_213_graph, '500'), ['500', '420'])
 
 
