@@ -16,7 +16,6 @@
 /*** spark-rapids-shim-json-lines
 {"spark": {"introduced": "330"}}
 {"spark": {"introduced": "350"}}
-{"spark": "354"}
 {"spark": "355"}
 {"spark": "356"}
 {"spark": "357"}
