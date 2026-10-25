@@ -71,6 +71,13 @@ LEGACY_SOURCE_SNAPSHOTS = {
 
 
 class SourceResolverTest(unittest.TestCase):
+    def test_vendored_tools_match_pin(self):
+        manifest = ROOT / 'build' / 'shimpler_source_tools.sha256'
+        for entry in manifest.read_text().splitlines():
+            expected, filename = entry.split('  ', 1)
+            actual = hashlib.sha256((ROOT / 'build' / filename).read_bytes()).hexdigest()
+            self.assertEqual(expected, actual, filename)
+
     def setUp(self):
         self.graph = {'355': None, '356': '355', '357': '356',
                       '420': None, '500': '420'}
