@@ -902,14 +902,10 @@ class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer {
             // columns
             List(new ColumnarBatch(null, cachedBatch.numRows)).iterator
           } else {
-            val config = new Configuration
-            config.setBoolean(SQLConf.PARQUET_BINARY_AS_STRING.key, false)
-            config.setBoolean(SQLConf.PARQUET_INT96_AS_TIMESTAMP.key, false)
-            config.setBoolean(SQLConf.CASE_SENSITIVE.key, false)
-            ParquetTimestampNTZShims.setupTimestampNTZConfig(config, conf)
             new ShimCurrentBatchIterator(
               new ByteArrayInputFile(cachedBatch.buffer),
-              conf, selectedAttributes, options, hadoopConf, config,
+              conf, selectedAttributes, options, hadoopConf,
+              ParquetTimestampNTZShims.setupTimestampNTZConfig _,
               ParquetCVShims.newParquetCV _,
               (column, required, pages, writerVersion) => RapidsVectorizedColumnReader(
                 column, required, pages, null,
