@@ -192,6 +192,7 @@ if [ -n "$EXTRA_ENVS" ]; then
 fi
 
 initialize
+sha256sum -c build/gen-spark-home-deps.sha256
 generate_dependencies
 
 if [[ "$WITH_BLOOP" == "1" ]]; then
