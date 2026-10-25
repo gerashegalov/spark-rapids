@@ -255,6 +255,20 @@ class RootSafeProviderSelectionTest(unittest.TestCase):
             self.assertEqual(3, len(selected))
             self.assertTrue(all(version in path for path in selected))
 
+    def test_databricks_parquet_bridge_is_promoted_to_root(self):
+        bridge = ("org/apache/spark/sql/execution/datasources/parquet/"
+                  "ParquetColumnVectorBridge350DB143.class")
+        patterns = DIST_DIR / "unshimmed-from-each-spark3xx.txt"
+        (self.config_dir / patterns.name).write_text(patterns.read_text())
+        aggregator = artifact_path(self.project_dir, "aggregator", "353")
+        with zipfile.ZipFile(aggregator) as jar:
+            entries = {name: jar.read(name) for name in jar.namelist()}
+        entries[bridge] = b"databricks-bridge"
+        write_jar(aggregator, entries)
+
+        parallel_world = self.assemble_standard() / "parallel-world"
+        self.assertEqual(b"databricks-bridge", read_bytes(parallel_world, bridge))
+
     def test_rejects_mixed_private_revisions_for_both_assemblers(self):
         older_aggregator = artifact_path(self.project_dir, "aggregator", "353")
         with zipfile.ZipFile(older_aggregator) as jar:
