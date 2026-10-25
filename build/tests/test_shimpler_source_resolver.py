@@ -51,6 +51,7 @@ LEGACY_SOURCE_SNAPSHOTS = {
     '342': (209, '0e6a2e412dda75bc0f2ba7177c9c07c09c0f8885453bb40f610584b7a1e591b2'),
     '343': (209, '5359b8509ab16e8f377f387c8b1132ad9f1088799f661a9a518efeeac660fd23'),
     '344': (209, '2aaa6988c70386a74c6f7ba5f8328e2b6863934aba9de2d6e7e78767b5b4d44a'),
+    '351': (253, 'fd894e32839a336d7adf67c0bf0735bc1a0342873018d0a5ef67dbbcb5168847'),
 }
 
 
@@ -200,6 +201,9 @@ class SourceResolverTest(unittest.TestCase):
                     elif selector.kind == 'introduced' and selector.targets == ('332',):
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in ('332', '333', '334'))
+                    elif selector.kind == 'introduced' and selector.targets == ('350',):
+                        selectors.extend(SourceSelector('exact', (target,), {})
+                                         for target in ('350', '351'))
                     else:
                         selectors.append(selector)
                 legacy_variants.append(variant._replace(selectors=tuple(selectors)))
