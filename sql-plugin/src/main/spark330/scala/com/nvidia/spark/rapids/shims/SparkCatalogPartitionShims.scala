@@ -19,7 +19,6 @@
 {"spark": "332db"}
 {"spark": {"introduced": "350"}}
 {"spark": "350db143"}
-{"spark": "353"}
 {"spark": "354"}
 {"spark": "355"}
 {"spark": "356"}
