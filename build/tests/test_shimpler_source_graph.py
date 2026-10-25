@@ -94,8 +94,10 @@ class SourceGraphTest(unittest.TestCase):
     def test_project_poms_have_expected_scala_lineages(self):
         root_graph = load_source_graph(str(ROOT / 'pom.xml'))
         scala_213_graph = load_source_graph(str(ROOT / 'scala2.13' / 'pom.xml'))
-        self.assertEqual(source_lineage(root_graph, '359'), ['359', '358'])
-        self.assertEqual(source_lineage(scala_213_graph, '359'), ['359', '358'])
+        expected_359_lineage = ['359', '358', '357', '356', '355', '354',
+                                '353', '352', '351', '350']
+        self.assertEqual(source_lineage(root_graph, '359'), expected_359_lineage)
+        self.assertEqual(source_lineage(scala_213_graph, '359'), expected_359_lineage)
         self.assertNotIn('402', root_graph)
         self.assertNotIn('500', root_graph)
         self.assertEqual(source_lineage(scala_213_graph, '402'), ['402', '401'])

@@ -556,6 +556,7 @@
             </activation>
             <properties>
                 <buildver>358</buildver>
+                <shim.source.inherits>357</shim.source.inherits>
                 <spark.version>${spark358.version}</spark.version>
                 <parquet.hadoop.version>1.13.1</parquet.hadoop.version>
                 <rapids.delta.artifactId1>rapids-4-spark-delta-33x</rapids.delta.artifactId1>
