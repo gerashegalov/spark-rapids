@@ -44,9 +44,11 @@ LEGACY_330_THROUGH_333_ONLY = {
     'RapidsErrorUtils.scala',
 }
 
-# The pre-conversion 340 selection is stored as a digest because spelling out
-# 130 redundant exact 340 selectors here would make the oracle harder to review.
-LEGACY_340_SOURCE_DIGEST = '890009dc3321362baa0d1af71961d7af628750c0c5d99c65ed49b7b64bf6ab89'
+# Pre-conversion selections are stored as digests to keep the oracle compact.
+LEGACY_SOURCE_SNAPSHOTS = {
+    '340': (208, '890009dc3321362baa0d1af71961d7af628750c0c5d99c65ed49b7b64bf6ab89'),
+    '341': (208, '95b0ec66c0b12a44a0a41d599d007cbefc0f62f06bf507f53a2317bd02fae614'),
+}
 
 
 class SourceResolverTest(unittest.TestCase):
@@ -199,10 +201,11 @@ class SourceResolverTest(unittest.TestCase):
                         selectors.append(selector)
                 legacy_variants.append(variant._replace(selectors=tuple(selectors)))
             for graph in graphs:
-                shadow_targets = tuple(target for target in graph if target != '340')
+                shadow_targets = tuple(target for target in graph
+                                       if target not in LEGACY_SOURCE_SNAPSHOTS)
                 validate_legacy_shadow(graph, legacy_variants, shadow_targets)
                 for target in graph:
-                    if target == '340':
+                    if target in LEGACY_SOURCE_SNAPSHOTS:
                         continue
                     actual = resolve_sources(graph, variants, target)
                     legacy = resolve_sources(graph, legacy_variants, target)
@@ -210,18 +213,21 @@ class SourceResolverTest(unittest.TestCase):
                                      {key: value.physical_path for key, value in legacy.items()},
                                      '%s at %s' % (module, target))
 
-    def test_repository_340_sources_match_pre_conversion_snapshot(self):
+    def test_repository_sources_match_pre_conversion_snapshots(self):
         graph = load_source_graph(str(ROOT / 'pom.xml'))
         targets = set(graph) | set(load_source_graph(str(ROOT / 'scala2.13' / 'pom.xml')))
-        rows = []
+        modules = []
         for module in discover_shim_modules(str(ROOT)):
             variants, _ = scan_module_sources(module, targets)
-            module_path = Path(module).relative_to(ROOT).as_posix()
-            for logical, selected in resolve_sources(graph, variants, '340').items():
-                physical = Path(selected.physical_path).relative_to(ROOT).as_posix()
-                rows.append('%s\t%s\t%s' % (module_path, logical, physical))
-        digest = hashlib.sha256(('\n'.join(sorted(rows)) + '\n').encode()).hexdigest()
-        self.assertEqual((len(rows), digest), (208, LEGACY_340_SOURCE_DIGEST))
+            modules.append((Path(module).relative_to(ROOT).as_posix(), variants))
+        for target, expected in LEGACY_SOURCE_SNAPSHOTS.items():
+            rows = []
+            for module_path, variants in modules:
+                for logical, selected in resolve_sources(graph, variants, target).items():
+                    physical = Path(selected.physical_path).relative_to(ROOT).as_posix()
+                    rows.append('%s\t%s\t%s' % (module_path, logical, physical))
+            digest = hashlib.sha256(('\n'.join(sorted(rows)) + '\n').encode()).hexdigest()
+            self.assertEqual((len(rows), digest), expected, target)
 
     def test_repository_rapids_error_utils_owners(self):
         graphs = (load_source_graph(str(ROOT / 'pom.xml')),
