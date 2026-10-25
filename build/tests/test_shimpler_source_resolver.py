@@ -29,6 +29,14 @@ from shimpler_source_resolver import (candidate_inherited_sources, discover_shim
 from shimpler_source_selectors import SourceSelector
 
 
+LEGACY_330_331_ONLY = {
+    'sql-plugin/src/main/spark330/scala/com/nvidia/spark/rapids/shims/parquet/'
+    'ParquetLegacyNanoAsLongShims.scala',
+    'sql-plugin/src/main/spark330/scala/org/apache/spark/sql/rapids/shims/'
+    'RapidsHadoopWriterUtils.scala',
+}
+
+
 class SourceResolverTest(unittest.TestCase):
     def setUp(self):
         self.graph = {'355': None, '356': '355', '357': '356',
@@ -145,7 +153,7 @@ class SourceResolverTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'pre-conversion oracle is required'):
             validate_legacy_shadow(self.graph, variants)
 
-    def test_repository_shadow_matches_current_exact_selection(self):
+    def test_repository_shadow_matches_pre_conversion_exact_selection(self):
         graphs = (load_source_graph(str(ROOT / 'pom.xml')),
                   load_source_graph(str(ROOT / 'scala2.13' / 'pom.xml')))
         targets = set(graphs[0]) | set(graphs[1])
@@ -156,11 +164,17 @@ class SourceResolverTest(unittest.TestCase):
             legacy_variants = []
             for variant in variants:
                 selectors = []
+                physical = Path(variant.physical_path).relative_to(ROOT).as_posix()
                 for selector in variant.selectors:
                     if selector.kind == 'introduced' and selector.targets == ('330',):
-                        # The pre-conversion membership for this first 330 -> 331 batch.
+                        # Both files without 332 membership have a 332-specific replacement.
+                        legacy_targets = ('330', '331') if physical in LEGACY_330_331_ONLY \
+                            else ('330', '331', '332')
                         selectors.extend(SourceSelector('exact', (target,), {})
-                                         for target in ('330', '331'))
+                                         for target in legacy_targets)
+                    elif selector.kind == 'introduced' and selector.targets == ('331',):
+                        selectors.extend(SourceSelector('exact', (target,), {})
+                                         for target in ('331', '332'))
                     else:
                         selectors.append(selector)
                 legacy_variants.append(variant._replace(selectors=tuple(selectors)))
