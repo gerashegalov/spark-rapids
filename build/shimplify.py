@@ -309,6 +309,10 @@ def task_impl():
     try:
         source_graph = load_source_graph(
             os.path.join(__ant_proj_prop('spark.rapids.project.basedir'), 'pom.xml'))
+        source_root = __ant_proj_prop('spark.rapids.source.basedir')
+        valid_targets = set()
+        for pom in ('pom.xml', 'scala2.13/pom.xml'):
+            valid_targets.update(load_source_graph(os.path.join(source_root, pom)))
     except ValueError as error:
         __fail('Invalid shim source inheritance: %s' % error)
     __log.info('# Starting Jython Task Shimplify #')
@@ -368,7 +372,8 @@ def task_impl():
             generated_root = os.path.join(str(__project().getBaseDir()), 'target',
                                           'spark%s' % buildver, 'generated', 'src')
             try:
-                selected = generate_sources(__src_basedir, generated_root, source_graph, buildver)
+                selected = generate_sources(__src_basedir, generated_root, source_graph, buildver,
+                                            valid_targets)
             except ValueError as error:
                 __fail('Invalid shim source selection: %s' % error)
             __log.info('Generated %d shim sources for %s', len(selected), buildver)

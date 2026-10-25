@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'build'))
 
 from shimpler_source_graph import load_source_graph
+from shimpler_source_generator import generate_sources
 from shimpler_source_resolver import (candidate_inherited_sources, discover_shim_modules,
                                      resolve_sources, scan_module_sources, validate_legacy_shadow)
 from shimpler_source_selectors import SourceSelector
@@ -77,6 +78,17 @@ class SourceResolverTest(unittest.TestCase):
             expected, filename = entry.split('  ', 1)
             actual = hashlib.sha256((ROOT / 'build' / filename).read_bytes()).hexdigest()
             self.assertEqual(expected, actual, filename)
+
+    def test_generation_accepts_other_scala_profiles(self):
+        graphs = (load_source_graph(str(ROOT / 'pom.xml')),
+                  load_source_graph(str(ROOT / 'scala2.13' / 'pom.xml')))
+        known_targets = set().union(*graphs)
+        with tempfile.TemporaryDirectory() as temp:
+            for target in ('400', '500'):
+                generated = Path(temp) / target
+                selected = generate_sources(str(ROOT / 'sql-plugin'), str(generated),
+                                            graphs[1], target, known_targets)
+                self.assertTrue(selected)
 
     def setUp(self):
         self.graph = {'355': None, '356': '355', '357': '356',
