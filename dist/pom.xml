@@ -286,6 +286,8 @@
                                     <arg value="${spark.rapids.source.basedir}/${rapids.module}/scripts/check-iceberg-package-private-access.py"/>
                                     <arg value="--runtime-manifest"/>
                                     <arg value="${project.build.directory}/iceberg-audit-runtimes.txt"/>
+                                    <arg value="--spark-runtime-manifest"/>
+                                    <arg value="${project.build.directory}/spark-audit-runtimes.txt"/>
                                     <arg value="--expected-build-versions"/>
                                     <arg value="${included_buildvers}"/>
                                     <arg value="${project.build.directory}/parallel-world"/>

@@ -100,6 +100,8 @@ class FakeProject:
             "env.ART_URL": "",
             "maven.local.repository": str(repository_dir),
             "should.build.conventional.jar": conventional,
+            "spark353.version": "3.5.3",
+            "spark413.version": "4.1.3",
         }
 
     def getProperty(self, name):
@@ -143,6 +145,15 @@ class RootSafeProviderSelectionTest(unittest.TestCase):
         (self.config_dir / "build" / "build_info.py").write_text(
             (DIST_DIR / "build" / "build_info.py").read_text())
         create_artifacts(self.project_dir)
+        spark_repo = self.root / "repository" / "org" / "apache" / "spark"
+        for buildver, version in (("353", "3.5.3"), ("413", "4.1.3")):
+            for module in ("spark-core", "spark-catalyst", "spark-sql"):
+                artifact = "%s_2.13" % module
+                write_jar(spark_repo / artifact / version /
+                          ("%s-%s.jar" % (artifact, version)), {})
+            other_scala = "spark-sql_2.12"
+            write_jar(spark_repo / other_scala / version /
+                      ("%s-%s.jar" % (other_scala, version)), {})
 
     def tearDown(self):
         self.temp_dir.cleanup()
@@ -233,6 +244,16 @@ class RootSafeProviderSelectionTest(unittest.TestCase):
                 result = self.run_dedupe(target_dir)
                 self.assertEqual(0, result.returncode, result.stdout + result.stderr)
                 self.assert_final_layout(target_dir)
+
+    def test_spark_runtime_manifest_covers_each_selected_world(self):
+        target_dir = self.assemble_standard()
+        lines = (target_dir / "spark-audit-runtimes.txt").read_text().splitlines()
+        self.assertEqual(6, len(lines))
+        for buildver, version in (("353", "3.5.3"), ("413", "4.1.3")):
+            selected = [line.split("\t")[1] for line in lines
+                        if line.startswith(buildver + "\t")]
+            self.assertEqual(3, len(selected))
+            self.assertTrue(all(version in path for path in selected))
 
     def test_rejects_mixed_private_revisions_for_both_assemblers(self):
         older_aggregator = artifact_path(self.project_dir, "aggregator", "353")

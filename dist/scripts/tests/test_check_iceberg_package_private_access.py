@@ -1080,6 +1080,82 @@ class IcebergPackagePrivateAccessTest(unittest.TestCase):
             with captured_stream("stderr"):
                 self.assertEqual(2, LINT.main([layout, runtime]))
 
+    def test_spark_parquet_package_private_class_requires_root(self):
+        parquet = "org.apache.spark.sql.execution.datasources.parquet"
+        for prefix, expected in (("", 0), ("spark-shared/", 1),
+                                 ("spark350/", 1)):
+            with temporary_directory() as root:
+                layout = os.path.join(root, "layout")
+                runtime = os.path.join(root, "spark-sql")
+                iceberg_manifest = os.path.join(root, "iceberg.txt")
+                spark_manifest = os.path.join(root, "spark.txt")
+                write_class(runtime, parquet.replace(".", "/") +
+                            "/ParquetColumnVector.class",
+                            parquet + ".ParquetColumnVector", access=0)
+                write_class(layout, prefix + parquet.replace(".", "/") +
+                            "/ShimCurrentBatchIterator.class",
+                            parquet + ".ShimCurrentBatchIterator",
+                            class_references=(parquet + ".ParquetColumnVector",))
+                with open(iceberg_manifest, "w") as output:
+                    output.write("350\t-\n")
+                with open(spark_manifest, "w") as output:
+                    output.write("350\t%s\n" % runtime)
+                with captured_stream("stderr") as stderr:
+                    result = LINT.main([
+                        "--runtime-manifest", iceberg_manifest,
+                        "--spark-runtime-manifest", spark_manifest,
+                        "--expected-build-versions", "350", layout])
+                self.assertEqual(expected, result)
+                if expected:
+                    self.assertIn("ParquetColumnVector", stderr.getvalue())
+                    self.assertIn("package-private class", stderr.getvalue())
+
+    def test_spark_package_private_member_across_runtime_jars(self):
+        with temporary_directory() as root:
+            layout = os.path.join(root, "layout")
+            core = os.path.join(root, "spark-core")
+            sql = os.path.join(root, "spark-sql")
+            iceberg_manifest = os.path.join(root, "iceberg.txt")
+            spark_manifest = os.path.join(root, "spark.txt")
+            write_class(core, "org/apache/spark/p/Base.class",
+                        "org.apache.spark.p.Base", methods=((0, "hidden", "()V"),))
+            write_class(sql, "org/apache/spark/p/Child.class",
+                        "org.apache.spark.p.Child", "org.apache.spark.p.Base")
+            write_class(layout, "spark-shared/org/apache/spark/p/Caller.class",
+                        "org.apache.spark.p.Caller",
+                        references=(("method", "org.apache.spark.p.Child",
+                                     "hidden", "()V"),))
+            with open(iceberg_manifest, "w") as output:
+                output.write("350\t-\n")
+            with open(spark_manifest, "w") as output:
+                output.write("350\t%s\n350\t%s\n" % (core, sql))
+            with captured_stream("stderr") as stderr:
+                result = LINT.main([
+                    "--runtime-manifest", iceberg_manifest,
+                    "--spark-runtime-manifest", spark_manifest, layout])
+            self.assertEqual(1, result)
+            self.assertIn("package-private method", stderr.getvalue())
+
+    def test_spark_runtime_requires_spark_plugin_classes(self):
+        with temporary_directory() as root:
+            layout = os.path.join(root, "layout")
+            runtime = os.path.join(root, "spark-sql")
+            iceberg_manifest = os.path.join(root, "iceberg.txt")
+            spark_manifest = os.path.join(root, "spark.txt")
+            write_class(layout, "example/Marker.class", "example.Marker")
+            write_class(runtime, "org/apache/spark/p/Hidden.class",
+                        "org.apache.spark.p.Hidden", access=0)
+            with open(iceberg_manifest, "w") as output:
+                output.write("350\t-\n")
+            with open(spark_manifest, "w") as output:
+                output.write("350\t%s\n" % runtime)
+            with captured_stream("stderr") as stderr:
+                result = LINT.main([
+                    "--runtime-manifest", iceberg_manifest,
+                    "--spark-runtime-manifest", spark_manifest, layout])
+            self.assertEqual(2, result)
+            self.assertIn("no Spark plugin classes", stderr.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

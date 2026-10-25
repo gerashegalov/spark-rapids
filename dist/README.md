@@ -36,7 +36,7 @@ If you have to change the contents of the uber jar, the packaging flow can optio
 4. `unshimmed-common-from-single-shim.txt` - Files that must go into the base jar from one representative shim, such as root `META-INF` resources and Python worker files. Avoid adding class files here unless they need special root-layout treatment outside optional bitwise-identical promotion or module-level class promotion.
 5. `unshimmed-from-each-spark3xx.txt` - This is applied to all the individual Spark specific version jars to pull any files that need to go into the base of the jar and not into the Spark specific directory. These are per-shim root artifacts rather than common `spark-shared` classes.
 
-## Iceberg package-private access audit
+## Iceberg and Spark package-private access audit
 
 The `dist` package phase runs `scripts/check-iceberg-package-private-access.py` against
 the assembled parallel-world layout and every Iceberg runtime selected by the build. The
@@ -50,6 +50,14 @@ with `build/iceberg_runtime.py`, resolves the runtime jars, and writes the gener
 manifest. Fix failures by making the caller root-safe through
 `root-safe-module-classes.txt` or, for exceptional per-class placement, the applicable
 `unshimmed-*.txt` input above.
+
+The same package-phase audit also checks package-private and runtime-package-dependent
+protected accesses to Spark classes. It inspects the Spark jars for each selected build
+version, including class and member references from `org/apache/spark/` plugin classes.
+The generated `target/spark-audit-runtimes.txt` records those exact jars. A caller in
+`spark-shared` or a Spark-specific nested directory fails when its access requires the
+same runtime package as Spark. The Parquet cache bridge is an example: code referring to
+Spark's package-private `ParquetColumnVector` must be promoted to the jar root.
 
 Single-shim builds where every real Iceberg integration module uses the same non-Maven
 runtime can add its absolute local jar path with

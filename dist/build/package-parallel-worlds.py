@@ -213,6 +213,7 @@ if system_iceberg_runtime and len(buildver_list) != 1:
     raise Exception("%s is supported only for single-shim builds" %
                     iceberg_runtime["SYSTEM_RUNTIME_PROPERTY"])
 runtime_manifest = os.path.join(project_build_dir, 'iceberg-audit-runtimes.txt')
+spark_runtime_manifest = os.path.join(project_build_dir, 'spark-audit-runtimes.txt')
 with open(os.sep.join([dist_dir, 'unshimmed-common-from-single-shim.txt']), 'r') as f:
     from_single_shim = f.read().splitlines()
 with open(os.sep.join([dist_dir, 'unshimmed-from-each-spark3xx.txt']), 'r') as f:
@@ -326,3 +327,33 @@ with open(runtime_manifest, 'w') as manifest:
                 manifest.write("%s\t%s\n" % (buildver, runtime_path))
         else:
             manifest.write("%s\t-\n" % buildver)
+
+# Each classifier was compiled against a distinct Spark version. Resolve every
+# Spark jar installed for that exact version so the audit can resolve inherited
+# members across Spark modules as well as package-private classes in any module.
+spark_repository = os.path.join(maven_repository, 'org', 'apache', 'spark')
+with open(spark_runtime_manifest, 'w') as manifest:
+    for buildver in sorted(buildver_list):
+        spark_version = project.getProperty('spark%s.version' % buildver)
+        if not spark_version:
+            raise Exception('Spark version is missing for build version %s' % buildver)
+        runtime_paths = []
+        for artifact_id in sorted(os.listdir(spark_repository)):
+            if (artifact_id.endswith('_2.12') or artifact_id.endswith('_2.13')) and \
+                    not artifact_id.endswith('_' + scala_version):
+                continue
+            version_dir = os.path.join(spark_repository, artifact_id, spark_version)
+            jar_path = os.path.join(
+                version_dir, '%s-%s.jar' % (artifact_id, spark_version))
+            if artifact_id.startswith('spark-') and os.path.isfile(jar_path):
+                runtime_paths.append(jar_path)
+        required = ['spark-core_%s' % scala_version,
+                    'spark-catalyst_%s' % scala_version,
+                    'spark-sql_%s' % scala_version]
+        missing = [name for name in required if not any(
+            os.path.basename(path).startswith(name + '-') for path in runtime_paths)]
+        if missing:
+            raise Exception('Spark audit runtime for %s is missing %s' %
+                            (buildver, ', '.join(missing)))
+        for path in runtime_paths:
+            manifest.write('%s\t%s\n' % (buildver, path))
