@@ -169,12 +169,15 @@ class SourceResolverTest(unittest.TestCase):
                     if selector.kind == 'introduced' and selector.targets == ('330',):
                         # Both files without 332 membership have a 332-specific replacement.
                         legacy_targets = ('330', '331') if physical in LEGACY_330_331_ONLY \
-                            else ('330', '331', '332')
+                            else ('330', '331', '332', '333')
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in legacy_targets)
                     elif selector.kind == 'introduced' and selector.targets == ('331',):
                         selectors.extend(SourceSelector('exact', (target,), {})
-                                         for target in ('331', '332'))
+                                         for target in ('331', '332', '333'))
+                    elif selector.kind == 'introduced' and selector.targets == ('332',):
+                        selectors.extend(SourceSelector('exact', (target,), {})
+                                         for target in ('332', '333'))
                     else:
                         selectors.append(selector)
                 legacy_variants.append(variant._replace(selectors=tuple(selectors)))

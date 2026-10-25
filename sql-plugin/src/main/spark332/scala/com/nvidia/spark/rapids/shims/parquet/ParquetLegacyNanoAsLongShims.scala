@@ -15,8 +15,7 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark": "332"}
-{"spark": "333"}
+{"spark": {"introduced": "332"}}
 {"spark": "334"}
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.shims.parquet
