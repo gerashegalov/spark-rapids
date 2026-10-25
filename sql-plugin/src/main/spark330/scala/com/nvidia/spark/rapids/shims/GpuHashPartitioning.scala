@@ -18,9 +18,8 @@
 {"spark": {"introduced": "330"}}
 {"spark": {"introduced": "350"}}
 {"spark": "350db143"}
-{"spark": "400"}
+{"spark": {"introduced": "400"}}
 {"spark": "400db173"}
-{"spark": "401"}
 {"spark": "402"}
 {"spark": "403"}
 {"spark": "404"}

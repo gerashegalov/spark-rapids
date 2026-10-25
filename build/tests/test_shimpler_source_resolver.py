@@ -60,6 +60,7 @@ LEGACY_SOURCE_SNAPSHOTS = {
     '357': (251, 'dab6ab2e33b38ac17ca85e4a279e19b72a675ae45b6bee39000511a252123582'),
     '358': (251, '1606d7d71fb13b7c2aecb2413104311b26ceaaf40000fb8beea266fef2ebb79d'),
     '359': (255, 'ab579153d940febdf8ccae8ca7cd1f69a8ecb00312c8fb0d3be8a090c16d7921'),
+    '401': (248, '58b828c5f62785661bca6857dba24c7c1338aa002e31336d80d36478ee999c49'),
 }
 
 
@@ -215,6 +216,9 @@ class SourceResolverTest(unittest.TestCase):
                     elif selector.kind == 'introduced' and selector.targets == ('358',):
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in ('358', '359'))
+                    elif selector.kind == 'introduced' and selector.targets == ('400',):
+                        selectors.extend(SourceSelector('exact', (target,), {})
+                                         for target in ('400', '401'))
                     else:
                         selectors.append(selector)
                 legacy_variants.append(variant._replace(selectors=tuple(selectors)))
@@ -233,15 +237,17 @@ class SourceResolverTest(unittest.TestCase):
 
     def test_repository_sources_match_pre_conversion_snapshots(self):
         graph = load_source_graph(str(ROOT / 'pom.xml'))
-        targets = set(graph) | set(load_source_graph(str(ROOT / 'scala2.13' / 'pom.xml')))
+        scala_213_graph = load_source_graph(str(ROOT / 'scala2.13' / 'pom.xml'))
+        targets = set(graph) | set(scala_213_graph)
         modules = []
         for module in discover_shim_modules(str(ROOT)):
             variants, _ = scan_module_sources(module, targets)
             modules.append((Path(module).relative_to(ROOT).as_posix(), variants))
         for target, expected in LEGACY_SOURCE_SNAPSHOTS.items():
+            target_graph = graph if target in graph else scala_213_graph
             rows = []
             for module_path, variants in modules:
-                for logical, selected in resolve_sources(graph, variants, target).items():
+                for logical, selected in resolve_sources(target_graph, variants, target).items():
                     physical = Path(selected.physical_path).relative_to(ROOT).as_posix()
                     rows.append('%s\t%s\t%s' % (module_path, logical, physical))
             digest = hashlib.sha256(('\n'.join(sorted(rows)) + '\n').encode()).hexdigest()
