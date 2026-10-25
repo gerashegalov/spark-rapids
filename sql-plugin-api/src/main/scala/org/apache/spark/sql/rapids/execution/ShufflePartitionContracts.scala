@@ -18,10 +18,7 @@ package org.apache.spark.sql.rapids.execution
 
 import java.util.Arrays
 
-import org.apache.spark.{Partition, Partitioner}
-import org.apache.spark.sql.execution.ShufflePartitionSpec
-
-case class ShuffledBatchRDDPartition(index: Int, spec: ShufflePartitionSpec) extends Partition
+import org.apache.spark.Partitioner
 
 /**
  * A dummy partitioner for use with records whose partition ids have been pre-computed (i.e. for

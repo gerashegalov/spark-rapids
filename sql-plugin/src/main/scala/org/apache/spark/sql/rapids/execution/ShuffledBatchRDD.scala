@@ -30,6 +30,8 @@ import org.apache.spark.sql.execution.metric.{SQLMetric, SQLShuffleReadMetricsRe
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
+case class ShuffledBatchRDDPartition(index: Int, spec: ShufflePartitionSpec) extends Partition
+
 /**
  * This is a specialized version of `org.apache.spark.rdd.ShuffledRDD` that is optimized for
  * shuffling `ColumnarBatch` instead of Java key-value pairs.
