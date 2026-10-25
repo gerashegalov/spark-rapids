@@ -850,6 +850,7 @@
             </activation>
             <properties>
                 <buildver>412</buildver>
+                <shim.source.inherits>411</shim.source.inherits>
                 <spark.version>${spark412.version}</spark.version>
                 <parquet.hadoop.version>1.13.1</parquet.hadoop.version>
                 <rapids.delta.artifactId1>rapids-4-spark-delta-41x</rapids.delta.artifactId1>

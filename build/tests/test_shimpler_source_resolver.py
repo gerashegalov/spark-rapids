@@ -64,6 +64,7 @@ LEGACY_SOURCE_SNAPSHOTS = {
     '403': (249, '9658703e1a146054d1abe20a6c1ca093797128af9534292f1cdef3f0ce5d705b'),
     '404': (249, '01544872e4b3e4b9c4b8d20558d03df29344c7b7032b7422e37c9c822d4b2822'),
     '411': (257, 'd9783d12727d99efc9eb484f4f9cee0d083bbbd8094c20a298cbfb1b73c9bcb2'),
+    '412': (248, '083e1f47f810e160cf296bd91451f69cc014770ce0e02c98c1f38a3a911ff0d0'),
 }
 
 
@@ -228,6 +229,9 @@ class SourceResolverTest(unittest.TestCase):
                     elif selector.kind == 'introduced' and selector.targets == ('403',):
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in ('403', '404'))
+                    elif selector.kind == 'introduced' and selector.targets == ('411',):
+                        selectors.extend(SourceSelector('exact', (target,), {})
+                                         for target in ('411', '412'))
                     else:
                         selectors.append(selector)
                 legacy_variants.append(variant._replace(selectors=tuple(selectors)))

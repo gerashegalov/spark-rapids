@@ -18,8 +18,12 @@
 {"spark": {"introduced": "330"}}
 {"spark": {"introduced": "350"}}
 {"spark": "350db143"}
-{"spark": {"introduced": "400"}}
-{"spark": {"introduced": "402"}}
+{"spark": "400"}
+{"spark": "401"}
+{"spark": "402"}
+{"spark": "403"}
+{"spark": "404"}
+{"spark": "411"}
 spark-rapids-shim-json-lines ***/
 
 package org.apache.spark.sql.rapids
