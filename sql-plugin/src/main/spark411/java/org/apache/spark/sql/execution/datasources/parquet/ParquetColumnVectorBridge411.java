@@ -21,20 +21,25 @@
 {"spark": "420"}
 {"spark": "500"}
 spark-rapids-shim-json-lines ***/
-package org.apache.spark.sql.execution.datasources.parquet
+package org.apache.spark.sql.execution.datasources.parquet;
 
-import org.apache.spark.memory.MemoryMode
-import org.apache.spark.sql.execution.vectorized.WritableColumnVector
+import java.util.Set;
 
-object ParquetColumnVectorBridge411 extends ParquetColumnVectorBridge {
-  override def newParquetColumnVector(
-      column: ParquetColumn,
-      vector: WritableColumnVector,
-      capacity: Int,
-      memoryMode: MemoryMode,
-      missingColumns: java.util.Set[ParquetColumn],
-      isTopLevel: Boolean,
-      defaultValue: Any): AnyRef = {
-    new ParquetColumnVector(column, vector, capacity, missingColumns, isTopLevel, defaultValue)
+import org.apache.spark.memory.MemoryMode;
+import org.apache.spark.sql.execution.vectorized.WritableColumnVector;
+
+public final class ParquetColumnVectorBridge411 {
+  private ParquetColumnVectorBridge411() {
+  }
+
+  public static Object newParquetColumnVector(
+      ParquetColumn column,
+      WritableColumnVector vector,
+      int capacity,
+      MemoryMode memoryMode,
+      Set<ParquetColumn> missingColumns,
+      boolean isTopLevel,
+      Object defaultValue) {
+    return new ParquetColumnVector(column, vector, capacity, missingColumns, isTopLevel, defaultValue);
   }
 }

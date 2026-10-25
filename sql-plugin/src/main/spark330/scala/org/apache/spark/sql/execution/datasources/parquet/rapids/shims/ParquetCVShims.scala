@@ -28,7 +28,6 @@ import org.apache.spark.sql.execution.vectorized.WritableColumnVector
 import org.apache.spark.sql.types.StructType
 
 object ParquetCVShims {
-  val bridge: ParquetColumnVectorBridge = ParquetColumnVectorBridge330
 
   def newParquetCV(
       sparkSchema: StructType,
@@ -39,7 +38,8 @@ object ParquetCVShims {
       memoryMode: MemoryMode,
       missingColumns: java.util.Set[ParquetColumn],
       isTopLevel: Boolean): AnyRef = {
-    bridge.newParquetColumnVector(column, vector, capacity, memoryMode, missingColumns,
+    ParquetColumnVectorBridge330.newParquetColumnVector(
+      column, vector, capacity, memoryMode, missingColumns,
       isTopLevel, null)
   }
 }

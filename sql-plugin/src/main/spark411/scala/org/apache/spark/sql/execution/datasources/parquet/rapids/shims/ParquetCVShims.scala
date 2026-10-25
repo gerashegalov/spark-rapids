@@ -29,7 +29,6 @@ import org.apache.spark.sql.execution.vectorized.WritableColumnVector
 import org.apache.spark.sql.types.StructType
 
 object ParquetCVShims {
-  val bridge: ParquetColumnVectorBridge = ParquetColumnVectorBridge411
 
   def newParquetCV(
       sparkSchema: StructType,
@@ -43,7 +42,8 @@ object ParquetCVShims {
     val defaultValue = if (sparkSchema != null) {
       ResolveDefaultColumns.getExistenceDefaultValues(sparkSchema)(idx)
     } else null
-    bridge.newParquetColumnVector(column, vector, capacity, memoryMode, missingColumns,
+    ParquetColumnVectorBridge411.newParquetColumnVector(
+      column, vector, capacity, memoryMode, missingColumns,
       isTopLevel, defaultValue)
   }
 }

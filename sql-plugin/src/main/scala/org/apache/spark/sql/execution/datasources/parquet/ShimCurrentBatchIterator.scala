@@ -131,7 +131,7 @@ class ShimCurrentBatchIterator(
 
   @throws[IOException]
   private def initColumnReader(pages: PageReadStore, cv: AnyRef): Unit = {
-    val column = ParquetCVShims.bridge.getColumn(cv)
+    val column = ParquetColumnVectorBridge.getColumn(cv)
     if (!missingColumns.contains(column)) {
       if (column.isPrimitive) {
         val reader = RapidsVectorizedColumnReader(
@@ -144,10 +144,10 @@ class ShimCurrentBatchIterator(
           LegacyBehaviorPolicyShim.EXCEPTION_STR,
           null,
           writerVersion)
-        ParquetCVShims.bridge.setColumnReader(cv, reader)
+        ParquetColumnVectorBridge.setColumnReader(cv, reader)
       }
       else { // Not in missing columns and is a complex type: this must be a struct
-        for (childCv <- ParquetCVShims.bridge.getChildren(cv).asScala) {
+        for (childCv <- ParquetColumnVectorBridge.getChildren(cv).asScala) {
           initColumnReader(pages, childCv)
         }
       }
@@ -173,7 +173,7 @@ class ShimCurrentBatchIterator(
    */
   def nextBatch: Boolean = {
     for (vector <- parquetColumnVectors) {
-      ParquetCVShims.bridge.reset(vector)
+      ParquetColumnVectorBridge.reset(vector)
     }
     columnarBatch.setNumRows(0)
     if (rowsReturned >= totalRowCount) return false
@@ -181,18 +181,18 @@ class ShimCurrentBatchIterator(
 
     val num = Math.min(capacity.toLong, totalCountLoadedSoFar - rowsReturned).toInt
     for (cv <- parquetColumnVectors){
-      for (leafCv <- ParquetCVShims.bridge.getLeaves(cv).asScala) {
-        val columnReader = ParquetCVShims.bridge.getColumnReader(leafCv)
+      for (leafCv <- ParquetColumnVectorBridge.getLeaves(cv).asScala) {
+        val columnReader = ParquetColumnVectorBridge.getColumnReader(leafCv)
         if (columnReader != null) {
           ParquetVectorizedReader.readBatchMethod.invoke(
             columnReader,
             num.asInstanceOf[AnyRef],
-            ParquetCVShims.bridge.getValueVector(leafCv).asInstanceOf[AnyRef],
-            ParquetCVShims.bridge.getRepetitionLevelVector(leafCv).asInstanceOf[AnyRef],
-            ParquetCVShims.bridge.getDefinitionLevelVector(leafCv).asInstanceOf[AnyRef])
+            ParquetColumnVectorBridge.getValueVector(leafCv).asInstanceOf[AnyRef],
+            ParquetColumnVectorBridge.getRepetitionLevelVector(leafCv).asInstanceOf[AnyRef],
+            ParquetColumnVectorBridge.getDefinitionLevelVector(leafCv).asInstanceOf[AnyRef])
         }
       }
-      ParquetCVShims.bridge.assemble(cv)
+      ParquetColumnVectorBridge.assemble(cv)
     }
     rowsReturned += num
     columnarBatch.setNumRows(num)
