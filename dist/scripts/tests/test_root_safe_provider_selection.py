@@ -255,6 +255,39 @@ class RootSafeProviderSelectionTest(unittest.TestCase):
             self.assertEqual(3, len(selected))
             self.assertTrue(all(version in path for path in selected))
 
+    def test_databricks_spark_runtime_manifest_uses_system_jars(self):
+        for artifact in ("sql-plugin-api", "iceberg-common", "aggregator"):
+            source = artifact_path(self.project_dir, artifact, "353")
+            with zipfile.ZipFile(source) as jar:
+                entries = {name: jar.read(name) for name in jar.namelist()}
+            write_jar(artifact_path(self.project_dir, artifact, "400db173"), entries)
+
+        runtime = self.root / "databricks" / "jars"
+        spark_jar = runtime / "runtime.jar"
+        write_jar(spark_jar, {
+            "org/apache/spark/SparkContext.class": b"core",
+            "org/apache/spark/sql/catalyst/InternalRow.class": b"catalyst",
+            "org/apache/spark/sql/SparkSession.class": b"sql",
+        })
+        write_jar(runtime / "unrelated.jar", {"example/Other.class": b"other"})
+        bom = self.source_dir / "scala2.13" / "shim-deps" / "databricks" / "pom.xml"
+        bom.parent.mkdir(parents=True)
+        bom.write_text("""<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <properties><spark.home.jar.dir.0>%s</spark.home.jar.dir.0></properties>
+  <dependencies>
+    <dependency><scope>system</scope>
+      <systemPath>${spark.home.jar.dir.0}/runtime.jar</systemPath></dependency>
+    <dependency><scope>system</scope>
+      <systemPath>${spark.home.jar.dir.0}/unrelated.jar</systemPath></dependency>
+  </dependencies>
+</project>""" % runtime)
+
+        target_dir = self.assemble_standard(buildvers="400db173,413")
+        lines = (target_dir / "spark-audit-runtimes.txt").read_text().splitlines()
+        self.assertEqual(["400db173\t%s" % spark_jar],
+                         [line for line in lines if line.startswith("400db173\t")])
+        self.assertEqual(3, len([line for line in lines if line.startswith("413\t")]))
+
     def test_databricks_parquet_bridge_is_promoted_to_root(self):
         bridge = ("org/apache/spark/sql/execution/datasources/parquet/"
                   "ParquetColumnVectorBridge350DB143.class")

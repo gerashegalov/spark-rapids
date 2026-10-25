@@ -19,6 +19,7 @@ import shlex
 import shutil
 import subprocess
 import zipfile
+import xml.etree.ElementTree as ET
 
 
 def shell_exec(shell_cmd, cwd=None):
@@ -328,32 +329,81 @@ with open(runtime_manifest, 'w') as manifest:
         else:
             manifest.write("%s\t-\n" % buildver)
 
-# Each classifier was compiled against a distinct Spark version. Resolve every
-# Spark jar installed for that exact version so the audit can resolve inherited
-# members across Spark modules as well as package-private classes in any module.
+def databricks_spark_runtime_paths():
+    # The generated BOM is the build's source of truth for system-scoped jars.
+    pom_root = source_basedir if scala_version == '2.12' else os.path.join(
+        source_basedir, 'scala2.13')
+    bom_path = os.path.join(pom_root, 'shim-deps', 'databricks', 'pom.xml')
+    namespace = {'m': 'http://maven.apache.org/POM/4.0.0'}
+    root = ET.parse(bom_path).getroot()
+    properties = root.find('m:properties', namespace)
+    directories = {element.tag.rsplit('}', 1)[-1]: element.text.strip()
+                   for element in properties} if properties is not None else {}
+    paths = set()
+    found_classes = set()
+    required_classes = {
+        'org/apache/spark/SparkContext.class',
+        'org/apache/spark/sql/catalyst/InternalRow.class',
+        'org/apache/spark/sql/SparkSession.class',
+    }
+    for dependency in root.findall('./m:dependencies/m:dependency', namespace):
+        if dependency.findtext('m:scope', namespaces=namespace) != 'system':
+            continue
+        system_path = dependency.findtext('m:systemPath', namespaces=namespace)
+        if not system_path:
+            raise Exception('Databricks BOM has a system dependency without systemPath')
+        for name in re.findall(r'\$\{([^}]+)\}', system_path):
+            if name not in directories:
+                raise Exception('Databricks BOM has unresolved systemPath property %s' % name)
+            system_path = system_path.replace('${%s}' % name, directories[name])
+        path = os.path.realpath(system_path)
+        if not os.path.isfile(path):
+            raise Exception('Databricks BOM system jar is missing: %s' % path)
+        if path in paths:
+            continue
+        with zipfile.ZipFile(path) as archive:
+            entries = archive.namelist()
+        if any(entry.startswith('org/apache/spark/') for entry in entries):
+            paths.add(path)
+            found_classes.update(required_classes.intersection(entries))
+    missing = sorted(required_classes - found_classes)
+    if missing:
+        raise Exception('Databricks BOM is missing Spark audit classes: %s' %
+                        ', '.join(missing))
+    return sorted(paths)
+
+
+# Each classifier was compiled against a distinct Spark version. Resolve its
+# Spark jars so the audit can inspect inherited members across modules.
 spark_repository = os.path.join(maven_repository, 'org', 'apache', 'spark')
+databricks_paths = None
 with open(spark_runtime_manifest, 'w') as manifest:
     for buildver in sorted(buildver_list):
-        spark_version = project.getProperty('spark%s.version' % buildver)
-        if not spark_version:
-            raise Exception('Spark version is missing for build version %s' % buildver)
-        runtime_paths = []
-        for artifact_id in sorted(os.listdir(spark_repository)):
-            if (artifact_id.endswith('_2.12') or artifact_id.endswith('_2.13')) and \
-                    not artifact_id.endswith('_' + scala_version):
-                continue
-            version_dir = os.path.join(spark_repository, artifact_id, spark_version)
-            jar_path = os.path.join(
-                version_dir, '%s-%s.jar' % (artifact_id, spark_version))
-            if artifact_id.startswith('spark-') and os.path.isfile(jar_path):
-                runtime_paths.append(jar_path)
-        required = ['spark-core_%s' % scala_version,
-                    'spark-catalyst_%s' % scala_version,
-                    'spark-sql_%s' % scala_version]
-        missing = [name for name in required if not any(
-            os.path.basename(path).startswith(name + '-') for path in runtime_paths)]
-        if missing:
-            raise Exception('Spark audit runtime for %s is missing %s' %
-                            (buildver, ', '.join(missing)))
+        if 'db' in buildver:
+            if databricks_paths is None:
+                databricks_paths = databricks_spark_runtime_paths()
+            runtime_paths = databricks_paths
+        else:
+            spark_version = project.getProperty('spark%s.version' % buildver)
+            if not spark_version:
+                raise Exception('Spark version is missing for build version %s' % buildver)
+            runtime_paths = []
+            for artifact_id in sorted(os.listdir(spark_repository)):
+                if (artifact_id.endswith('_2.12') or artifact_id.endswith('_2.13')) and \
+                        not artifact_id.endswith('_' + scala_version):
+                    continue
+                version_dir = os.path.join(spark_repository, artifact_id, spark_version)
+                jar_path = os.path.join(
+                    version_dir, '%s-%s.jar' % (artifact_id, spark_version))
+                if artifact_id.startswith('spark-') and os.path.isfile(jar_path):
+                    runtime_paths.append(jar_path)
+            required = ['spark-core_%s' % scala_version,
+                        'spark-catalyst_%s' % scala_version,
+                        'spark-sql_%s' % scala_version]
+            missing = [name for name in required if not any(
+                os.path.basename(path).startswith(name + '-') for path in runtime_paths)]
+            if missing:
+                raise Exception('Spark audit runtime for %s is missing %s' %
+                                (buildver, ', '.join(missing)))
         for path in runtime_paths:
             manifest.write('%s\t%s\n' % (buildver, path))
