@@ -9,7 +9,11 @@ com/nvidia/spark/rapids/optimizer/SQLOptimizerPlugin*
 com/nvidia/spark/rapids/ShimLoaderTemp*
 com/nvidia/spark/rapids/SparkShims*
 com/nvidia/shaded/spark/com/google/flatbuffers/*.class
-org/apache/spark/sql/execution/datasources/parquet/ParquetColumnVectorBridge.class
+com/nvidia/spark/CurrentBatchIterator.class
+org/apache/spark/sql/execution/datasources/parquet/ParquetVectorizedReader.class
+org/apache/spark/sql/execution/datasources/parquet/ParquetVectorizedReader$.class
+org/apache/spark/sql/execution/datasources/parquet/ShimCurrentBatchIterator.class
+org/apache/spark/sql/execution/datasources/parquet/ShimCurrentBatchIterator$.class
 org/apache/spark/sql/rapids/AdaptiveSparkPlanHelperShim*
 org/apache/spark/sql/rapids/ExecutionPlanCaptureCallback*
 rapids/*.py

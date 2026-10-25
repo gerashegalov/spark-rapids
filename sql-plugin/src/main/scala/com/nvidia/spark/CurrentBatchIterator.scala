@@ -21,11 +21,11 @@ import java.io.IOException
 import scala.collection.JavaConverters._
 
 import com.nvidia.spark.rapids.ScalableTaskCompletion.onTaskCompletion
-import com.nvidia.spark.rapids.parquet.{ByteArrayInputFile, ParquetCachedBatch}
 import org.apache.hadoop.conf.Configuration
 import org.apache.parquet.{ParquetReadOptions, VersionParser}
 import org.apache.parquet.VersionParser.ParsedVersion
 import org.apache.parquet.hadoop.ParquetFileReader
+import org.apache.parquet.io.InputFile
 
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.execution.datasources.parquet.{ParquetReadSupport, ParquetToSparkSchemaConverter, ParquetWriteSupport}
@@ -36,7 +36,7 @@ import org.apache.spark.sql.vectorized
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
 abstract class CurrentBatchIterator(
-    val parquetCachedBatch: ParquetCachedBatch,
+    inputFile: InputFile,
     conf: SQLConf,
     selectedAttributes: Seq[Attribute],
     options: ParquetReadOptions,
@@ -48,9 +48,7 @@ abstract class CurrentBatchIterator(
   val columnarBatch = new ColumnarBatch(vectors.asInstanceOf[Array[vectorized.ColumnVector]])
   var rowsReturned: Long = 0L
   var totalCountLoadedSoFar: Long = 0
-  val parquetFileReader = {
-    ParquetFileReader.open(new ByteArrayInputFile(parquetCachedBatch.buffer), options)
-  }
+  val parquetFileReader = ParquetFileReader.open(inputFile, options)
   val writerVersion: ParsedVersion = try {
     VersionParser.parse(parquetFileReader.getFileMetaData.getCreatedBy)
   } catch {

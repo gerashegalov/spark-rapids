@@ -54,7 +54,7 @@ import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeReference,
 import org.apache.spark.sql.catalyst.expressions.codegen.GenerateUnsafeProjection
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, ArrayData, GenericArrayData, MapData}
 import org.apache.spark.sql.columnar.CachedBatch
-import org.apache.spark.sql.execution.datasources.parquet.{ParquetReadSupport, ParquetToSparkSchemaConverter, ParquetWriteSupport, ShimCurrentBatchIterator}
+import org.apache.spark.sql.execution.datasources.parquet.{ParquetCVShims, ParquetReadSupport, ParquetToSparkSchemaConverter, ParquetWriteSupport, RapidsVectorizedColumnReader, ShimCurrentBatchIterator}
 import org.apache.spark.sql.execution.datasources.parquet.rapids.ParquetRecordMaterializer
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.rapids.PCBSSchemaHelper
@@ -902,11 +902,21 @@ class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer {
             // columns
             List(new ColumnarBatch(null, cachedBatch.numRows)).iterator
           } else {
+            val config = new Configuration
+            config.setBoolean(SQLConf.PARQUET_BINARY_AS_STRING.key, false)
+            config.setBoolean(SQLConf.PARQUET_INT96_AS_TIMESTAMP.key, false)
+            config.setBoolean(SQLConf.CASE_SENSITIVE.key, false)
+            ParquetTimestampNTZShims.setupTimestampNTZConfig(config, conf)
             new ShimCurrentBatchIterator(
-              cachedBatch,
-              conf,
-              selectedAttributes,
-              options, hadoopConf)
+              new ByteArrayInputFile(cachedBatch.buffer),
+              conf, selectedAttributes, options, hadoopConf, config,
+              ParquetCVShims.newParquetCV _,
+              (column, required, pages, writerVersion) => RapidsVectorizedColumnReader(
+                column, required, pages, null,
+                LegacyBehaviorPolicyShim.CORRECTED_STR,
+                LegacyBehaviorPolicyShim.EXCEPTION_STR,
+                LegacyBehaviorPolicyShim.EXCEPTION_STR,
+                null, writerVersion))
           }
         }
       }

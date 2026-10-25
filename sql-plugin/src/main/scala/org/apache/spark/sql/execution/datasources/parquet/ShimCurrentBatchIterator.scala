@@ -22,12 +22,12 @@ import java.util
 import scala.collection.JavaConverters._
 
 import com.nvidia.spark.CurrentBatchIterator
-import com.nvidia.spark.rapids.parquet.ParquetCachedBatch
-import com.nvidia.spark.rapids.shims.LegacyBehaviorPolicyShim
-import com.nvidia.spark.rapids.shims.parquet.ParquetTimestampNTZShims
 import org.apache.hadoop.conf.Configuration
 import org.apache.parquet.ParquetReadOptions
+import org.apache.parquet.VersionParser.ParsedVersion
+import org.apache.parquet.column.ColumnDescriptor
 import org.apache.parquet.column.page.PageReadStore
+import org.apache.parquet.io.InputFile
 import org.apache.parquet.schema.{GroupType, Type}
 
 import org.apache.spark.memory.MemoryMode
@@ -50,29 +50,34 @@ object ParquetVectorizedReader {
   }
 }
 
+object ShimCurrentBatchIterator {
+  type ParquetCVFactory = (StructType, Int, ParquetColumn, WritableColumnVector,
+    Int, MemoryMode, util.Set[ParquetColumn], Boolean) => AnyRef
+  type ColumnReaderFactory = (ColumnDescriptor, Boolean, PageReadStore,
+    ParsedVersion) => VectorizedColumnReader
+}
+
 /**
  * This class takes a lot of the logic from
  * org.apache/spark/sql/execution/datasources/parquet/VectorizedParquetRecordReader.java
  */
 class ShimCurrentBatchIterator(
-    parquetCachedBatch: ParquetCachedBatch,
+    inputFile: InputFile,
     conf: SQLConf,
     selectedAttributes: Seq[Attribute],
     options: ParquetReadOptions,
-    hadoopConf: Configuration)
+    hadoopConf: Configuration,
+    config: Configuration,
+    newParquetCV: ShimCurrentBatchIterator.ParquetCVFactory,
+    newColumnReader: ShimCurrentBatchIterator.ColumnReaderFactory)
     extends CurrentBatchIterator(
-      parquetCachedBatch,
+      inputFile,
       conf,
       selectedAttributes,
       options,
       hadoopConf) {
 
   val missingColumns: util.Set[ParquetColumn] = new util.HashSet[ParquetColumn]()
-  val config = new Configuration
-  config.setBoolean(SQLConf.PARQUET_BINARY_AS_STRING.key, false)
-  config.setBoolean(SQLConf.PARQUET_INT96_AS_TIMESTAMP.key, false)
-  config.setBoolean(SQLConf.CASE_SENSITIVE.key, false)
-  ParquetTimestampNTZShims.setupTimestampNTZConfig(config, conf)
   val parquetColumn = new ParquetToSparkSchemaConverter(config)
       .convertParquetColumn(reqParquetSchemaInCacheOrder, Option.empty)
 
@@ -83,9 +88,11 @@ class ShimCurrentBatchIterator(
   }
 
   val sparkSchema = parquetColumn.sparkType.asInstanceOf[StructType]
-  val parquetColumnVectors: Array[AnyRef] = (for (i <- 0 until sparkSchema.fields.length) yield {
-    ParquetCVShims.newParquetCV(sparkSchema, i, parquetColumn.children.apply(i),
+  val parquetColumnVectors: Array[ParquetColumnVector] =
+    (for (i <- 0 until sparkSchema.fields.length) yield {
+    newParquetCV(sparkSchema, i, parquetColumn.children.apply(i),
       vectors(i), capacity, MemoryMode.OFF_HEAP, missingColumns, true)
+      .asInstanceOf[ParquetColumnVector]
   }).toArray
 
   private def containsPath(parquetType: Type, path: Array[String]): Boolean =
@@ -130,24 +137,19 @@ class ShimCurrentBatchIterator(
   }
 
   @throws[IOException]
-  private def initColumnReader(pages: PageReadStore, cv: AnyRef): Unit = {
-    val column = ParquetColumnVectorBridge.getColumn(cv)
+  private def initColumnReader(pages: PageReadStore, cv: ParquetColumnVector): Unit = {
+    val column = cv.getColumn
     if (!missingColumns.contains(column)) {
       if (column.isPrimitive) {
-        val reader = RapidsVectorizedColumnReader(
+        val reader = newColumnReader(
           column.descriptor.get,
           column.required,
           pages,
-          null,
-          LegacyBehaviorPolicyShim.CORRECTED_STR,
-          LegacyBehaviorPolicyShim.EXCEPTION_STR,
-          LegacyBehaviorPolicyShim.EXCEPTION_STR,
-          null,
           writerVersion)
-        ParquetColumnVectorBridge.setColumnReader(cv, reader)
+        cv.setColumnReader(reader)
       }
       else { // Not in missing columns and is a complex type: this must be a struct
-        for (childCv <- ParquetColumnVectorBridge.getChildren(cv).asScala) {
+        for (childCv <- cv.getChildren.asScala) {
           initColumnReader(pages, childCv)
         }
       }
@@ -173,7 +175,7 @@ class ShimCurrentBatchIterator(
    */
   def nextBatch: Boolean = {
     for (vector <- parquetColumnVectors) {
-      ParquetColumnVectorBridge.reset(vector)
+      vector.reset()
     }
     columnarBatch.setNumRows(0)
     if (rowsReturned >= totalRowCount) return false
@@ -181,18 +183,18 @@ class ShimCurrentBatchIterator(
 
     val num = Math.min(capacity.toLong, totalCountLoadedSoFar - rowsReturned).toInt
     for (cv <- parquetColumnVectors){
-      for (leafCv <- ParquetColumnVectorBridge.getLeaves(cv).asScala) {
-        val columnReader = ParquetColumnVectorBridge.getColumnReader(leafCv)
+      for (leafCv <- cv.getLeaves.asScala) {
+        val columnReader = leafCv.getColumnReader
         if (columnReader != null) {
           ParquetVectorizedReader.readBatchMethod.invoke(
             columnReader,
             num.asInstanceOf[AnyRef],
-            ParquetColumnVectorBridge.getValueVector(leafCv).asInstanceOf[AnyRef],
-            ParquetColumnVectorBridge.getRepetitionLevelVector(leafCv).asInstanceOf[AnyRef],
-            ParquetColumnVectorBridge.getDefinitionLevelVector(leafCv).asInstanceOf[AnyRef])
+            leafCv.getValueVector.asInstanceOf[AnyRef],
+            leafCv.getRepetitionLevelVector.asInstanceOf[AnyRef],
+            leafCv.getDefinitionLevelVector.asInstanceOf[AnyRef])
         }
       }
-      ParquetColumnVectorBridge.assemble(cv)
+      cv.assemble()
     }
     rowsReturned += num
     columnarBatch.setNumRows(num)
