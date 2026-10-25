@@ -36,6 +36,13 @@ LEGACY_330_331_ONLY = {
     'RapidsHadoopWriterUtils.scala',
 }
 
+LEGACY_330_THROUGH_333_ONLY = {
+    'sql-plugin/src/main/spark330/scala/com/nvidia/spark/rapids/shims/'
+    'GetSequenceSize.scala',
+    'sql-plugin/src/main/spark330/scala/org/apache/spark/sql/rapids/shims/'
+    'RapidsErrorUtils.scala',
+}
+
 
 class SourceResolverTest(unittest.TestCase):
     def setUp(self):
@@ -167,17 +174,22 @@ class SourceResolverTest(unittest.TestCase):
                 physical = Path(variant.physical_path).relative_to(ROOT).as_posix()
                 for selector in variant.selectors:
                     if selector.kind == 'introduced' and selector.targets == ('330',):
-                        # Both files without 332 membership have a 332-specific replacement.
-                        legacy_targets = ('330', '331') if physical in LEGACY_330_331_ONLY \
-                            else ('330', '331', '332', '333')
+                        # These sources have version-specific replacements after their last
+                        # legacy exact selector.
+                        if physical in LEGACY_330_331_ONLY:
+                            legacy_targets = ('330', '331')
+                        elif physical in LEGACY_330_THROUGH_333_ONLY:
+                            legacy_targets = ('330', '331', '332', '333')
+                        else:
+                            legacy_targets = ('330', '331', '332', '333', '334')
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in legacy_targets)
                     elif selector.kind == 'introduced' and selector.targets == ('331',):
                         selectors.extend(SourceSelector('exact', (target,), {})
-                                         for target in ('331', '332', '333'))
+                                         for target in ('331', '332', '333', '334'))
                     elif selector.kind == 'introduced' and selector.targets == ('332',):
                         selectors.extend(SourceSelector('exact', (target,), {})
-                                         for target in ('332', '333'))
+                                         for target in ('332', '333', '334'))
                     else:
                         selectors.append(selector)
                 legacy_variants.append(variant._replace(selectors=tuple(selectors)))
