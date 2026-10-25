@@ -225,6 +225,7 @@
             </activation>
             <properties>
                 <buildver>340</buildver>
+                <shim.source.inherits>334</shim.source.inherits>
                 <spark.version>${spark340.version}</spark.version>
                 <parquet.hadoop.version>1.12.3</parquet.hadoop.version>
                 <rapids.delta.artifactId1>rapids-4-spark-delta-24x</rapids.delta.artifactId1>
