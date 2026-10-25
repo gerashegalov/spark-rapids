@@ -26,6 +26,7 @@ sys.path.insert(0, str(ROOT / 'build'))
 from shimpler_source_graph import load_source_graph
 from shimpler_source_resolver import (candidate_inherited_sources, discover_shim_modules,
                                      resolve_sources, scan_module_sources, validate_legacy_shadow)
+from shimpler_source_selectors import SourceSelector
 
 
 class SourceResolverTest(unittest.TestCase):
@@ -152,8 +153,25 @@ class SourceResolverTest(unittest.TestCase):
         self.assertIn(str(ROOT / 'delta-lake' / 'common'), modules)
         for module in modules:
             variants, _ = scan_module_sources(module, targets)
+            legacy_variants = []
+            for variant in variants:
+                selectors = []
+                for selector in variant.selectors:
+                    if selector.kind == 'introduced' and selector.targets == ('330',):
+                        # The pre-conversion membership for this first 330 -> 331 batch.
+                        selectors.extend(SourceSelector('exact', (target,), {})
+                                         for target in ('330', '331'))
+                    else:
+                        selectors.append(selector)
+                legacy_variants.append(variant._replace(selectors=tuple(selectors)))
             for graph in graphs:
-                validate_legacy_shadow(graph, variants)
+                validate_legacy_shadow(graph, legacy_variants)
+                for target in graph:
+                    actual = resolve_sources(graph, variants, target)
+                    legacy = resolve_sources(graph, legacy_variants, target)
+                    self.assertEqual({key: value.physical_path for key, value in actual.items()},
+                                     {key: value.physical_path for key, value in legacy.items()},
+                                     '%s at %s' % (module, target))
 
     def test_repository_rapids_error_utils_owners(self):
         graphs = (load_source_graph(str(ROOT / 'pom.xml')),
