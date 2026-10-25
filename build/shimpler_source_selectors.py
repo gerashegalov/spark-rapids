@@ -14,9 +14,8 @@
 
 """Parse Spark source selectors and check proposed inheritance against exact membership.
 
-This module is compatible with Shimplify's Jython 2.7 runtime. It does not
-change source generation; callers must compare inherited and legacy selections
-before making inherited selectors authoritative.
+This module is compatible with Shimplify's Jython 2.7 runtime. Source changes
+should compare inherited and legacy selections before converting annotations.
 """
 
 from collections import namedtuple

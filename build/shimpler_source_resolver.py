@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Resolve shim source variants without invoking Maven or generating sources.
+"""Resolve shim source variants for Shimplify and source-selection inspection.
 
-The legacy generator remains authoritative for now. The shadow check derives
-introduction points only where a legacy membership set is descendant-closed;
-other sets retain exact membership so removals cannot be silently inherited.
-This module is also usable by Shimplify's Jython 2.7 runtime.
+The shadow check derives introduction points only where a legacy membership
+set is descendant-closed; other sets retain exact membership so removals
+cannot be silently inherited. This module supports Shimplify's Jython 2.7 runtime.
 """
 
 from collections import namedtuple

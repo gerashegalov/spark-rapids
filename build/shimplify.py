@@ -307,7 +307,8 @@ def task_impl():
     sys.path.insert(0, os.path.join(__ant_proj_prop('spark.rapids.source.basedir'), 'build'))
     from shimpler_source_graph import load_source_graph
     try:
-        load_source_graph(os.path.join(__ant_proj_prop('spark.rapids.project.basedir'), 'pom.xml'))
+        source_graph = load_source_graph(
+            os.path.join(__ant_proj_prop('spark.rapids.project.basedir'), 'pom.xml'))
     except ValueError as error:
         __fail('Invalid shim source inheritance: %s' % error)
     __log.info('# Starting Jython Task Shimplify #')
@@ -361,7 +362,20 @@ def task_impl():
     else:
         __log.info('Shim layout is not updated! If desired invoke '
                    '`mvn generate-sources -Dshimplify=true` to manipulate shims')
-        __generate_symlinks()
+        buildver = __ant_proj_prop('buildver')
+        if buildver in source_graph:
+            from shimpler_source_generator import generate_sources
+            generated_root = os.path.join(str(__project().getBaseDir()), 'target',
+                                          'spark%s' % buildver, 'generated', 'src')
+            try:
+                selected = generate_sources(__src_basedir, generated_root, source_graph, buildver)
+            except ValueError as error:
+                __fail('Invalid shim source selection: %s' % error)
+            __log.info('Generated %d shim sources for %s', len(selected), buildver)
+        else:
+            __log.info('Build target %s is not in the public source graph; using exact selectors',
+                       buildver)
+            __generate_symlinks()
 
 
 def __generate_symlinks():
