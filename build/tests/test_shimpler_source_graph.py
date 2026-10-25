@@ -102,6 +102,8 @@ class SourceGraphTest(unittest.TestCase):
         self.assertNotIn('500', root_graph)
         self.assertEqual(source_lineage(scala_213_graph, '402'), ['402', '401', '400'])
         self.assertEqual(source_lineage(scala_213_graph, '403'), ['403', '402', '401', '400'])
+        self.assertEqual(source_lineage(scala_213_graph, '404'),
+                         ['404', '403', '402', '401', '400'])
         self.assertEqual(source_lineage(scala_213_graph, '500'), ['500', '420'])
 
 

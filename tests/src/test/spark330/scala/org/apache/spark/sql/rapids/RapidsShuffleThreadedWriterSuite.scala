@@ -20,7 +20,6 @@
 {"spark": "350db143"}
 {"spark": {"introduced": "400"}}
 {"spark": {"introduced": "402"}}
-{"spark": "404"}
 {"spark": "411"}
 spark-rapids-shim-json-lines ***/
 
