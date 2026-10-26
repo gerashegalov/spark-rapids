@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pathlib import Path
 import hashlib
 import json
 import subprocess
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -29,6 +29,11 @@ from shimpler_source_generator import generate_sources
 from shimpler_source_resolver import (candidate_inherited_sources, discover_shim_modules,
                                      resolve_sources, scan_module_sources, validate_legacy_shadow)
 from shimpler_source_selectors import SourceSelector
+
+
+def selector(descendants, *targets):
+    return json.dumps({'spark': targets, 'includeDescendantShims': descendants},
+                      separators=(',', ':'))
 
 
 LEGACY_330_331_ONLY = {
@@ -115,8 +120,8 @@ class SourceResolverTest(unittest.TestCase):
         return scan_module_sources(str(self.module), self.graph)
 
     def test_scan_scala_java_and_unannotated(self):
-        scala = self.source('355', 'Example.scala', ['{"spark":"355"}'])
-        java = self.source('355', 'Other.java', ['{"spark":{"only":"355"}}'], 'java', 'test')
+        scala = self.source('355', 'Example.scala', [selector(False, '355')])
+        java = self.source('355', 'Other.java', [selector(False, '355')], 'java', 'test')
         unannotated = self.source('355', 'Skipped.scala', None)
         variants, skipped = self.scan()
         self.assertEqual(set(variant.physical_path for variant in variants), {scala, java})
@@ -126,24 +131,24 @@ class SourceResolverTest(unittest.TestCase):
         self.assertEqual(discover_shim_modules(self.temp.name), [str(self.module)])
 
     def test_scan_rejects_unsorted_or_duplicate_selectors(self):
-        for selectors in (['{"spark":"356"}', '{"spark":"355"}'],
-                          ['{"spark":"355"}', '{"spark":{"introduced":"355"}}']):
+        for selectors in ([selector(False, '356'), selector(False, '355')],
+                          [selector(False, '355'), selector(True, '355')]):
             self.source('355', 'Example.scala', selectors)
             with self.assertRaisesRegex(ValueError, 'unique and sorted'):
                 self.scan()
 
     def test_scan_rejects_multiple_selector_blocks(self):
-        source = self.source('355', 'Example.scala', ['{"spark":"355"}'])
+        source = self.source('355', 'Example.scala', [selector(False, '355')])
         with open(source, 'a', encoding='utf-8') as output:
             output.write('/*** spark-rapids-shim-json-lines\n'
-                         '{"spark":"356"}\nspark-rapids-shim-json-lines ***/\n')
+                         '%s\nspark-rapids-shim-json-lines ***/\n' % selector(False, '356'))
         with self.assertRaisesRegex(ValueError, 'Malformed shim selector block'):
             self.scan()
 
     def test_nearest_overlay_and_exact_only(self):
-        first = self.source('355', 'Example.scala', ['{"spark":{"introduced":"355"}}'])
-        overlay = self.source('357', 'Example.scala', ['{"spark":{"introduced":"357"}}'])
-        only = self.source('500', 'Other.scala', ['{"spark":{"only":"500"}}'])
+        first = self.source('355', 'Example.scala', [selector(True, '355')])
+        overlay = self.source('357', 'Example.scala', [selector(True, '357')])
+        only = self.source('500', 'Other.scala', [selector(False, '500')])
         variants, _ = self.scan()
         logical = 'src/main/scala/pkg/Example.scala'
         self.assertEqual(resolve_sources(self.graph, variants, '356')[logical].physical_path, first)
@@ -156,9 +161,8 @@ class SourceResolverTest(unittest.TestCase):
                          resolve_sources(self.graph, variants, '420'))
 
     def test_multiple_introduction_roots_and_exact_override(self):
-        base = self.source('355', 'Example.scala',
-                           ['{"spark":{"introduced":["355","420"]}}'])
-        override = self.source('500', 'Example.scala', ['{"spark":{"only":"500"}}'])
+        base = self.source('355', 'Example.scala', [selector(True, '355', '420')])
+        override = self.source('500', 'Example.scala', [selector(False, '500')])
         variants, _ = self.scan()
         logical = 'src/main/scala/pkg/Example.scala'
         self.assertEqual(resolve_sources(self.graph, variants, '357')[logical].physical_path, base)
@@ -167,16 +171,16 @@ class SourceResolverTest(unittest.TestCase):
                          override)
 
     def test_ambiguous_variants_rejected(self):
-        self.source('355', 'Example.scala', ['{"spark":"356"}'])
-        self.source('356', 'Example.scala', ['{"spark":"356"}'])
+        self.source('355', 'Example.scala', [selector(False, '356')])
+        self.source('356', 'Example.scala', [selector(False, '356')])
         variants, _ = self.scan()
         with self.assertRaisesRegex(ValueError, 'Ambiguous shim sources for 356'):
             resolve_sources(self.graph, variants, '356')
 
     def test_nearer_override_wins_regardless_of_variant_order(self):
-        self.source('355', 'Example.scala', ['{"spark":{"introduced":"355"}}'])
-        self.source('356', 'Example.scala', ['{"spark":{"introduced":"355"}}'])
-        override = self.source('357', 'Example.scala', ['{"spark":{"only":"357"}}'])
+        self.source('355', 'Example.scala', [selector(True, '355')])
+        self.source('356', 'Example.scala', [selector(True, '355')])
+        override = self.source('357', 'Example.scala', [selector(False, '357')])
         variants, _ = self.scan()
         logical = 'src/main/scala/pkg/Example.scala'
         for ordered in (variants, list(reversed(variants))):
@@ -184,25 +188,24 @@ class SourceResolverTest(unittest.TestCase):
                              override)
 
     def test_shadow_keeps_exact_removals(self):
-        exact = self.source('420', 'Example.scala', ['{"spark":"420"}'])
+        exact = self.source('420', 'Example.scala', [selector(False, '420')])
         variants, _ = self.scan()
         self.assertEqual(validate_legacy_shadow(self.graph, variants), (exact,))
         candidates, _ = candidate_inherited_sources(self.graph, variants)
         self.assertEqual(resolve_sources(self.graph, candidates, '500'), {})
 
     def test_shadow_accepts_descendant_closed_membership(self):
-        self.source('355', 'Example.scala',
-                    ['{"spark":"355"}', '{"spark":"356"}', '{"spark":"357"}'])
+        self.source('355', 'Example.scala', [selector(False, '355', '356', '357')])
         variants, _ = self.scan()
         self.assertEqual(validate_legacy_shadow(self.graph, variants), ())
 
     def test_versioned_package_path_stays_exact(self):
-        source = self.source('357', 'spark357/Provider.scala', ['{"spark":"357"}'])
+        source = self.source('357', 'spark357/Provider.scala', [selector(False, '357')])
         variants, _ = self.scan()
         self.assertEqual(validate_legacy_shadow(self.graph, variants), (source,))
 
     def test_shadow_requires_oracle_for_converted_sources(self):
-        self.source('355', 'Example.scala', ['{"spark":{"introduced":"355"}}'])
+        self.source('355', 'Example.scala', [selector(True, '355')])
         variants, _ = self.scan()
         with self.assertRaisesRegex(ValueError, 'pre-conversion oracle is required'):
             validate_legacy_shadow(self.graph, variants)
@@ -221,13 +224,13 @@ class SourceResolverTest(unittest.TestCase):
                 physical = Path(variant.physical_path).relative_to(ROOT).as_posix()
                 expanded = []
                 for selector in variant.selectors:
-                    if selector.kind == 'introduced' and len(selector.targets) > 1:
+                    if selector.kind == 'descendants' and len(selector.targets) > 1:
                         expanded.extend(selector._replace(targets=(target,))
                                         for target in selector.targets)
                     else:
                         expanded.append(selector)
                 for selector in expanded:
-                    if selector.kind == 'introduced' and selector.targets == ('330',):
+                    if selector.kind == 'descendants' and selector.targets == ('330',):
                         # These sources have version-specific replacements after their last
                         # legacy exact selector.
                         if physical in LEGACY_330_331_ONLY:
@@ -238,34 +241,34 @@ class SourceResolverTest(unittest.TestCase):
                             legacy_targets = ('330', '331', '332', '333', '334')
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in legacy_targets)
-                    elif selector.kind == 'introduced' and selector.targets == ('331',):
+                    elif selector.kind == 'descendants' and selector.targets == ('331',):
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in ('331', '332', '333', '334'))
-                    elif selector.kind == 'introduced' and selector.targets == ('332',):
+                    elif selector.kind == 'descendants' and selector.targets == ('332',):
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in ('332', '333', '334'))
-                    elif selector.kind == 'introduced' and selector.targets == ('350',):
+                    elif selector.kind == 'descendants' and selector.targets == ('350',):
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in ('350', '351'))
-                    elif selector.kind == 'introduced' and selector.targets == ('358',):
+                    elif selector.kind == 'descendants' and selector.targets == ('358',):
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in ('358', '359'))
-                    elif selector.kind == 'introduced' and selector.targets == ('400',):
+                    elif selector.kind == 'descendants' and selector.targets == ('400',):
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in ('400', '401'))
-                    elif selector.kind == 'introduced' and selector.targets == ('402',):
+                    elif selector.kind == 'descendants' and selector.targets == ('402',):
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in ('402', '403'))
-                    elif selector.kind == 'introduced' and selector.targets == ('403',):
+                    elif selector.kind == 'descendants' and selector.targets == ('403',):
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in ('403', '404'))
-                    elif selector.kind == 'introduced' and selector.targets == ('411',):
+                    elif selector.kind == 'descendants' and selector.targets == ('411',):
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in ('411', '412'))
-                    elif selector.kind == 'introduced' and selector.targets == ('412',):
+                    elif selector.kind == 'descendants' and selector.targets == ('412',):
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in ('412', '413'))
-                    elif selector.kind == 'introduced' and selector.targets == ('420',):
+                    elif selector.kind == 'descendants' and selector.targets == ('420',):
                         selectors.extend(SourceSelector('exact', (target,), {})
                                          for target in ('420', '500'))
                     else:
@@ -327,7 +330,7 @@ class SourceResolverTest(unittest.TestCase):
         output = subprocess.check_output(command, universal_newlines=True)
         result = json.loads(output)
         self.assertEqual(result['scala'], '2.12')
-        self.assertTrue(any(row['selector_kind'] == 'introduced' for row in result['sources']))
+        self.assertTrue(any(row['selector_kind'] == 'descendants' for row in result['sources']))
         self.assertTrue(any(row['selector_kind'] == 'exact' for row in result['sources']))
         self.assertTrue(any(row['physical_path'].endswith('PartitionedFileUtilsShim.scala')
                             and row['introduction_target'] == '358'

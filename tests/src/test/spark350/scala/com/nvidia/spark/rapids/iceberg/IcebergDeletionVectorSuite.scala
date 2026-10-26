@@ -15,14 +15,8 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark": {"introduced": "350"}}
-{"spark": "400"}
-{"spark": "401"}
-{"spark": "402"}
-{"spark": "403"}
-{"spark": "404"}
-{"spark": "411"}
-{"spark": "413"}
+{"spark":["350"],"includeDescendantShims":true}
+{"spark":["400","401","402","403","404","411","413"],"includeDescendantShims":false}
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.iceberg
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 /*** spark-rapids-shim-json-lines
-{"spark": {"introduced": "350"}}
+{"spark":["350"],"includeDescendantShims":true}
 spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.execution.datasources.v2
 

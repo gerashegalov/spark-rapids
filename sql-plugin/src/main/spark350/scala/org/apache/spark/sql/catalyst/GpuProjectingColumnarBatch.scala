@@ -17,7 +17,7 @@
 
 /*** spark-rapids-shim-json-lines
 {"spark":["350","400","402","420"],"includeDescendantShims":true}
-{"spark": "410db183"}
+{"spark":["410db183"],"includeDescendantShims":false}
 spark-rapids-shim-json-lines ***/
 
 package org.apache.spark.sql.catalyst

@@ -41,6 +41,14 @@ DECLARATION = re.compile(
     r"|public|sealed|abstract|final|case)\s+)*"
     r"(?:class|object|trait|interface|enum)\s+(\w+)")
 IMPORT = re.compile(r"(?m)^\s*import\s+([^\n;{]+(?:\{[^}]*\}[^\n;]*)?)")
+LEGACY_EXACT = re.compile(
+    rb'(?m)^([ \t]*)\{[ \t]*"spark"[ \t]*:[ \t]*"([^"]+)"[ \t]*\}([ \t]*)$')
+
+
+def normalize_legacy_exact(source):
+    return LEGACY_EXACT.sub(
+        lambda match: match[1] + b'{"spark":["' + match[2] +
+        b'"],"includeDescendantShims":false}' + match[3], source)
 
 
 class PreflightError(Exception):
@@ -454,7 +462,7 @@ def related_prs(root, repo, base_ref, head_ref, validated_base, branch, own_pr,
 
 
 def source_snapshot(root, tree, destination):
-    """Export data only: do not check out or execute build hooks from either tree."""
+    """Export source data, normalizing pre-migration exact tags for comparison."""
     paths = ("pom.xml", "scala2.13/pom.xml", "sql-plugin/src/main")
     entries = []
     for record in run(["git", "ls-tree", "-rz", tree, "--", *paths], root).split("\0"):
@@ -481,6 +489,9 @@ def source_snapshot(root, tree, destination):
         if not path.resolve().is_relative_to(destination.resolve()):
             raise PreflightError("Invalid source path")
         path.parent.mkdir(parents=True, exist_ok=True)
+        if relative.endswith((".scala", ".java")) and b'spark-rapids-shim-json-lines' in data:
+            # The strict selector parser still needs to compare older base/peer trees.
+            data = normalize_legacy_exact(data)
         path.write_bytes(data)
 
 
@@ -724,7 +735,8 @@ def annotation_location(root, head, finding, changed=()):
                          if re.search(r"\b" + re.escape(token) + r"\b", text)), 1)
         else:
             line = next((i for i, text in enumerate(original.splitlines(), 1)
-                         if re.search(r'"spark"\s*:\s*"' + re.escape(finding["buildver"]) + '"',
+                         if re.search(r'"spark"\s*:\s*\[[^\]]*"' +
+                                      re.escape(finding["buildver"]) + '"',
                                       text)), 1)
         return path, line
     return None

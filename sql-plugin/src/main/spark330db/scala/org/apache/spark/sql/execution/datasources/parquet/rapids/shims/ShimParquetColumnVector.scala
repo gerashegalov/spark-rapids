@@ -15,13 +15,7 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark": "330db"}
-{"spark": "332db"}
-{"spark": "340"}
-{"spark": "341"}
-{"spark": "342"}
-{"spark": "343"}
-{"spark": "344"}
+{"spark":["330db","332db","340","341","342","343","344"],"includeDescendantShims":false}
 spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.execution.datasources.parquet
 

@@ -15,8 +15,7 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark": "401"}
-{"spark": "411"}
+{"spark":["401","411"],"includeDescendantShims":false}
 spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.delta.rapids
 

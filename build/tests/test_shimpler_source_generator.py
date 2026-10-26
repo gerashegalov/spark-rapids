@@ -41,8 +41,10 @@ class SourceGeneratorTest(unittest.TestCase):
         return path
 
     def test_inherited_source_and_exact_overlay(self):
-        base = self.source('355', 'Example.scala', ['{"spark":{"introduced":"355"}}'])
-        overlay = self.source('356', 'Example.scala', ['{"spark":"356"}'])
+        base = self.source('355', 'Example.scala',
+                           ['{"spark":["355"],"includeDescendantShims":true}'])
+        overlay = self.source('356', 'Example.scala',
+                              ['{"spark":["356"],"includeDescendantShims":false}'])
         output = self.generated / 'main' / 'scala' / 'pkg' / 'Example.scala'
         selected = generate_sources(str(self.module), str(self.generated), self.graph, '356')
         self.assertEqual(selected['src/main/scala/pkg/Example.scala'].physical_path,
@@ -53,8 +55,20 @@ class SourceGeneratorTest(unittest.TestCase):
         generate_sources(str(self.module), str(other_root), self.graph, '357')
         self.assertEqual((other_root / 'main' / 'scala' / 'pkg' / 'Example.scala').resolve(), base)
 
+    def test_exact_target_outside_active_profile_graph(self):
+        self.source('355', 'Example.scala',
+                    ['{"spark":["355"],"includeDescendantShims":true}'])
+        vendor = self.source('vendor', 'Example.scala',
+                             ['{"spark":["vendor"],"includeDescendantShims":false}'])
+        graph = dict(self.graph)
+        graph['vendor'] = None
+        selected = generate_sources(str(self.module), str(self.generated), graph, 'vendor',
+                                    set(self.graph))
+        self.assertEqual(selected['src/main/scala/pkg/Example.scala'].physical_path, str(vendor))
+
     def test_removes_stale_outputs_and_interpolates_package(self):
-        self.source('355', 'Interpolated.scala', ['{"spark":"356"}'],
+        self.source('355', 'Interpolated.scala',
+                    ['{"spark":["356"],"includeDescendantShims":false}'],
                     'package pkg.$_spark.version.classifier_\nclass Example\n')
         stale = self.generated / 'main' / 'scala' / 'pkg' / 'Stale.scala'
         stale.parent.mkdir(parents=True)
@@ -69,8 +83,10 @@ class SourceGeneratorTest(unittest.TestCase):
         self.assertIn('package pkg.spark356', output.read_text(encoding='utf-8'))
 
     def test_error_does_not_remove_previous_outputs(self):
-        self.source('355', 'Example.scala', ['{"spark":"356"}'])
-        self.source('356', 'Example.scala', ['{"spark":"356"}'])
+        self.source('355', 'Example.scala',
+                    ['{"spark":["356"],"includeDescendantShims":false}'])
+        self.source('356', 'Example.scala',
+                    ['{"spark":["356"],"includeDescendantShims":false}'])
         previous = self.generated / 'main' / 'scala' / 'pkg' / 'Previous.scala'
         previous.parent.mkdir(parents=True)
         previous.write_text('previous', encoding='utf-8')

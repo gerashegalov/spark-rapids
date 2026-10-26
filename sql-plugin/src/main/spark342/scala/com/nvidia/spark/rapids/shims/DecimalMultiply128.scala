@@ -15,20 +15,8 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark": "342"}
-{"spark": "343"}
-{"spark": "344"}
-{"spark": "350db143"}
-{"spark": "351"}
-{"spark": "352"}
-{"spark": "353"}
-{"spark": "354"}
-{"spark": "355"}
-{"spark": "356"}
-{"spark": "357"}
+{"spark":["342","343","344","350db143","351","352","353","354","355","356","357","400db173","410db183"],"includeDescendantShims":false}
 {"spark":["358","400","402","420"],"includeDescendantShims":true}
-{"spark": "400db173"}
-{"spark": "410db183"}
 spark-rapids-shim-json-lines ***/
 
 package com.nvidia.spark.rapids.shims

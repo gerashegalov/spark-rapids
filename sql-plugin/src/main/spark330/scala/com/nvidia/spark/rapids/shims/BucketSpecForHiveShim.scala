@@ -15,12 +15,7 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark": "330"}
-{"spark": "331"}
-{"spark": "332"}
-{"spark": "332db"}
-{"spark": "333"}
-{"spark": "334"}
+{"spark":["330","331","332","332db","333","334"],"includeDescendantShims":false}
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.shims
 

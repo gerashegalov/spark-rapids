@@ -62,20 +62,17 @@ Optionally review and remove empty directories
 
 git clean -f -d [--dry-run]
 
-Each shim Scala/Java file receives a comment describing all Spark builds it
-belongs to. Lines are sorted by the Spark `buildver` lexicographically.
-Each line is assumed to be a JSON to keep it extensible.
+Each shim Scala/Java file receives a JSON selector comment. Exact membership
+uses includeDescendantShims=false; inherited membership uses true.
 
 /*** spark-rapids-shim-json-lines
-{"spark": "330"}
-{"spark": "331"}
+{"spark":["330","331"],"includeDescendantShims":false}
 spark-rapids-shim-json-lines ***/
 
 The canonical location of a source file shared by multiple shims is
 src/main/<top_buildver_in_the_comment>
 
-You can find all shim files for a particular shim, e.g. 330, easily by executing:
-git grep '{"spark": "330"}' '*.java' '*.scala'
+Use `build/shimpler sources --target 330` to inspect selected sources and provenance.
 """
 
 import errno
@@ -201,16 +198,13 @@ __shim_dir_pattern = re.compile(r'spark\d{3}')
 __shim_comment_pattern = re.compile(re.escape(__opening_shim_tag) +
                                     r'\n(.*)\n' +
                                     re.escape(__closing_shim_tag), re.DOTALL)
-__spark_version_classifier = '$_spark.version.classifier_'
-__spark_version_placeholder = re.escape(__spark_version_classifier)
-__package_pattern = re.compile('package .*' + '(' + __spark_version_placeholder + ')')
 def __upsert_shim_json(filename, bv_list):
     with open(filename, 'r') as file:
         contents = file.readlines()
     __delete_prior_comment_if_allowed(contents, __shim_comment_tag, filename)
     shim_comment = [__opening_shim_tag]
-    for build_ver in bv_list:
-        shim_comment.append(json.dumps({'spark':  build_ver}))
+    shim_comment.append(json.dumps({'spark': sorted(bv_list),
+                                    'includeDescendantShims': False}, separators=(',', ':')))
     shim_comment.append(__closing_shim_tag)
     shim_comment = map(lambda x: x + '\n', shim_comment)
     __log.debug("Inserting comment %s to %s", shim_comment, filename)
@@ -367,37 +361,28 @@ def task_impl():
         __log.info('Shim layout is not updated! If desired invoke '
                    '`mvn generate-sources -Dshimplify=true` to manipulate shims')
         buildver = __ant_proj_prop('buildver')
-        if buildver in source_graph:
-            from shimpler_source_generator import generate_sources
-            generated_root = os.path.join(str(__project().getBaseDir()), 'target',
-                                          'spark%s' % buildver, 'generated', 'src')
-            try:
-                selected = generate_sources(__src_basedir, generated_root, source_graph, buildver,
-                                            valid_targets)
-            except ValueError as error:
-                __fail('Invalid shim source selection: %s' % error)
-            __log.info('Generated %d shim sources for %s', len(selected), buildver)
-        else:
+        if buildver not in source_graph:
             __log.info('Build target %s is not in the public source graph; using exact selectors',
                        buildver)
-            __generate_symlinks()
-
-
-def __generate_symlinks():
-    """
-    link
-    <module>/src/<main|test>/spark<buildver>/scala/<package_path>/SomeClass.scala
-    <module>/target/<buildver>/generated/src/<main|test>/scala/<package_path>/SomeClass.scala
-    """
-    buildver = __ant_proj_prop('buildver')
-    for src_type in ['main', 'test']:
-        __log.info("# generating symlinks for shim %s %s files", buildver, src_type)
-        __traverse_source_tree_of_all_shims(
-            src_type,
-            partial(__generate_symlink_to_file, buildver=buildver, src_type=src_type))
+            source_graph[buildver] = None
+        from shimpler_source_generator import generate_sources
+        generated_root = os.path.join(str(__project().getBaseDir()), 'target',
+                                      'spark%s' % buildver, 'generated', 'src')
+        try:
+            selected = generate_sources(__src_basedir, generated_root, source_graph, buildver,
+                                        valid_targets)
+        except ValueError as error:
+            __fail('Invalid shim source selection: %s' % error)
+        __log.info('Generated %d shim sources for %s', len(selected), buildver)
 
 def __traverse_source_tree_of_all_shims(src_type, func):
     """Walks src/<src_type>/sparkXYZ"""
+    from shimpler_source_graph import load_source_graph
+    from shimpler_source_selectors import inherited_membership, parse_selector_line
+    source_root = __ant_proj_prop('spark.rapids.source.basedir')
+    graph = {}
+    for pom in ('pom.xml', 'scala2.13/pom.xml'):
+        graph.update(load_source_graph(os.path.join(source_root, pom)))
     base_dir = __src_basedir
     src_root = os.path.join(base_dir, 'src', src_type)
     for dir, subdirs, files in os.walk(src_root, topdown=True):
@@ -415,75 +400,16 @@ def __traverse_source_tree_of_all_shims(src_type, func):
                 shim_arr = shim_match.group(1).split(os.linesep)
                 assert len(shim_arr) > 0, "invalid empty shim comment,"\
                     "orphan shim files should be deleted"
-                build_ver_arr = map(lambda x: str(json.loads(x).get('spark')), shim_arr)
+                buildvers = set()
+                for line in shim_arr:
+                    selector = parse_selector_line(line, graph, allow_unmapped_exact=True)
+                    if selector.kind == 'exact':
+                        buildvers.update(selector.targets)
+                    else:
+                        buildvers.update(inherited_membership(graph, selector.targets))
+                build_ver_arr = sorted(buildvers)
                 __log.debug("extracted shims %s", build_ver_arr)
-                assert build_ver_arr == sorted(build_ver_arr),\
-                    "%s shim list is not properly sorted: %s" % (shim_file_path, build_ver_arr)
-                func(shim_file_path=shim_file_path, build_ver_arr=build_ver_arr, shim_file_txt=shim_file_txt)
-
-def __generate_symlink_to_file(buildver, src_type, shim_file_path, build_ver_arr, shim_file_txt):
-    if buildver in build_ver_arr:
-        project_base_dir = str(__project().getBaseDir())
-        base_dir = __src_basedir
-        src_root = os.path.join(base_dir, 'src', src_type)
-        target_root = os.path.join(project_base_dir, 'target', "spark%s" % buildver, 'generated', 'src',
-                                   src_type)
-        first_build_ver = build_ver_arr[0]
-        __log.debug("top shim comment %s", first_build_ver)
-        shim_file_rel_path = os.path.relpath(shim_file_path, src_root)
-        expected_prefix = "spark%s%s" % (first_build_ver, os.sep)
-        assert shim_file_rel_path.startswith(expected_prefix), "Unexpected: %s is not prefixed " \
-               "by %s" % (shim_file_rel_path, expected_prefix)
-        shim_file_rel_path_parts = shim_file_rel_path.split(os.sep)
-        # drop spark3XY from spark3XY/scala/com/nvidia
-        target_file_parts = shim_file_rel_path_parts[1:]
-        target_rel_path = os.sep.join(target_file_parts)
-        target_shim_file_path = os.path.join(target_root, target_rel_path)
-        __log.debug("creating symlink %s -> %s", target_shim_file_path, shim_file_path)
-        __makedirs(os.path.dirname(target_shim_file_path))
-        package_match = __package_pattern.search(shim_file_txt)
-        if __should_overwrite or package_match:
-            __remove_file(target_shim_file_path)
-        if package_match:
-            with open(target_shim_file_path, mode='w') as f:
-                f.write(shim_file_txt[0:package_match.start(1)])
-                f.write("spark")
-                f.write(buildver)
-                f.write('\n')
-                f.write('''
-/*
-!!! DO NOT EDIT THIS FILE !!!
-
-This file has been generated from the original
-
-%s
-
-by interpolating $_spark.version.classifier_=%s
-
-Be sure to edit the original file if required
-
-*/
-                ''' % (shim_file_path, 'spark' + buildver))
-                f.write(shim_file_txt[package_match.end(1):])
-        else:
-            __symlink(shim_file_path, target_shim_file_path)
-
-
-def __symlink(src, target):
-    try:
-        os.symlink(src, target)
-    except OSError as ose:
-        if ose.errno != errno.EEXIST:
-            raise
-
-
-def __remove_file(target_shim_file_path):
-    try:
-        os.remove(target_shim_file_path)
-    except OSError as ose:
-        # ignore non-exisiting files
-        if ose.errno != errno.ENOENT:
-            raise
+                func(shim_file_path=shim_file_path, build_ver_arr=build_ver_arr)
 
 
 def __shimplify_layout():
@@ -533,13 +459,7 @@ def __shimplify_layout():
                     __git_rename_or_copy(shim_file, owner_shim)
 
 
-def __update_files2bv(files2bv,
-                      # TODO an anachronism requirement: that the following two params
-                      # have the same name along generate_symlink_file
-                      shim_file_path,
-                      build_ver_arr,
-                      #
-                      **kwargs):
+def __update_files2bv(files2bv, shim_file_path, build_ver_arr):
     assert shim_file_path not in files2bv.keys(), "new path %s %s should be "\
         "encountered only once, current map\n%s" % (shim_file_path, build_ver_arr, files2bv)
     __log.debug("Adding %s %s to files to shim map", shim_file_path, build_ver_arr)

@@ -15,7 +15,7 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark": "500"}
+{"spark":["500"],"includeDescendantShims":false}
 spark-rapids-shim-json-lines ***/
 
 package org.apache.spark.sql.rapids.execution.python

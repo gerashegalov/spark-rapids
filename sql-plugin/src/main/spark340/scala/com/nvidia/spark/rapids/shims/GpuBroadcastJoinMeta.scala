@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 /*** spark-rapids-shim-json-lines
-{"spark": "340"}
-{"spark": "341"}
-{"spark": "342"}
-{"spark": "343"}
-{"spark": "344"}
+{"spark":["340","341","342","343","344"],"includeDescendantShims":false}
 {"spark":["350","400","402","420"],"includeDescendantShims":true}
 spark-rapids-shim-json-lines ***/
 

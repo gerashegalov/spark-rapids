@@ -7,6 +7,11 @@ parent: Developer Overview
 
 # Shim Source Code Layout Simplification with Shimplify
 
+This page describes the older bulk-layout workflow. New source annotations use
+one form: `{"spark":["330"],"includeDescendantShims":false}` for exact membership,
+or the same form with `true` for the listed roots and their descendants. Use
+`build/shimpler sources --target 330` to inspect effective membership.
+
 This document describes the next iteration of shim source code maintenance. It addresses the
 drawback introduced with the [shim layer rework][1] resulting in the guaranteed ABI-compatible
 bytecode management for each of the 14 currently supported Spark builds but at the expense of
@@ -37,8 +42,7 @@ in a source-code level comment instead of the shared directories.
 
 ```scala
 /*** spark-rapids-shim-json-lines
-{"spark": "330"}
-{"spark": "331"}
+{"spark":["330","331"],"includeDescendantShims":false}
 spark-rapids-shim-json-lines ***/
 ```
 
@@ -82,7 +86,7 @@ With the shimplify format in place it is easy to review all the files for a sing
 relying on Maven:
 
 ```bash
-git grep '{"spark": "323"}' '*.scala' '*.java'
+build/shimpler sources --target 323 --module sql-plugin
 ```
 
 ## Conversion to the Shimplify-based Directory Structure
@@ -187,7 +191,8 @@ adding shim JSON lines comments by hand.
 Shimplify can clone an existing shim based as a basis of the new shim. For example when adding
 support for a new [maintenance][5] version of Spark, say 3.2.4, it's expected to be similar to 3.2.3.
 
-If just 3.2.3 or all shims after the full transition have already been converted you can execute
+For a source-compatible target, add its source-parent edge to the release profile;
+no source annotations need to change. The older exact-membership clone operation is:
 
 ```bash
 mvn generate-sources -Dshimplify=true \
@@ -195,15 +200,15 @@ mvn generate-sources -Dshimplify=true \
     -Dshimplify.add.shim=324 -Dshimplify.add.base=323
 ```
 
-to clone 323 as 324. This will add `{"spark": "324"}` to every shared file constituting the 323
-shim. Moreover, it will create
+to clone 323 as 324. This will add `324` to exact-membership lists in every shared
+file constituting the 323 shim. Moreover, it will create
 
 * a copy of dedicated 323 files with spark323 under spark324 shim
 directory
 * substitute spark324 for spark323 in the package name and path,
-* and modify the comment from `{"spark": "323"}` to `{"spark": "324"}`
+* and replace `323` with `324` in exact-membership lists for cloned files.
 
-Review the new repo state, e.g., using `git grep '{"spark": "324"}'`.
+Review the new repo state, e.g., using `build/shimpler sources --target 324`.
 Besides having to add the `release324` profile to various pom.xml as before, this alone
 is likely to be insufficient to complete the work on 324. It is expected you will need to
 work on resolving potential compilation failures manually.
@@ -217,8 +222,10 @@ mvn generate-sources -Dshimplify=true -Dshimplify.move=true \
     -Dshimplify.remove.shim=330
 ```
 
-This command will remove the comment line `{"spark": "330"}` from all source files contributing to
-the 330 shim. If a file belongs exclusively to 330 it will be removed.
+This command removes 330 from exact-membership lists in contributing source files.
+It also expands inherited membership into exact lists, so do not use it for a
+routine source-inheritance migration. If a file belongs exclusively to 330 it
+will be removed.
 
 After adding or deleting shims you should sanity-check the diff in the local git repo and
 run the integration tests above.

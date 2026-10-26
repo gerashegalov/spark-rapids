@@ -15,12 +15,7 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark": "352"}
-{"spark": "353"}
-{"spark": "354"}
-{"spark": "355"}
-{"spark": "356"}
-{"spark": "357"}
+{"spark":["352","353","354","355","356","357"],"includeDescendantShims":false}
 {"spark":["358","400","402","420"],"includeDescendantShims":true}
 spark-rapids-shim-json-lines ***/
 

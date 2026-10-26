@@ -16,9 +16,8 @@
 
 
 /*** spark-rapids-shim-json-lines
-{"spark": {"introduced": "330"}}
-{"spark": "330db"}
-{"spark": "332db"}
+{"spark":["330"],"includeDescendantShims":true}
+{"spark":["330db","332db"],"includeDescendantShims":false}
 spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.hive.rapids.shims
 
