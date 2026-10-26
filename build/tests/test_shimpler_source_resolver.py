@@ -219,7 +219,14 @@ class SourceResolverTest(unittest.TestCase):
             for variant in variants:
                 selectors = []
                 physical = Path(variant.physical_path).relative_to(ROOT).as_posix()
+                expanded = []
                 for selector in variant.selectors:
+                    if selector.kind == 'introduced' and len(selector.targets) > 1:
+                        expanded.extend(selector._replace(targets=(target,))
+                                        for target in selector.targets)
+                    else:
+                        expanded.append(selector)
+                for selector in expanded:
                     if selector.kind == 'introduced' and selector.targets == ('330',):
                         # These sources have version-specific replacements after their last
                         # legacy exact selector.

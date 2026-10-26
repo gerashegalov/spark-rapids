@@ -38,9 +38,12 @@ class SourceSelectorTest(unittest.TestCase):
 
     def test_introduced_and_only(self):
         introduced = parse_selector_line('{"spark":{"introduced":["401","420"]}}', self.graph)
+        descendants = parse_selector_line(
+            '{"spark":["401","420"],"includeDescendantShims":true}', self.graph)
         only = parse_selector_line('{"spark":{"only":"402"}}', self.graph)
         self.assertEqual(introduced.kind, 'introduced')
         self.assertEqual(introduced.targets, ('401', '420'))
+        self.assertEqual(descendants, introduced)
         self.assertEqual(only.kind, 'only')
         self.assertEqual(only.targets, ('402',))
 
@@ -48,7 +51,10 @@ class SourceSelectorTest(unittest.TestCase):
         for line in ('{"spark":"999"}', '{"spark":{"introduced":"999"}}',
                      '{"spark":{"introduced":"401","only":"402"}}',
                      '{"spark":{"introduced":[]}}',
-                     '{"spark":{"introduced":["401","401"]}}'):
+                     '{"spark":{"introduced":["401","401"]}}',
+                     '{"spark":["401","420"]}',
+                     '{"spark":["401","420"],"includeDescendantShims":false}',
+                     '{"spark":"401","includeDescendantShims":true}'):
             with self.assertRaises(ValueError):
                 parse_selector_line(line, self.graph)
 

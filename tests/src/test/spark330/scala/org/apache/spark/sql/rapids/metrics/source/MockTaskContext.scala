@@ -15,13 +15,10 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark": {"introduced": "330"}}
+{"spark":["330","350","400","402"],"includeDescendantShims":true}
 {"spark": "330db"}
 {"spark": "332db"}
-{"spark": {"introduced": "350"}}
 {"spark": "350db143"}
-{"spark": {"introduced": "400"}}
-{"spark": {"introduced": "402"}}
 spark-rapids-shim-json-lines ***/
 
 package org.apache.spark.sql.rapids.metrics.source
