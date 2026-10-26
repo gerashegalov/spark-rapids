@@ -2,7 +2,9 @@
 
 The four Apache-licensed `shimpler_source_*.py` modules in this directory are
 vendored unchanged from the `shimpler-source-tools` directory of public
-`NVIDIA/spark-rapids-common`, unpublished local checkpoint `a611689`.
+`NVIDIA/spark-rapids-common` PR #64 at commit
+`d801b48915bc4d14832c4e91fb6c9db2e3f25d94`. This is a provisional pin
+until PR #64 merges; update the pin to the merged commit before merging this PR.
 
 The copies are checked in so Maven generation remains offline. Update all four
 from one reviewed common commit, update `shimpler_source_tools.sha256`, then
