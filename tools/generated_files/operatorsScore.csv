@@ -96,6 +96,7 @@ CaseWhen,4
 Cbrt,4
 Ceil,4
 CheckOverflow,4
+CheckOverflowInTableInsert,4
 Coalesce,4
 CollectList,4
 CollectSet,4
