@@ -75,6 +75,9 @@ LEGACY_SOURCE_SNAPSHOTS = {
     '500': (239, 'a35c3ab8861526e0caeb8f6d16efb08e21ad156d26e0f252db8b73067a18c431'),
 }
 
+NEW_PATCH_PARENTS = {'405': '404'}
+NEW_PATCH_OVERRIDES = {}
+
 
 class SourceResolverTest(unittest.TestCase):
     def test_vendored_tools_match_pin(self):
@@ -224,6 +227,11 @@ class SourceResolverTest(unittest.TestCase):
                 physical = Path(variant.physical_path).relative_to(ROOT).as_posix()
                 expanded = []
                 for selector in variant.selectors:
+                    if selector.kind == 'minor':
+                        # A patch release added after the historical snapshot is not
+                        # part of that snapshot's exact-membership oracle.
+                        expanded.append(selector._replace(kind='exact'))
+                        continue
                     if selector.kind == 'descendants' and len(selector.targets) > 1:
                         expanded.extend(selector._replace(targets=(target,))
                                         for target in selector.targets)
@@ -276,10 +284,11 @@ class SourceResolverTest(unittest.TestCase):
                 legacy_variants.append(variant._replace(selectors=tuple(selectors)))
             for graph in graphs:
                 shadow_targets = tuple(target for target in graph
-                                       if target not in LEGACY_SOURCE_SNAPSHOTS)
+                                       if target not in LEGACY_SOURCE_SNAPSHOTS
+                                       and target not in NEW_PATCH_PARENTS)
                 validate_legacy_shadow(graph, legacy_variants, shadow_targets)
                 for target in graph:
-                    if target in LEGACY_SOURCE_SNAPSHOTS:
+                    if target in LEGACY_SOURCE_SNAPSHOTS or target in NEW_PATCH_PARENTS:
                         continue
                     actual = resolve_sources(graph, variants, target)
                     legacy = resolve_sources(graph, legacy_variants, target)
@@ -304,6 +313,35 @@ class SourceResolverTest(unittest.TestCase):
                     rows.append('%s\t%s\t%s' % (module_path, logical, physical))
             digest = hashlib.sha256(('\n'.join(sorted(rows)) + '\n').encode()).hexdigest()
             self.assertEqual((len(rows), digest), expected, target)
+
+    def test_patch_shims_reuse_parent_sources_except_version_identity(self):
+        graph = load_source_graph(str(ROOT / 'scala2.13' / 'pom.xml'))
+        known = set(graph) | set(load_source_graph(str(ROOT / 'pom.xml')))
+        modules = [(Path(module).relative_to(ROOT).as_posix(),
+                    scan_module_sources(module, known)[0])
+                   for module in discover_shim_modules(str(ROOT))]
+        for child, parent in NEW_PATCH_PARENTS.items():
+            with self.subTest(child=child):
+                identities = []
+                overrides = set()
+                for module, variants in modules:
+                    old = resolve_sources(graph, variants, parent)
+                    new = resolve_sources(graph, variants, child)
+                    for logical in list(old):
+                        if '/spark%s/' % parent in logical:
+                            del old[logical]
+                    for logical in list(new):
+                        if '/spark%s/' % child in logical:
+                            identities.append(new.pop(logical).physical_path)
+                    for logical in set(old) & set(new):
+                        if old[logical].physical_path != new[logical].physical_path:
+                            overrides.add(module + '/' + logical)
+                            old.pop(logical)
+                            new.pop(logical)
+                    self.assertEqual({key: value.physical_path for key, value in old.items()},
+                                     {key: value.physical_path for key, value in new.items()})
+                self.assertEqual(len(identities), 2)
+                self.assertEqual(overrides, NEW_PATCH_OVERRIDES.get(child, set()))
 
     def test_repository_rapids_error_utils_owners(self):
         graphs = (load_source_graph(str(ROOT / 'pom.xml')),
