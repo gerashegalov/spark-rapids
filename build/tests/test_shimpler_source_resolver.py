@@ -75,8 +75,11 @@ LEGACY_SOURCE_SNAPSHOTS = {
     '500': (239, 'a35c3ab8861526e0caeb8f6d16efb08e21ad156d26e0f252db8b73067a18c431'),
 }
 
-NEW_PATCH_PARENTS = {'405': '404', '414': '413'}
-NEW_PATCH_OVERRIDES = {}
+NEW_PATCH_PARENTS = {'405': '404', '414': '413', '421': '420'}
+NEW_PATCH_OVERRIDES = {
+    '421': {'sql-plugin/src/main/scala/com/nvidia/spark/rapids/shims/'
+            'GpuGroupPartitionsShims.scala'},
+}
 
 
 class SourceResolverTest(unittest.TestCase):
