@@ -75,6 +75,8 @@ LEGACY_SOURCE_SNAPSHOTS = {
     '500': (239, 'a35c3ab8861526e0caeb8f6d16efb08e21ad156d26e0f252db8b73067a18c431'),
 }
 
+NEW_PATCH_TARGETS = {'405'}
+
 
 class SourceResolverTest(unittest.TestCase):
     def test_vendored_tools_match_pin(self):
@@ -224,6 +226,11 @@ class SourceResolverTest(unittest.TestCase):
                 physical = Path(variant.physical_path).relative_to(ROOT).as_posix()
                 expanded = []
                 for selector in variant.selectors:
+                    if selector.kind == 'minor':
+                        # A patch release added after the historical snapshot is not
+                        # part of that snapshot's exact-membership oracle.
+                        expanded.append(selector._replace(kind='exact'))
+                        continue
                     if selector.kind == 'descendants' and len(selector.targets) > 1:
                         expanded.extend(selector._replace(targets=(target,))
                                         for target in selector.targets)
@@ -280,10 +287,11 @@ class SourceResolverTest(unittest.TestCase):
                 legacy_variants.append(variant._replace(selectors=tuple(selectors)))
             for graph in graphs:
                 shadow_targets = tuple(target for target in graph
-                                       if target not in LEGACY_SOURCE_SNAPSHOTS)
+                                       if target not in LEGACY_SOURCE_SNAPSHOTS
+                                       and target not in NEW_PATCH_TARGETS)
                 validate_legacy_shadow(graph, legacy_variants, shadow_targets)
                 for target in graph:
-                    if target in LEGACY_SOURCE_SNAPSHOTS:
+                    if target in LEGACY_SOURCE_SNAPSHOTS or target in NEW_PATCH_TARGETS:
                         continue
                     actual = resolve_sources(graph, variants, target)
                     legacy = resolve_sources(graph, legacy_variants, target)
