@@ -42,9 +42,9 @@ class SourceGeneratorTest(unittest.TestCase):
 
     def test_inherited_source_and_exact_overlay(self):
         base = self.source('355', 'Example.scala',
-                           ['{"spark":["355"],"includeDescendantShims":true}'])
+                           ['{"spark":["355"],"carryForward":"all"}'])
         overlay = self.source('356', 'Example.scala',
-                              ['{"spark":["356"],"includeDescendantShims":false}'])
+                              ['{"spark":["356"],"carryForward":"none"}'])
         output = self.generated / 'main' / 'scala' / 'pkg' / 'Example.scala'
         selected = generate_sources(str(self.module), str(self.generated), self.graph, '356')
         self.assertEqual(selected['src/main/scala/pkg/Example.scala'].physical_path,
@@ -57,9 +57,9 @@ class SourceGeneratorTest(unittest.TestCase):
 
     def test_exact_target_outside_active_profile_graph(self):
         self.source('355', 'Example.scala',
-                    ['{"spark":["355"],"includeDescendantShims":true}'])
+                    ['{"spark":["355"],"carryForward":"all"}'])
         vendor = self.source('vendor', 'Example.scala',
-                             ['{"spark":["vendor"],"includeDescendantShims":false}'])
+                             ['{"spark":["vendor"],"carryForward":"none"}'])
         graph = dict(self.graph)
         graph['vendor'] = None
         selected = generate_sources(str(self.module), str(self.generated), graph, 'vendor',
@@ -68,7 +68,7 @@ class SourceGeneratorTest(unittest.TestCase):
 
     def test_removes_stale_outputs_and_interpolates_package(self):
         self.source('355', 'Interpolated.scala',
-                    ['{"spark":["356"],"includeDescendantShims":false}'],
+                    ['{"spark":["356"],"carryForward":"none"}'],
                     'package pkg.$_spark.version.classifier_\nclass Example\n')
         stale = self.generated / 'main' / 'scala' / 'pkg' / 'Stale.scala'
         stale.parent.mkdir(parents=True)
@@ -84,9 +84,9 @@ class SourceGeneratorTest(unittest.TestCase):
 
     def test_error_does_not_remove_previous_outputs(self):
         self.source('355', 'Example.scala',
-                    ['{"spark":["356"],"includeDescendantShims":false}'])
+                    ['{"spark":["356"],"carryForward":"none"}'])
         self.source('356', 'Example.scala',
-                    ['{"spark":["356"],"includeDescendantShims":false}'])
+                    ['{"spark":["356"],"carryForward":"none"}'])
         previous = self.generated / 'main' / 'scala' / 'pkg' / 'Previous.scala'
         previous.parent.mkdir(parents=True)
         previous.write_text('previous', encoding='utf-8')

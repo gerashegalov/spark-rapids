@@ -15,8 +15,8 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark":["330"],"includeDescendantShims":true}
-{"spark":["330db","332db"],"includeDescendantShims":false}
+{"spark":["330"],"carryForward":"all"}
+{"spark":["330db","332db"],"carryForward":"none"}
 spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.rapids.execution.python.shims
 

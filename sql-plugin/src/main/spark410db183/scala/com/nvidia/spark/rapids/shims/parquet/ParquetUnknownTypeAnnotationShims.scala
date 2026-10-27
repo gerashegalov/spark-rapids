@@ -15,8 +15,8 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark":["410db183"],"includeDescendantShims":false}
-{"spark":["412","420"],"includeDescendantShims":true}
+{"spark":["410db183"],"carryForward":"none"}
+{"spark":["412","420"],"carryForward":"all"}
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.shims.parquet
 

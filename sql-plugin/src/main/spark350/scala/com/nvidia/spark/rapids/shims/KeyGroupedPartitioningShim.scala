@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 /*** spark-rapids-shim-json-lines
-{"spark":["350","400"],"includeDescendantShims":true}
-{"spark":["402","411"],"includeDescendantShims":false}
+{"spark":["350","400"],"carryForward":"all"}
+{"spark":["402","411"],"carryForward":"none"}
 spark-rapids-shim-json-lines ***/
 
 package com.nvidia.spark.rapids.shims
