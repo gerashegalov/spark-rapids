@@ -61,6 +61,13 @@ dependency BOM under `shim-deps/databricks` instead of the Maven repository. The
 same runtime package as Spark. The Parquet cache bridge is an example: code referring to
 Spark's package-private `ParquetColumnVector` must be promoted to the jar root.
 
+To exercise this access through a local Spark cache scan, run
+`SPARK_HOME=/path/to/spark dist/scripts/tests/run-spark-cache-root-safety.sh
+dist/target/rapids-4-spark_2.12-<version>-cuda12.jar` after assembling the
+distribution JAR. Use a Spark installation matching one of the JAR's shims and
+Scala binary version. The test checks cached table and view reads, then executes
+the columnar cache scan that calls `ShimCurrentBatchIterator`.
+
 Single-shim builds where every real Iceberg integration module uses the same non-Maven
 runtime can add its absolute local jar path with
 `-Drapids.iceberg.audit.runtime.path=...`. This replaces Maven-coordinate discovery for
