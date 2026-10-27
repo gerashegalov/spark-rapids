@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 /*** spark-rapids-shim-json-lines
-{"spark":["404"],"carryForward":"sameMinor"}
-{"spark":["413","420"],"carryForward":"none"}
+{"spark":["404","413"],"carryForward":"sameMinor"}
+{"spark":["420"],"carryForward":"none"}
 spark-rapids-shim-json-lines ***/
 
 package org.apache.spark.sql.rapids
