@@ -32,7 +32,7 @@ from shimpler_source_selectors import SourceSelector
 
 
 def selector(descendants, *targets):
-    return json.dumps({'spark': targets, 'includeDescendantShims': descendants},
+    return json.dumps({'spark': targets, 'carryForward': 'all' if descendants else 'none'},
                       separators=(',', ':'))
 
 

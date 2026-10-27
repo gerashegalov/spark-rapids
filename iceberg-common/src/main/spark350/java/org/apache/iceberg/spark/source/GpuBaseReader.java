@@ -15,7 +15,7 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark":["350","351","352","353"],"includeDescendantShims":false}
+{"spark":["350","351","352","353"],"carryForward":"none"}
 spark-rapids-shim-json-lines ***/
 
 package org.apache.iceberg.spark.source;

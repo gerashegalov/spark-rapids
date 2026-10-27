@@ -28,8 +28,11 @@ class ShimCompatibilityInheritanceTest(unittest.TestCase):
     def test_preflight_normalizes_old_base_without_relaxing_selector_parser(self):
         old = b'/*** spark-rapids-shim-json-lines\n{"spark": "355"}\n' \
               b'spark-rapids-shim-json-lines ***/\n'
-        self.assertIn(b'{"spark":["355"],"includeDescendantShims":false}',
+        self.assertIn(b'{"spark":["355"],"carryForward":"none"}',
                       normalize_legacy_exact(old))
+        old_boolean = b'{"spark":["355"],"includeDescendantShims":true}'
+        self.assertEqual(normalize_legacy_exact(old_boolean),
+                         b'{"spark":["355"],"carryForward":"all"}')
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -60,16 +63,16 @@ class ShimCompatibilityInheritanceTest(unittest.TestCase):
         return path
 
     def test_inherited_source_and_nearest_exact_overlay(self):
-        self.source('355', ['{"spark":["355"],"includeDescendantShims":true}'])
-        self.source('356', ['{"spark":["356"],"includeDescendantShims":false}'])
+        self.source('355', ['{"spark":["355"],"carryForward":"all"}'])
+        self.source('356', ['{"spark":["356"],"carryForward":"none"}'])
         result = coverage(self.root, ['sql-plugin'], None)
         self.assertEqual(result['status'], 'PASS')
         self.assertFalse(result['findings'])
         self.assertEqual(result['buildvers'], ['355', '356', '357'])
 
     def test_equal_distance_variants_are_a_blocking_duplicate(self):
-        self.source('355', ['{"spark":["355","356"],"includeDescendantShims":false}'])
-        self.source('356', ['{"spark":["356"],"includeDescendantShims":false}'])
+        self.source('355', ['{"spark":["355","356"],"carryForward":"none"}'])
+        self.source('356', ['{"spark":["356"],"carryForward":"none"}'])
         result = coverage(self.root, ['sql-plugin'], None)
         self.assertEqual(result['status'], 'BLOCKED')
         duplicate = next(finding for finding in result['findings']
@@ -78,7 +81,7 @@ class ShimCompatibilityInheritanceTest(unittest.TestCase):
         self.assertEqual(len(duplicate['providers']), 2)
 
     def test_unknown_introduction_rejected(self):
-        self.source('355', ['{"spark":["999"],"includeDescendantShims":true}'])
+        self.source('355', ['{"spark":["999"],"carryForward":"all"}'])
         with self.assertRaisesRegex(PreflightError, 'Unknown Spark selector target 999'):
             coverage(self.root, ['sql-plugin'], None)
 

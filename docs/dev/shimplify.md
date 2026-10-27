@@ -8,8 +8,9 @@ parent: Developer Overview
 # Shim Source Code Layout Simplification with Shimplify
 
 This page describes the older bulk-layout workflow. New source annotations use
-one form: `{"spark":["330"],"includeDescendantShims":false}` for exact membership,
-or the same form with `true` for the listed roots and their descendants. Use
+one form: `{"spark":["330"],"carryForward":"none"}` for exact membership,
+`sameMinor` for descendants in the same Spark minor line, or `all` for every
+descendant of the listed roots. Use
 `build/shimpler sources --target 330` to inspect effective membership.
 
 This document describes the next iteration of shim source code maintenance. It addresses the
@@ -42,7 +43,7 @@ in a source-code level comment instead of the shared directories.
 
 ```scala
 /*** spark-rapids-shim-json-lines
-{"spark":["330","331"],"includeDescendantShims":false}
+{"spark":["330","331"],"carryForward":"none"}
 spark-rapids-shim-json-lines ***/
 ```
 

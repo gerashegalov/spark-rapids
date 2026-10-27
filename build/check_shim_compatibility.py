@@ -43,12 +43,16 @@ DECLARATION = re.compile(
 IMPORT = re.compile(r"(?m)^\s*import\s+([^\n;{]+(?:\{[^}]*\}[^\n;]*)?)")
 LEGACY_EXACT = re.compile(
     rb'(?m)^([ \t]*)\{[ \t]*"spark"[ \t]*:[ \t]*"([^"]+)"[ \t]*\}([ \t]*)$')
+LEGACY_DESCENDANTS = re.compile(rb'"includeDescendantShims"\s*:\s*(true|false)')
 
 
 def normalize_legacy_exact(source):
-    return LEGACY_EXACT.sub(
+    source = LEGACY_EXACT.sub(
         lambda match: match[1] + b'{"spark":["' + match[2] +
-        b'"],"includeDescendantShims":false}' + match[3], source)
+        b'"],"carryForward":"none"}' + match[3], source)
+    return LEGACY_DESCENDANTS.sub(
+        lambda match: b'"carryForward":"all"' if match[1] == b'true'
+        else b'"carryForward":"none"', source)
 
 
 class PreflightError(Exception):

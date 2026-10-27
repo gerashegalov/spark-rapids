@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 /*** spark-rapids-shim-json-lines
-{"spark":["410db183"],"includeDescendantShims":false}
-{"spark":["420"],"includeDescendantShims":true}
+{"spark":["410db183"],"carryForward":"none"}
+{"spark":["420"],"carryForward":"all"}
 spark-rapids-shim-json-lines ***/
 
 package org.apache.spark.sql.rapids.shims

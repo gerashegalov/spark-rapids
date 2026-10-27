@@ -15,7 +15,7 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark":["400","402"],"includeDescendantShims":true}
+{"spark":["400","402"],"carryForward":"all"}
 spark-rapids-shim-json-lines ***/
 
 package org.apache.spark.sql.execution.datasources.v2.rapids

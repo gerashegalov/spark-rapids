@@ -63,10 +63,10 @@ Optionally review and remove empty directories
 git clean -f -d [--dry-run]
 
 Each shim Scala/Java file receives a JSON selector comment. Exact membership
-uses includeDescendantShims=false; inherited membership uses true.
+uses carryForward=none; inherited membership uses all.
 
 /*** spark-rapids-shim-json-lines
-{"spark":["330","331"],"includeDescendantShims":false}
+{"spark":["330","331"],"carryForward":"none"}
 spark-rapids-shim-json-lines ***/
 
 The canonical location of a source file shared by multiple shims is
@@ -204,7 +204,7 @@ def __upsert_shim_json(filename, bv_list):
     __delete_prior_comment_if_allowed(contents, __shim_comment_tag, filename)
     shim_comment = [__opening_shim_tag]
     shim_comment.append(json.dumps({'spark': sorted(bv_list),
-                                    'includeDescendantShims': False}, separators=(',', ':')))
+                                    'carryForward': 'none'}, separators=(',', ':')))
     shim_comment.append(__closing_shim_tag)
     shim_comment = map(lambda x: x + '\n', shim_comment)
     __log.debug("Inserting comment %s to %s", shim_comment, filename)
@@ -378,7 +378,7 @@ def task_impl():
 def __traverse_source_tree_of_all_shims(src_type, func):
     """Walks src/<src_type>/sparkXYZ"""
     from shimpler_source_graph import load_source_graph
-    from shimpler_source_selectors import inherited_membership, parse_selector_line
+    from shimpler_source_selectors import parse_selector_line, selector_membership
     source_root = __ant_proj_prop('spark.rapids.source.basedir')
     graph = {}
     for pom in ('pom.xml', 'scala2.13/pom.xml'):
@@ -403,10 +403,7 @@ def __traverse_source_tree_of_all_shims(src_type, func):
                 buildvers = set()
                 for line in shim_arr:
                     selector = parse_selector_line(line, graph, allow_unmapped_exact=True)
-                    if selector.kind == 'exact':
-                        buildvers.update(selector.targets)
-                    else:
-                        buildvers.update(inherited_membership(graph, selector.targets))
+                    buildvers.update(selector_membership(graph, selector))
                 build_ver_arr = sorted(buildvers)
                 __log.debug("extracted shims %s", build_ver_arr)
                 func(shim_file_path=shim_file_path, build_ver_arr=build_ver_arr)
