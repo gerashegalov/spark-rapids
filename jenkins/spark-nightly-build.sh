@@ -44,7 +44,7 @@ export M2DIR=${M2DIR:-"$WORKSPACE/.m2"}
 export DEV_MODE=${DEV_MODE:-'false'}
 
 function mvnEval {
-    $MVN help:evaluate -q -pl $DIST_PL $MVN_URM_MIRROR -Prelease330 -Dmaven.repo.local=$M2DIR -DforceStdout -Dexpression=$1
+    $MVN help:evaluate -q -pl $DIST_PL $MVN_URM_MIRROR -Prelease331 -Dmaven.repo.local=$M2DIR -DforceStdout -Dexpression=$1
 }
 
 ART_ID=$(mvnEval project.artifactId)

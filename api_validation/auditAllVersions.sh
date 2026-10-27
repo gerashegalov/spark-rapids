@@ -14,4 +14,4 @@
 # limitations under the License.
 set -ex
 
-mvn scala:run -P spark330
+mvn scala:run -Dbuildver=331

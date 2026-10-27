@@ -166,7 +166,7 @@
             <id>minimumFeatureVersionMix</id>
             <properties>
                 <included_buildvers>
-                    330
+                    331
                 </included_buildvers>
             </properties>
         </profile>

@@ -87,7 +87,7 @@ fi
 BASE_SPARK_VERSION=${BASE_SPARK_VERSION:-$(< /databricks/spark/VERSION)}
 
 # For Spark 4.x (Scala 2.13), the upstream base shim is 350 (Spark 3.5.0).
-# For Spark 3.x (Scala 2.12), the upstream base shim is 330 (Spark 3.3.0).
+# For Spark 3.x (Scala 2.12), the upstream base shim is 331 (Spark 3.3.1).
 if [[ "$BASE_SPARK_VERSION" == 4.* ]]; then
     # TODO: Revisit UPSTREAM_SHIM_VER when new Spark 4.x Databricks runtimes are introduced
     # that may pair with a different upstream shim (e.g., spark360).
@@ -95,8 +95,8 @@ if [[ "$BASE_SPARK_VERSION" == 4.* ]]; then
     UPSTREAM_SHIM_VER="spark350"
     UPSTREAM_SPARK_SCALA_SUFFIX="-scala2.13"
 else
-    UPSTREAM_SPARK_VERSION="3.3.0"
-    UPSTREAM_SHIM_VER="spark330"
+    UPSTREAM_SPARK_VERSION="3.3.1"
+    UPSTREAM_SHIM_VER="spark331"
     UPSTREAM_SPARK_SCALA_SUFFIX=""
 fi
 

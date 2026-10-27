@@ -81,43 +81,21 @@
         <module>shim-deps</module>
     </modules>
     <profiles>
+        <!-- 330 remains a source ancestor, not a release build target. -->
         <!-- #if scala-2.12 -->
         <profile>
-            <id>release330</id>
+            <id>source330</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
                 <property>
                     <name>buildver</name>
                     <value>330</value>
                 </property>
             </activation>
-            <properties>
-                <buildver>330</buildver>
-                <spark.version>${spark330.version}</spark.version>
-                <parquet.hadoop.version>1.12.2</parquet.hadoop.version>
-                <rapids.delta.artifactId1>rapids-4-spark-delta-21x</rapids.delta.artifactId1>
-                <rapids.delta.artifactId2>rapids-4-spark-delta-22x</rapids.delta.artifactId2>
-                <rapids.delta.artifactId3>rapids-4-spark-delta-23x</rapids.delta.artifactId3>
-                <spark.protobuf.copy.skip>true</spark.protobuf.copy.skip>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>com.h2database</groupId>
-                    <artifactId>h2</artifactId>
-                    <version>2.1.210</version>
-                    <scope>test</scope>
-                </dependency>
-            </dependencies>
-            <modules>
-                <module>delta-lake/delta-21x</module>
-                <module>delta-lake/delta-22x</module>
-                <module>delta-lake/delta-23x</module>
-                <module>iceberg/iceberg-stub</module>
-            </modules>
         </profile>
         <profile>
             <id>release331</id>
             <activation>
+                <activeByDefault>true</activeByDefault>
                 <property>
                     <name>buildver</name>
                     <value>331</value>
@@ -1103,14 +1081,14 @@
         <allowConventionalDistJar>false</allowConventionalDistJar>
         <rapids.shimplify.skip>false</rapids.shimplify.skip>
         <rapids.build.info.skip>false</rapids.build.info.skip>
-        <buildver>330</buildver>
+        <buildver>331</buildver>
         <spark.avro.copy.skip>false</spark.avro.copy.skip>
         <!-- spark-protobuf is a Spark 3.4.0+ module; release33x profiles override to `true`. -->
         <spark.protobuf.copy.skip>false</spark.protobuf.copy.skip>
         <maven.compiler.source>1.8</maven.compiler.source>
         <java.major.version>8</java.major.version>
         <scala.compiler.release>${java.major.version}</scala.compiler.release>
-        <spark.version>${spark330.version}</spark.version>
+        <spark.version>${spark331.version}</spark.version>
         <spark.test.version>${spark.version}</spark.test.version>
         <parquet.hadoop.version>1.10.1</parquet.hadoop.version>
         <spark.version.classifier>spark${buildver}</spark.version.classifier>
@@ -1174,7 +1152,6 @@
         <!--
          If you update a dependency version so it is no longer a SNAPSHOT
          please update the snapshot-shims profile as well so it is accurate -->
-        <spark330.version>3.3.0</spark330.version>
         <spark331.version>3.3.1</spark331.version>
         <spark332.version>3.3.2</spark332.version>
         <spark333.version>3.3.3</spark333.version>
@@ -1261,21 +1238,20 @@
         <ignore.shim.revisions.check>false</ignore.shim.revisions.check>
         <spark.shim.dest>${project.basedir}/target/${spark.version.classifier}/generated/src</spark.shim.dest>
         <!--
-          Build and run unit tests on one specific version for each sub-version (e.g. 330)
-          Base shim version (330 currently) should be covered in default mvn verify command of premerge script,
+          Build and run unit tests on one specific version for each sub-version (e.g. 331)
+          Base shim version (331 currently) should be covered in default mvn verify command of premerge script,
           so base shim version is removed from the premergeUT list.
-          Separate the versions to two parts: premergeUT1(2 shims' UT + 1/3 of the integration tests)
+          Separate the versions to two parts: premergeUT1(1 shim's UT + 1/3 of the integration tests)
           and premergeUT2(1 shim's UT + 2/3 of the integration tests), for balancing the duration
         -->
         <premergeUT1.buildvers>
-            330,
             340
         </premergeUT1.buildvers>
         <premergeUT2.buildvers>
             356
         </premergeUT2.buildvers>
         <premergeUTF8.buildvers>
-            330
+            331
         </premergeUTF8.buildvers>
         <premergeScala213.buildvers>
             350,
@@ -1286,7 +1262,6 @@
             340
         </jdk11.buildvers>
         <jdk17.buildvers>
-            330,
             331,
             340
         </jdk17.buildvers>
@@ -2002,15 +1977,15 @@ This will force full Scala code rebuild in downstream modules.
                         <!-- #if scala-2.12 -->
                         <requireProperty>
                           <property>buildver</property>
-                          <regex>^(33[0-4]|34[0-4]|35[0-9]|350db143)$</regex>
-                          <regexMessage>Unsupported buildver value ${buildver} for a Scala 2.12 build. Supported Scala 2.12 buildver values are: 330, 331, 332, 333, 334, 340, 341, 342, 343, 344, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 350db143. For Scala 2.13/Spark 4.x builds, use -f scala2.13/pom.xml with a supported Scala 2.13 buildver such as 350, 400, 403, 404, 412, 413, or 420.</regexMessage>
+                          <regex>^(33[1-4]|34[0-4]|35[0-9]|350db143)$</regex>
+                          <regexMessage>Unsupported buildver value ${buildver} for a Scala 2.12 build. Supported Scala 2.12 buildver values are: 331, 332, 333, 334, 340, 341, 342, 343, 344, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 350db143. For Scala 2.13/Spark 4.x builds, use -f scala2.13/pom.xml with a supported Scala 2.13 buildver such as 350, 400, 403, 404, 412, 413, or 420.</regexMessage>
                         </requireProperty>
                         <!-- #endif scala-2.12 -->
                         <!-- #if scala-2.13 --><!--
                         <requireProperty>
                             <property>buildver</property>
                             <regex>^(35[0-9]|40[0-4]|41[1-3]|420|500|400db173|410db183)$</regex>
-                            <regexMessage>Unsupported buildver value ${buildver} for a Scala 2.13 build. Supported Scala 2.13 buildver values are: 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 400, 401, 402, 403, 404, 411, 412, 413, 420, 500, 400db173, 410db183. Spark 3.3.x and 3.4.x builds use Scala 2.12; for example, build Spark 330 with the root pom.xml instead of scala2.13/pom.xml.</regexMessage>
+                            <regexMessage>Unsupported buildver value ${buildver} for a Scala 2.13 build. Supported Scala 2.13 buildver values are: 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 400, 401, 402, 403, 404, 411, 412, 413, 420, 500, 400db173, 410db183. Spark 3.3.x and 3.4.x builds use Scala 2.12; for example, build Spark 331 with the root pom.xml instead of scala2.13/pom.xml.</regexMessage>
                         </requireProperty>
                         --><!-- #endif scala-2.13 -->
                         <requireProperty>
