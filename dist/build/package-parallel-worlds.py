@@ -21,6 +21,11 @@ import subprocess
 import zipfile
 import xml.etree.ElementTree as ET
 
+try:
+    from java.util.jar import JarFile
+except ImportError:
+    JarFile = None
+
 
 def shell_exec(shell_cmd, cwd=None):
     ret_code = subprocess.call(shell_cmd, cwd=cwd)
@@ -361,8 +366,18 @@ def databricks_spark_runtime_paths():
             raise Exception('Databricks BOM system jar is missing: %s' % path)
         if path in paths:
             continue
-        with zipfile.ZipFile(path) as archive:
-            entries = archive.namelist()
+        if JarFile is None:
+            with zipfile.ZipFile(path) as archive:
+                entries = archive.namelist()
+        else:
+            archive = JarFile(path)
+            try:
+                entries = []
+                jar_entries = archive.entries()
+                while jar_entries.hasMoreElements():
+                    entries.append(jar_entries.nextElement().getName())
+            finally:
+                archive.close()
         if any(entry.startswith('org/apache/spark/') for entry in entries):
             paths.add(path)
             found_classes.update(required_classes.intersection(entries))

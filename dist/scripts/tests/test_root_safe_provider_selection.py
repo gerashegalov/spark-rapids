@@ -270,6 +270,7 @@ class RootSafeProviderSelectionTest(unittest.TestCase):
             "org/apache/spark/sql/SparkSession.class": b"sql",
         })
         write_jar(runtime / "unrelated.jar", {"example/Other.class": b"other"})
+        write_jar(runtime / "empty.jar", {})
         bom = self.source_dir / "scala2.13" / "shim-deps" / "databricks" / "pom.xml"
         bom.parent.mkdir(parents=True)
         bom.write_text("""<project xmlns="http://maven.apache.org/POM/4.0.0">
@@ -279,6 +280,8 @@ class RootSafeProviderSelectionTest(unittest.TestCase):
       <systemPath>${spark.home.jar.dir.0}/runtime.jar</systemPath></dependency>
     <dependency><scope>system</scope>
       <systemPath>${spark.home.jar.dir.0}/unrelated.jar</systemPath></dependency>
+    <dependency><scope>system</scope>
+      <systemPath>${spark.home.jar.dir.0}/empty.jar</systemPath></dependency>
   </dependencies>
 </project>""" % runtime)
 
