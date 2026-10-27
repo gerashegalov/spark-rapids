@@ -38,6 +38,10 @@ RUNTIME_DISCOVERY = imp.load_source(
     "iceberg_runtime",
     os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
                  "build", "iceberg_runtime.py"))
+RUNTIME_JAR_ENTRIES = imp.load_source(
+    "runtime_jar_entries",
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                 "build", "runtime_jar_entries.py"))
 
 
 POM_TEMPLATE = """\
@@ -431,6 +435,14 @@ def write_aggregator(path, modules):
 
 
 class IcebergPackagePrivateAccessTest(unittest.TestCase):
+    def test_runtime_jar_entries_accepts_empty_jar(self):
+        with temporary_directory() as root:
+            path = os.path.join(root, "empty.jar")
+            archive = zipfile.ZipFile(path, "w")
+            archive.close()
+            self.assertEqual(22, os.path.getsize(path))
+            self.assertEqual(set(), RUNTIME_JAR_ENTRIES.jar_entry_names(path))
+
     def test_aggregator_runtime_discovery_is_fail_closed(self):
         with temporary_directory() as root:
             aggregator = os.path.join(root, "aggregator.jar")

@@ -21,12 +21,6 @@ import subprocess
 import zipfile
 import xml.etree.ElementTree as ET
 
-try:
-    from java.util.jar import JarFile
-except ImportError:
-    JarFile = None
-
-
 def shell_exec(shell_cmd, cwd=None):
     ret_code = subprocess.call(shell_cmd, cwd=cwd)
     if ret_code != 0:
@@ -214,6 +208,9 @@ execfile(os.path.join(dist_dir, 'build', 'iceberg_runtime.py'), iceberg_runtime)
 build_info = {}
 execfile(os.path.join(dist_dir, 'build', 'build_info.py'), build_info)
 read_build_info = build_info['read_build_info']
+runtime_jar_entries = {}
+execfile(os.path.join(dist_dir, 'build', 'runtime_jar_entries.py'), runtime_jar_entries)
+jar_entry_names = runtime_jar_entries['jar_entry_names']
 system_iceberg_runtime = iceberg_runtime["system_runtime_path"](project.getProperty)
 if system_iceberg_runtime and len(buildver_list) != 1:
     raise Exception("%s is supported only for single-shim builds" %
@@ -366,18 +363,7 @@ def databricks_spark_runtime_paths():
             raise Exception('Databricks BOM system jar is missing: %s' % path)
         if path in paths:
             continue
-        if JarFile is None:
-            with zipfile.ZipFile(path) as archive:
-                entries = archive.namelist()
-        else:
-            archive = JarFile(path)
-            try:
-                entries = []
-                jar_entries = archive.entries()
-                while jar_entries.hasMoreElements():
-                    entries.append(jar_entries.nextElement().getName())
-            finally:
-                archive.close()
+        entries = jar_entry_names(path)
         if any(entry.startswith('org/apache/spark/') for entry in entries):
             paths.add(path)
             found_classes.update(required_classes.intersection(entries))
