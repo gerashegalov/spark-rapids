@@ -28,7 +28,7 @@ from shimpler_source_graph import load_source_graph
 from shimpler_source_generator import generate_sources
 from shimpler_source_resolver import (candidate_inherited_sources, discover_shim_modules,
                                      resolve_sources, scan_module_sources, validate_legacy_shadow)
-from shimpler_source_selectors import SourceSelector
+from shimpler_source_selectors import SourceSelector, selector_membership
 
 
 def selector(descendants, *targets):
@@ -230,7 +230,11 @@ class SourceResolverTest(unittest.TestCase):
                     else:
                         expanded.append(selector)
                 for selector in expanded:
-                    if selector.kind == 'descendants' and selector.targets == ('330',):
+                    if selector.kind == 'minor':
+                        # Preserve today's exact membership in the legacy oracle.
+                        selectors.extend(SourceSelector('exact', (target,), {})
+                                         for target in sorted(selector_membership(graph, selector)))
+                    elif selector.kind == 'descendants' and selector.targets == ('330',):
                         # These sources have version-specific replacements after their last
                         # legacy exact selector.
                         if physical in LEGACY_330_331_ONLY:

@@ -15,7 +15,7 @@
  */
 /*** spark-rapids-shim-json-lines
 {"spark":["359","403"],"carryForward":"none"}
-{"spark":["404"],"carryForward":"none"}
+{"spark":["404"],"carryForward":"sameMinor"}
 {"spark":["412"],"carryForward":"all"}
 spark-rapids-shim-json-lines ***/
 
