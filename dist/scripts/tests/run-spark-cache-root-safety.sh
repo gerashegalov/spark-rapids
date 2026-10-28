@@ -28,21 +28,9 @@ fi
 
 test_dir=$(cd "$(dirname "$0")" && pwd)
 run_log=$(mktemp)
-hadoop_conf_dir=$(mktemp -d)
-trap 'rm -f "$run_log"; rm -rf "$hadoop_conf_dir"' EXIT
-# The cache iterator creates its own Hadoop Configuration. Supply the Spark 3.3.2+
-# schema converter setting so this test reaches the package-private access.
-cat > "$hadoop_conf_dir/core-site.xml" <<'EOF'
-<configuration>
-  <property>
-    <name>spark.sql.legacy.parquet.nanosAsLong</name>
-    <value>true</value>
-  </property>
-</configuration>
-EOF
+trap 'rm -f "$run_log"' EXIT
 printf ':load %s/spark-cache-root-safety.scala\n' "$test_dir" |
-  HADOOP_CONF_DIR="$hadoop_conf_dir" "$SPARK_HOME/bin/spark-shell" \
-    --master 'local[2]' --driver-memory 6g \
+  "$SPARK_HOME/bin/spark-shell" --master 'local[2]' --driver-memory 6g \
     --jars "$plugin_jar" \
     --driver-class-path "$plugin_jar" \
     --conf "spark.executor.extraClassPath=$plugin_jar" \

@@ -65,8 +65,9 @@ To exercise this access through a local Spark cache scan, run
 `SPARK_HOME=/path/to/spark dist/scripts/tests/run-spark-cache-root-safety.sh
 dist/target/rapids-4-spark_2.12-<version>-cuda12.jar` after assembling the
 distribution JAR. Use a Spark installation matching one of the JAR's shims and
-Scala binary version. The test checks cached table and view reads, then executes
-the columnar cache scan that calls `ShimCurrentBatchIterator`.
+Scala binary version. The test checks cached table and view reads, builds a
+derived cache to exercise the CPU columnar read, then executes the columnar
+cache scan that calls `ShimCurrentBatchIterator`.
 
 Single-shim builds where every real Iceberg integration module uses the same non-Maven
 runtime can add its absolute local jar path with

@@ -26,6 +26,11 @@ try {
     "SELECT id + 1 AS id, value FROM root_safety_source")
   spark.sql("CACHE TABLE root_safety_view")
 
+  // Building a second cache from the first exercises the CPU columnar cache read
+  // that fails when the Parquet schema converter loses the Hadoop configuration.
+  val derivedCache = spark.table("root_safety_source").selectExpr("value").cache()
+  require(derivedCache.count() == 2000)
+
   val source = spark.sql("SELECT id, value FROM root_safety_source ORDER BY id")
   val view = spark.sql("SELECT id, value FROM root_safety_view ORDER BY id")
   val scan = source.queryExecution.executedPlan.collectFirst {
@@ -53,7 +58,7 @@ try {
   val callerLoader = Class.forName(parquet + "ShimCurrentBatchIterator").getClassLoader
   require(callerLoader == sparkLoader,
     s"Package-private caller loader $callerLoader differs from Spark loader $sparkLoader")
-  println("ROOT_SAFETY_PASS: cached table and view returned 2000 rows; " +
+  println("ROOT_SAFETY_PASS: cached table, view, and derived cache returned 2000 rows; " +
     "columnar reader returned 2000 rows from the Spark classloader")
   System.exit(0)
 } catch {

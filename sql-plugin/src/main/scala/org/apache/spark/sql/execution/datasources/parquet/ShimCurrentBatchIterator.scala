@@ -78,7 +78,7 @@ class ShimCurrentBatchIterator(
       hadoopConf) {
 
   val missingColumns: util.Set[ParquetColumn] = new util.HashSet[ParquetColumn]()
-  val config = new Configuration
+  val config = new Configuration(hadoopConf)
   config.setBoolean(SQLConf.PARQUET_BINARY_AS_STRING.key, false)
   config.setBoolean(SQLConf.PARQUET_INT96_AS_TIMESTAMP.key, false)
   config.setBoolean(SQLConf.CASE_SENSITIVE.key, false)
