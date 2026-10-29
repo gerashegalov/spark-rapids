@@ -15,7 +15,7 @@ fallback: their native use selects optional Photon Parquet page indexes, which t
 does not emit.
 
 Build with Java 17 on a DBR 18.3 node. First generate the Databricks dependency POM using
-[build/gen-spark-home-deps.py](../../build/gen-spark-home-deps.py), as shown in
+`thirdparty/spark-rapids-common/spark-home-deps/gen-spark-home-deps.py`, as shown in
 [jenkins/databricks/build.sh](../../jenkins/databricks/build.sh).
 The generated POM references the native runtime JARs under `/databricks/jars` as system-scoped
 dependencies instead of installing them into the local Maven repository.
