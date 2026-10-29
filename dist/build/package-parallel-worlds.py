@@ -389,7 +389,8 @@ unknown_skips = skip_spark_buildvers - set(buildver_list)
 if unknown_skips:
     raise Exception('Spark audit skip build versions are not included: %s' %
                     ', '.join(sorted(unknown_skips)))
-databricks_buildvers = [buildver for buildver in buildver_list if 'db' in buildver]
+databricks_buildvers = [buildver for buildver in buildver_list
+                       if 'db' in buildver and buildver not in skip_spark_buildvers]
 with open(spark_runtime_manifest, 'w') as manifest:
     for buildver in sorted(buildver_list):
         if buildver in skip_spark_buildvers:

@@ -149,7 +149,10 @@ class RootSafeProviderSelectionTest(unittest.TestCase):
         create_artifacts(self.project_dir)
         spark_repo = self.root / "repository" / "org" / "apache" / "spark"
         for buildver, version in (("353", "3.5.3"), ("413", "4.1.3")):
-            for module in ("spark-core", "spark-catalyst", "spark-sql"):
+            for module in ("spark-core", "spark-catalyst", "spark-sql", "spark-hive",
+                           "spark-avro", "spark-unsafe", "spark-network-common",
+                           "spark-network-shuffle", "spark-protobuf", "spark-sql-api",
+                           "spark-common-utils"):
                 artifact = "%s_2.13" % module
                 write_jar(spark_repo / artifact / version /
                           ("%s-%s.jar" % (artifact, version)), {})
