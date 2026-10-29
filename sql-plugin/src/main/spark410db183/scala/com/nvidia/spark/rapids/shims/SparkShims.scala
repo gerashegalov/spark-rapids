@@ -66,12 +66,12 @@ object SparkShimImpl extends Spark400PlusDBShims with HyperbolicExpressionShims 
       rule: com.nvidia.spark.rapids.DataFromReplacementRule) =
     new GpuSplitInstructionMeta(split, conf, parent, rule)
 
-  private def createDeltaOptimizedWritePartitioningMeta(
+  private class DeltaOptimizedWritePartitioningMetaImpl(
       partitioning: DeltaOptimizedWritePartitioning,
       conf: com.nvidia.spark.rapids.RapidsConf,
       parent: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-      rule: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new PartMeta[DeltaOptimizedWritePartitioning](
+      rule: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends PartMeta[DeltaOptimizedWritePartitioning](
               partitioning, conf, parent, rule) {
             // Preserve DBR's marker for its optimized-write AQE and skew rules while the
             // converted exchange executes the equivalent physical hash partitioning on GPU.
@@ -80,6 +80,13 @@ object SparkShimImpl extends Spark400PlusDBShims with HyperbolicExpressionShims 
 
             override def convertToGpu(): GpuPartitioning = childParts.head.convertToGpu()
           }
+
+  private def createDeltaOptimizedWritePartitioningMeta(
+      partitioning: DeltaOptimizedWritePartitioning,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      parent: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      rule: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new DeltaOptimizedWritePartitioningMetaImpl(partitioning, conf, parent, rule)
 
   override def getExecs: Map[Class[_ <: SparkPlan], ExecRule[_ <: SparkPlan]] = {
     val shimExecs: Map[Class[_ <: SparkPlan], ExecRule[_ <: SparkPlan]] = Seq(

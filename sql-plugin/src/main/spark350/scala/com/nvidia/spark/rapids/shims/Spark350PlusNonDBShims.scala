@@ -97,12 +97,12 @@ class TableCacheQueryStageExecMeta(
 
 trait Spark350PlusNonDBShims extends Spark340PlusNonDBShims {
 
-  private def createPythonUDAFMeta(
+  private class PythonUDAFMetaImpl(
       a: PythonUDAF,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new ExprMeta[PythonUDAF](a, conf, p, r) {
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends ExprMeta[PythonUDAF](a, conf, p, r) {
           override def replaceMessage: String = "not block GPU acceleration"
 
           override def noReplacementPossibleMessage(reasons: String): String =
@@ -113,6 +113,13 @@ trait Spark350PlusNonDBShims extends Spark340PlusNonDBShims {
               childExprs.map(_.convertToGpu()),
               a.evalType, a.udfDeterministic, a.resultId)
         }
+
+  private def createPythonUDAFMeta(
+      a: PythonUDAF,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new PythonUDAFMetaImpl(a, conf, p, r)
 
   private def createKeepMeta(
       keep: Keep,

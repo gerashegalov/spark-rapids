@@ -39,21 +39,28 @@ import org.apache.spark.sql.types.StringType
 
 trait Spark341PlusDBShims extends Spark332PlusDBShims {
 
+  private class Empty2NullMetaImpl(
+      a: Empty2Null,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends UnaryExprMeta[Empty2Null](a, conf, p, r) {
+          override def convertToGpu(child: Expression): GpuExpression = GpuEmpty2Null(child)
+        }
+
   private def createEmpty2NullMeta(
       a: Empty2Null,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new UnaryExprMeta[Empty2Null](a, conf, p, r) {
-          override def convertToGpu(child: Expression): GpuExpression = GpuEmpty2Null(child)
-        }
+    new Empty2NullMetaImpl(a, conf, p, r)
 
-  private def createPythonUDAFMeta(
+  private class PythonUDAFMetaImpl(
       a: PythonUDAF,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new ExprMeta[PythonUDAF](a, conf, p, r) {
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends ExprMeta[PythonUDAF](a, conf, p, r) {
           override def replaceMessage: String = "not block GPU acceleration"
 
           override def noReplacementPossibleMessage(reasons: String): String =
@@ -65,12 +72,19 @@ trait Spark341PlusDBShims extends Spark332PlusDBShims {
               a.evalType, a.udfDeterministic, a.resultId)
         }
 
-  private def createTakeOrderedAndProjectExecMeta(
-      takeExec: TakeOrderedAndProjectExec,
+  private def createPythonUDAFMeta(
+      a: PythonUDAF,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new SparkPlanMeta[TakeOrderedAndProjectExec](takeExec, conf, p, r) {
+    new PythonUDAFMetaImpl(a, conf, p, r)
+
+  private class TakeOrderedAndProjectExecMetaImpl(
+      takeExec: TakeOrderedAndProjectExec,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends SparkPlanMeta[TakeOrderedAndProjectExec](takeExec, conf, p, r) {
             val sortOrder: Seq[BaseExprMeta[SortOrder]] =
               takeExec.sortOrder.map(GpuOverrides.wrapExpr(_, this.conf, Some(this)))
             val projectList: Seq[BaseExprMeta[NamedExpression]] =
@@ -110,26 +124,47 @@ trait Spark341PlusDBShims extends Spark332PlusDBShims {
             }
           }
 
+  private def createTakeOrderedAndProjectExecMeta(
+      takeExec: TakeOrderedAndProjectExec,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new TakeOrderedAndProjectExecMetaImpl(takeExec, conf, p, r)
+
+  private class GlobalLimitExecMetaImpl(
+      globalLimit: GlobalLimitExec,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends SparkPlanMeta[GlobalLimitExec](globalLimit, conf, p, r) {
+            override def convertToGpu(): GpuExec =
+              GpuGlobalLimitExec(
+                globalLimit.limit, childPlans.head.convertIfNeeded(), globalLimit.offset)
+          }
+
   private def createGlobalLimitExecMeta(
       globalLimit: GlobalLimitExec,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new SparkPlanMeta[GlobalLimitExec](globalLimit, conf, p, r) {
-            override def convertToGpu(): GpuExec =
-              GpuGlobalLimitExec(
-                globalLimit.limit, childPlans.head.convertIfNeeded(), globalLimit.offset)
-          }
+    new GlobalLimitExecMetaImpl(globalLimit, conf, p, r)
+
+  private class CollectLimitExecMetaImpl(
+      collectLimit: CollectLimitExec,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends GpuCollectLimitMeta(collectLimit, conf, p, r) {
+          override def convertToGpu(): GpuExec =
+            buildCollectLimitGpu(collectLimit.offset)
+        }
 
   private def createCollectLimitExecMeta(
       collectLimit: CollectLimitExec,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new GpuCollectLimitMeta(collectLimit, conf, p, r) {
-          override def convertToGpu(): GpuExec =
-            buildCollectLimitGpu(collectLimit.offset)
-        }
+    new CollectLimitExecMetaImpl(collectLimit, conf, p, r)
 
   private def createWindowGroupLimitExecMeta(
       limit: WindowGroupLimitExec,

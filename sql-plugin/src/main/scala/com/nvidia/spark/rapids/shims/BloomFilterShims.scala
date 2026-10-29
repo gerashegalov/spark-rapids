@@ -26,21 +26,27 @@ import org.apache.spark.sql.rapids.aggregate.{CpuToGpuAggregateBufferConverter,
   GpuToCpuAggregateBufferConverter, GpuToCpuBloomFilterBufferConverter}
 
 object BloomFilterShims {
-  private def createBloomFilterMightContainMeta(
+  private class BloomFilterMightContainMetaImpl(
       a: BloomFilterMightContain,
       conf: RapidsConf,
       p: Option[RapidsMeta[_, _, _]],
-      r: DataFromReplacementRule) = new BinaryExprMeta[BloomFilterMightContain](a, conf, p, r) {
+      r: DataFromReplacementRule) extends BinaryExprMeta[BloomFilterMightContain](a, conf, p, r) {
           override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
             GpuBloomFilterMightContain(lhs, rhs)
         }
 
-  private def createBloomFilterAggregateMeta(
+  private def createBloomFilterMightContainMeta(
+      a: BloomFilterMightContain,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new BloomFilterMightContainMetaImpl(a, conf, p, r)
+
+  private class BloomFilterAggregateMetaImpl(
       a: BloomFilterAggregate,
       conf: RapidsConf,
       p: Option[RapidsMeta[_, _, _]],
-      r: DataFromReplacementRule) =
-    new TypedImperativeAggExprMeta[BloomFilterAggregate](a, conf, p, r) {
+      r: DataFromReplacementRule)
+      extends TypedImperativeAggExprMeta[BloomFilterAggregate](a, conf, p, r) {
           private lazy val estimatedNumItems =
             GpuBloomFilterAggregate.clampEstimatedNumItems(
               a.estimatedNumItemsExpression.eval().asInstanceOf[Number].longValue)
@@ -76,6 +82,13 @@ object BloomFilterShims {
 
           override val supportBufferConversion: Boolean = true
         }
+
+  private def createBloomFilterAggregateMeta(
+      a: BloomFilterAggregate,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) =
+    new BloomFilterAggregateMetaImpl(a, conf, p, r)
 
   val exprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = {
     Seq(

@@ -388,11 +388,11 @@ case class GpuArrayJoin(override val children : Seq[Expression])
 }
 
 object GpuElementAtMeta {
-  private def createElementAtMeta(nullOnInvalidAccessToMap: Boolean)(
+  private class ElementAtMetaImpl(nullOnInvalidAccessToMap: Boolean)(
       in: ElementAt,
       conf: RapidsConf,
       p: Option[RapidsMeta[_, _, _]],
-      r: DataFromReplacementRule) = new BinaryExprMeta[ElementAt](in, conf, p, r) {
+      r: DataFromReplacementRule) extends BinaryExprMeta[ElementAt](in, conf, p, r) {
         override def tagExprForGpu(): Unit = {
           // To distinguish the supported nested type between Array and Map
           val checks = in.left.dataType match {
@@ -431,6 +431,12 @@ object GpuElementAtMeta {
           GpuElementAt(lhs, rhs, failOnError)(in.origin)
         }
       }
+
+  private def createElementAtMeta(nullOnInvalidAccessToMap: Boolean)(
+      in: ElementAt,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new ElementAtMetaImpl(nullOnInvalidAccessToMap)(in, conf, p, r)
 
   /**
    * Construct the expression rule for `ElementAt`.

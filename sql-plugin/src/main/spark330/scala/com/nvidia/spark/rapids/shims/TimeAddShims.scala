@@ -60,12 +60,12 @@ import org.apache.spark.unsafe.types.CalendarInterval
  */
 object TimeAddShims {
 
-  private def createTimeAddMeta(
+  private class TimeAddMetaImpl(
       timeAdd: TimeAdd,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new BinaryExprMeta[TimeAdd](timeAdd, conf, p, r) {
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends BinaryExprMeta[TimeAdd](timeAdd, conf, p, r) {
         override def tagExprForGpu(): Unit = {
           GpuOverrides.extractLit(timeAdd.interval).foreach { lit =>
             lit.dataType match {
@@ -82,6 +82,13 @@ object TimeAddShims {
         override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
           GpuTimeAdd(lhs, rhs)
       }
+
+  private def createTimeAddMeta(
+      timeAdd: TimeAdd,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new TimeAddMetaImpl(timeAdd, conf, p, r)
   val exprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = Seq(
     GpuOverrides.expr[TimeAdd](
       "Adds interval to timestamp",

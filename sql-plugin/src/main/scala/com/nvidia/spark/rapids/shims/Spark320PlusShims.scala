@@ -70,11 +70,11 @@ trait Spark320PlusShims extends SparkShims with RebaseShims
           doFloatToIntCheck = true, stringToAnsiDate = true)
       }
 
-  private def createAverageMeta(
+  private class AverageMetaImpl(
       a: Average,
       conf: RapidsConf,
       p: Option[RapidsMeta[_, _, _]],
-      r: DataFromReplacementRule) = new AggExprMeta[Average](a, conf, p, r) {
+      r: DataFromReplacementRule) extends AggExprMeta[Average](a, conf, p, r) {
         private val ansiEnabled = SQLConf.get.ansiEnabled
 
         override def tagAggForGpu(): Unit = {
@@ -92,11 +92,17 @@ trait Spark320PlusShims extends SparkShims with RebaseShims
         override def needsAnsiCheck: Boolean = false
       }
 
-  private def createAbsMeta(
+  private def createAverageMeta(
+      a: Average,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new AverageMetaImpl(a, conf, p, r)
+
+  private class AbsMetaImpl(
       a: Abs,
       conf: RapidsConf,
       p: Option[RapidsMeta[_, _, _]],
-      r: DataFromReplacementRule) = new UnaryAstExprMeta[Abs](a, conf, p, r) {
+      r: DataFromReplacementRule) extends UnaryAstExprMeta[Abs](a, conf, p, r) {
         val ansiEnabled = SQLConf.get.ansiEnabled
 
         override def tagSelfForAst(): Unit = {
@@ -108,6 +114,12 @@ trait Spark320PlusShims extends SparkShims with RebaseShims
         // ANSI support for ABS was added in 3.2.0 SPARK-33275
         override def convertToGpu(child: Expression): GpuExpression = GpuAbs(child, ansiEnabled)
       }
+
+  private def createAbsMeta(
+      a: Abs,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new AbsMetaImpl(a, conf, p, r)
 
   private def createSpecifiedWindowFrameMeta(
       windowFrame: SpecifiedWindowFrame,

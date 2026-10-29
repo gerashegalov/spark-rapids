@@ -31,14 +31,21 @@ import org.apache.spark.sql.execution.datasources._
 
 trait Spark332PlusDBShims extends Spark330PlusDBShims {
 
+  private class KnownNullableMetaImpl(
+      a: KnownNullable,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends UnaryExprMeta[KnownNullable](a, conf, p, r) {
+          override def convertToGpu(child: Expression): GpuExpression = GpuKnownNullable(child)
+        }
+
   private def createKnownNullableMeta(
       a: KnownNullable,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new UnaryExprMeta[KnownNullable](a, conf, p, r) {
-          override def convertToGpu(child: Expression): GpuExpression = GpuKnownNullable(child)
-        }
+    new KnownNullableMetaImpl(a, conf, p, r)
 
   private def createWriteFilesExecMeta(
       write: WriteFilesExec,

@@ -28,16 +28,22 @@ import org.apache.spark.sql.rapids.{GpuGetTimestamp, UnixTimeExprMeta}
  */
 object TimeStamp {
 
-  private def createGetTimestampMeta(
+  private class GetTimestampMetaImpl(
       a: GetTimestamp,
       conf: RapidsConf,
       p: Option[RapidsMeta[_, _, _]],
-      r: DataFromReplacementRule) = new UnixTimeExprMeta[GetTimestamp](a, conf, p, r) {
+      r: DataFromReplacementRule) extends UnixTimeExprMeta[GetTimestamp](a, conf, p, r) {
         override def isTimeZoneSupported = true
         override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression = {
           GpuGetTimestamp(lhs, rhs, sparkFormat, strfFormat, a.timeZoneId, a.failOnError)
         }
       }
+
+  private def createGetTimestampMeta(
+      a: GetTimestamp,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new GetTimestampMetaImpl(a, conf, p, r)
 
   def getExprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = Seq(
     GpuOverrides.expr[GetTimestamp](

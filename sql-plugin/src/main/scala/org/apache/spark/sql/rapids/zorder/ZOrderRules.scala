@@ -32,11 +32,11 @@ import org.apache.spark.sql.catalyst.expressions.codegen.LazilyGeneratedOrdering
  */
 object ZOrderRules {
 
-  private def createPartitionExprMeta(
+  private class PartitionExprMetaImpl(
       a: UnaryExpression,
       conf: RapidsConf,
       p: Option[RapidsMeta[_, _, _]],
-      r: DataFromReplacementRule) = new UnaryExprMeta[UnaryExpression](a, conf, p, r) {
+      r: DataFromReplacementRule) extends UnaryExprMeta[UnaryExpression](a, conf, p, r) {
         def getBoundsNOrder: (Array[InternalRow], SortOrder) = {
           // We have to pull pick apart the partitioner apart, but we have to use reflection
           // to do it, because what we want is private
@@ -76,20 +76,32 @@ object ZOrderRules {
         }
       }
 
-  private def createInterleaveBitsMeta(
+  private def createPartitionExprMeta(
+      a: UnaryExpression,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new PartitionExprMetaImpl(a, conf, p, r)
+
+  private class InterleaveBitsMetaImpl(
       a: Expression,
       conf: RapidsConf,
       p: Option[RapidsMeta[_, _, _]],
-      r: DataFromReplacementRule) = new ExprMeta[Expression](a, conf, p, r) {
+      r: DataFromReplacementRule) extends ExprMeta[Expression](a, conf, p, r) {
           override def convertToGpuImpl(): GpuExpression =
             GpuInterleaveBits(childExprs.map(_.convertToGpu()))
         }
 
-  private def createHilbertLongIndexMeta(hilbertClazz: Class[Expression])(
+  private def createInterleaveBitsMeta(
       a: Expression,
       conf: RapidsConf,
       p: Option[RapidsMeta[_, _, _]],
-      r: DataFromReplacementRule) = new ExprMeta[Expression](a, conf, p, r) {
+      r: DataFromReplacementRule) = new InterleaveBitsMetaImpl(a, conf, p, r)
+
+  private class HilbertLongIndexMetaImpl(hilbertClazz: Class[Expression])(
+      a: Expression,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) extends ExprMeta[Expression](a, conf, p, r) {
           override def convertToGpuImpl(): GpuExpression = {
             val numBitsField = hilbertClazz.getDeclaredField("numBits")
             numBitsField.setAccessible(true)
@@ -97,6 +109,12 @@ object ZOrderRules {
             GpuHilbertLongIndex(numBits, childExprs.map(_.convertToGpu()))
           }
         }
+
+  private def createHilbertLongIndexMeta(hilbertClazz: Class[Expression])(
+      a: Expression,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new HilbertLongIndexMetaImpl(hilbertClazz)(a, conf, p, r)
 
   private[this] def readFieldWithReflection[T](instance: T, fieldName: String): Any = {
     val clazz = instance.getClass

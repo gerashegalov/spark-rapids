@@ -31,12 +31,11 @@ import org.apache.iceberg.spark.source.{GpuSparkIncrementalAppendScan, GpuSparkS
 import org.apache.spark.sql.connector.read.{Scan, SupportsRuntimeV2Filtering}
 
 class IcebergProviderImpl extends IcebergProviderBase {
-  private def createRowLevelOperationScanMeta(
+  private class RowLevelOperationScanMetaImpl(
     a: Scan,
     conf: com.nvidia.spark.rapids.RapidsConf,
     p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-    r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new ScanMeta[Scan](a, conf, p, r) {
+    r: com.nvidia.spark.rapids.DataFromReplacementRule) extends ScanMeta[Scan](a, conf, p, r) {
       private lazy val convertedScan: Try[GpuSparkScan] = Try(
         GpuSparkIncrementalAppendScan.create(a, this.conf, false))
 
@@ -49,6 +48,13 @@ class IcebergProviderImpl extends IcebergProviderBase {
 
       override def convertToGpu(): GpuScan = convertedScan.get
     }
+
+  private def createRowLevelOperationScanMeta(
+    a: Scan,
+    conf: com.nvidia.spark.rapids.RapidsConf,
+    p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+    r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new RowLevelOperationScanMetaImpl(a, conf, p, r)
 
 
   /**

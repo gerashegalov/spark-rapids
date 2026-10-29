@@ -35,12 +35,12 @@ import org.apache.spark.sql.rapids.execution.{GpuBroadcastHashJoinExec, GpuBroad
 
 trait Spark330PlusDBShims extends Spark321PlusDBShims {
 
-  private def createCheckOverflowInTableInsertMeta(
+  private class CheckOverflowInTableInsertMetaImpl(
       t: CheckOverflowInTableInsert,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new UnaryExprMeta[CheckOverflowInTableInsert](t, conf, p, r) {
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends UnaryExprMeta[CheckOverflowInTableInsert](t, conf, p, r) {
           override def convertToGpu(child: Expression): GpuExpression = {
             child match {
               case c: GpuCast => GpuCheckOverflowInTableInsert(c, t.columnName)
@@ -49,6 +49,13 @@ trait Spark330PlusDBShims extends Spark321PlusDBShims {
             }
           }
         }
+
+  private def createCheckOverflowInTableInsertMeta(
+      t: CheckOverflowInTableInsert,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new CheckOverflowInTableInsertMetaImpl(t, conf, p, r)
   override def getExprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = {
     val shimExprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = Seq(
       GpuOverrides.expr[CheckOverflowInTableInsert](

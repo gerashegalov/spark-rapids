@@ -50,12 +50,12 @@ import org.apache.spark.sql.rapids.GpuStringDecode
 
 object StringDecodeShims {
 
-  private def createStringDecodeMeta(
+  private class StringDecodeMetaImpl(
       a: StringDecode,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new BinaryExprMeta[StringDecode](a, conf, p, r) {
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends BinaryExprMeta[StringDecode](a, conf, p, r) {
         private var charsetName: String = _
         override def tagExprForGpu(): Unit = {
           GpuOverrides.extractStringLit(a.charset) match {
@@ -71,6 +71,13 @@ object StringDecodeShims {
         override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
           GpuStringDecode(lhs, charsetName)
       }
+
+  private def createStringDecodeMeta(
+      a: StringDecode,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new StringDecodeMetaImpl(a, conf, p, r)
   val exprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = Seq(
     GpuOverrides.expr[StringDecode](
       "Decodes binary data from a charset to a UTF-8 string",

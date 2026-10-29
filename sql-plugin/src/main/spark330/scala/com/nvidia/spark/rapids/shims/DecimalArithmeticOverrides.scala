@@ -34,21 +34,28 @@ import org.apache.spark.sql.types.{Decimal, DecimalType}
 
 object DecimalArithmeticOverrides {
 
+  private class PromotePrecisionMetaImpl(
+      a: PromotePrecision,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends UnaryExprMeta[PromotePrecision](a, conf, p, r) {
+        override def convertToGpu(child: Expression): GpuExpression = GpuPromotePrecision(child)
+      }
+
   private def createPromotePrecisionMeta(
       a: PromotePrecision,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new UnaryExprMeta[PromotePrecision](a, conf, p, r) {
-        override def convertToGpu(child: Expression): GpuExpression = GpuPromotePrecision(child)
-      }
+    new PromotePrecisionMetaImpl(a, conf, p, r)
 
-  private def createCheckOverflowMeta(
+  private class CheckOverflowMetaImpl(
       a: CheckOverflow,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new ExprMeta[CheckOverflow](a, conf, p, r) {
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends ExprMeta[CheckOverflow](a, conf, p, r) {
         // CheckOverflow prevents all bridge optimization in the tree. Spark's CPU
         // CheckOverflow evaluates the child with Scala Decimal/BigDecimal values and then
         // checks whether the final value fits the target DecimalType. The GPU path cannot
@@ -155,12 +162,19 @@ object DecimalArithmeticOverrides {
         }
       }
 
-  private def createMultiplyMeta(
-      a: Multiply,
+  private def createCheckOverflowMeta(
+      a: CheckOverflow,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new BinaryAstExprMeta[Multiply](a, conf, p, r) {
+    new CheckOverflowMetaImpl(a, conf, p, r)
+
+  private class MultiplyMetaImpl(
+      a: Multiply,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends BinaryAstExprMeta[Multiply](a, conf, p, r) {
         override def tagExprForGpu(): Unit = {
           // Check if this Multiply expression is in TRY mode context
           if (TryModeShim.isTryMode(a)) {
@@ -185,12 +199,19 @@ object DecimalArithmeticOverrides {
         }
       }
 
-  private def createDivideMeta(
-      a: Divide,
+  private def createMultiplyMeta(
+      a: Multiply,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new BinaryExprMeta[Divide](a, conf, p, r) {
+    new MultiplyMetaImpl(a, conf, p, r)
+
+  private class DivideMetaImpl(
+      a: Divide,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends BinaryExprMeta[Divide](a, conf, p, r) {
         // Division of Decimal types is a little odd. To work around some issues with
         // what Spark does the tagging/checks are in CheckOverflow instead of here.
         override def tagExprForGpu(): Unit = {
@@ -210,22 +231,36 @@ object DecimalArithmeticOverrides {
           }
       }
 
+  private def createDivideMeta(
+      a: Divide,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new DivideMetaImpl(a, conf, p, r)
+
+  private class IntegralDivideMetaImpl(
+      a: IntegralDivide,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends BinaryExprMeta[IntegralDivide](a, conf, p, r) {
+        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
+          GpuIntegralDivide(lhs, rhs)(a.origin)
+      }
+
   private def createIntegralDivideMeta(
       a: IntegralDivide,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new BinaryExprMeta[IntegralDivide](a, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuIntegralDivide(lhs, rhs)(a.origin)
-      }
+    new IntegralDivideMetaImpl(a, conf, p, r)
 
-  private def createRemainderMeta(
+  private class RemainderMetaImpl(
       a: Remainder,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new BinaryExprMeta[Remainder](a, conf, p, r) {
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends BinaryExprMeta[Remainder](a, conf, p, r) {
         override def tagExprForGpu(): Unit = {
           // Check if this Remainder expression is in TRY mode context
           if (TryModeShim.isTryMode(a)) {
@@ -236,6 +271,13 @@ object DecimalArithmeticOverrides {
         override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
           GpuRemainder(lhs, rhs)
       }
+
+  private def createRemainderMeta(
+      a: Remainder,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new RemainderMetaImpl(a, conf, p, r)
   def exprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = Seq(
     expr[PromotePrecision](
       "PromotePrecision before arithmetic operations between DecimalType data",

@@ -42,15 +42,22 @@ import org.apache.spark.sql.rapids.shims.InvokeExprMeta
  */
 trait Spark400PlusCommonShims extends Spark350PlusNonDBShims {
 
+  private class KnownNotContainsNullMetaImpl(
+      a: KnownNotContainsNull,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends UnaryExprMeta[KnownNotContainsNull](a, conf, p, r) {
+          override def convertToGpu(child: Expression): GpuExpression =
+            GpuKnownNotContainsNull(child)
+        }
+
   private def createKnownNotContainsNullMeta(
       a: KnownNotContainsNull,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new UnaryExprMeta[KnownNotContainsNull](a, conf, p, r) {
-          override def convertToGpu(child: Expression): GpuExpression =
-            GpuKnownNotContainsNull(child)
-        }
+    new KnownNotContainsNullMetaImpl(a, conf, p, r)
   override def getExprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = {
     val shimExprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = Seq(
       GpuOverrides.expr[KnownNotContainsNull](

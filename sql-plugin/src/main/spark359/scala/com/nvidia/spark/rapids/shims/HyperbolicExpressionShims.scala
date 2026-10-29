@@ -38,12 +38,12 @@ import org.apache.spark.sql.rapids.{GpuAcoshImproved, GpuAsinhImproved}
  */
 trait HyperbolicExpressionShims extends SparkShims {
 
-  private def createAcoshMeta(
+  private class AcoshMetaImpl(
       a: Acosh,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new UnaryAstExprMeta[Acosh](a, conf, p, r) {
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends UnaryAstExprMeta[Acosh](a, conf, p, r) {
           override def convertToGpu(child: Expression): GpuExpression =
             if (this.conf.includeImprovedFloat) {
               GpuAcoshImproved(child)
@@ -60,12 +60,19 @@ trait HyperbolicExpressionShims extends SparkShims {
           }
         }
 
-  private def createAsinhMeta(
-      a: Asinh,
+  private def createAcoshMeta(
+      a: Acosh,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new UnaryAstExprMeta[Asinh](a, conf, p, r) {
+    new AcoshMetaImpl(a, conf, p, r)
+
+  private class AsinhMetaImpl(
+      a: Asinh,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends UnaryAstExprMeta[Asinh](a, conf, p, r) {
           override def convertToGpu(child: Expression): GpuExpression =
             if (this.conf.includeImprovedFloat || TypeUtilsShims.useImprovedAsinhByDefault) {
               GpuAsinhImproved(child)
@@ -81,6 +88,13 @@ trait HyperbolicExpressionShims extends SparkShims {
             }
           }
         }
+
+  private def createAsinhMeta(
+      a: Asinh,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new AsinhMetaImpl(a, conf, p, r)
   abstract override def getExprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = {
     val shimExprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = Seq(
       GpuOverrides.expr[Acosh](

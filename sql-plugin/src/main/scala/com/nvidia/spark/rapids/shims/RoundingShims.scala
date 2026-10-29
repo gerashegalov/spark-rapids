@@ -24,11 +24,11 @@ import org.apache.spark.sql.rapids._
 import org.apache.spark.sql.types.DecimalType
 
 object RoundingShims {
-  private def createRoundCeilMeta(
+  private class RoundCeilMetaImpl(
       ceil: RoundCeil,
       conf: RapidsConf,
       p: Option[RapidsMeta[_, _, _]],
-      r: DataFromReplacementRule) = new BinaryExprMeta[RoundCeil](ceil, conf, p, r) {
+      r: DataFromReplacementRule) extends BinaryExprMeta[RoundCeil](ceil, conf, p, r) {
         override def tagExprForGpu(): Unit = {
           ceil.child.dataType match {
             case dt: DecimalType =>
@@ -53,11 +53,17 @@ object RoundingShims {
         }
       }
 
-  private def createRoundFloorMeta(
+  private def createRoundCeilMeta(
+      ceil: RoundCeil,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new RoundCeilMetaImpl(ceil, conf, p, r)
+
+  private class RoundFloorMetaImpl(
       floor: RoundFloor,
       conf: RapidsConf,
       p: Option[RapidsMeta[_, _, _]],
-      r: DataFromReplacementRule) = new BinaryExprMeta[RoundFloor](floor, conf, p, r) {
+      r: DataFromReplacementRule) extends BinaryExprMeta[RoundFloor](floor, conf, p, r) {
         override def tagExprForGpu(): Unit = {
           floor.child.dataType match {
             case dt: DecimalType =>
@@ -81,6 +87,12 @@ object RoundingShims {
           GpuFloor(lhs, floor.dataType)
         }
       }
+
+  private def createRoundFloorMeta(
+      floor: RoundFloor,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new RoundFloorMetaImpl(floor, conf, p, r)
 
   def exprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = Seq(
     GpuOverrides.expr[RoundCeil](

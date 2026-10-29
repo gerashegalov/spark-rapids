@@ -29,11 +29,11 @@ import org.apache.spark.util.SerializableConfiguration
 
 class AvroProviderImpl extends AvroProvider {
 
-  private def createAvroScanMeta(
+  private class AvroScanMetaImpl(
       a: AvroScan,
       conf: RapidsConf,
       p: Option[RapidsMeta[_, _, _]],
-      r: DataFromReplacementRule) = new ScanMeta[AvroScan](a, conf, p, r) {
+      r: DataFromReplacementRule) extends ScanMeta[AvroScan](a, conf, p, r) {
           override def tagSelfForGpu(): Unit = GpuAvroScan.tagSupport(this)
 
           override def convertToGpu(): GpuScan =
@@ -48,6 +48,12 @@ class AvroProviderImpl extends AvroProvider {
               a.partitionFilters,
               a.dataFilters)
         }
+
+  private def createAvroScanMeta(
+      a: AvroScan,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new AvroScanMetaImpl(a, conf, p, r)
 
   /** If the file format is supported as an external source */
   def isSupportedFormat(format: Class[_ <: FileFormat]): Boolean = {

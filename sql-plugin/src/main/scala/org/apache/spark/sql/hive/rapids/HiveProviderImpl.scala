@@ -37,11 +37,11 @@ import org.apache.spark.sql.types._
 
 class HiveProviderImpl extends HiveProviderCmdShims {
 
-  private def createHiveSimpleUdfMeta(
+  private class HiveSimpleUdfMetaImpl(
       a: HiveSimpleUDF,
       conf: RapidsConf,
       p: Option[RapidsMeta[_, _, _]],
-      r: DataFromReplacementRule) = new ExprMeta[HiveSimpleUDF](a, conf, p, r) {
+      r: DataFromReplacementRule) extends ExprMeta[HiveSimpleUDF](a, conf, p, r) {
 
           val function = createFunction(a)
           private val opRapidsFunc = function match {
@@ -78,11 +78,17 @@ class HiveProviderImpl extends HiveProviderCmdShims {
           }
         }
 
-  private def createHiveGenericUdfMeta(
+  private def createHiveSimpleUdfMeta(
+      a: HiveSimpleUDF,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new HiveSimpleUdfMetaImpl(a, conf, p, r)
+
+  private class HiveGenericUdfMetaImpl(
       a: HiveGenericUDF,
       conf: RapidsConf,
       p: Option[RapidsMeta[_, _, _]],
-      r: DataFromReplacementRule) = new ExprMeta[HiveGenericUDF](a, conf, p, r) {
+      r: DataFromReplacementRule) extends ExprMeta[HiveGenericUDF](a, conf, p, r) {
           val function = createFunction(a)
           private val opRapidsFunc = function match {
             case rapidsUDF: RapidsUDF => Some(rapidsUDF)
@@ -119,11 +125,17 @@ class HiveProviderImpl extends HiveProviderCmdShims {
           }
         }
 
-  private def createHiveTableScanExecMeta(
+  private def createHiveGenericUdfMeta(
+      a: HiveGenericUDF,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new HiveGenericUdfMetaImpl(a, conf, p, r)
+
+  private class HiveTableScanExecMetaImpl(
       p: HiveTableScanExec,
       conf: RapidsConf,
       parent: Option[RapidsMeta[_, _, _]],
-      r: DataFromReplacementRule) = new SparkPlanMeta[HiveTableScanExec](p, conf, parent, r) {
+      r: DataFromReplacementRule) extends SparkPlanMeta[HiveTableScanExec](p, conf, parent, r) {
 
           private def flagIfUnsupportedStorageFormat(storage: CatalogStorageFormat): Unit = {
             if (storage.inputFormat.getOrElse("") != textInputFormat) {
@@ -293,6 +305,12 @@ class HiveProviderImpl extends HiveProviderCmdShims {
               wrapped.partitionPruningPred)
           }
         }
+
+  private def createHiveTableScanExecMeta(
+      p: HiveTableScanExec,
+      conf: RapidsConf,
+      parent: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new HiveTableScanExecMetaImpl(p, conf, parent, r)
 
   /**
    * Builds the expression rules that are specific to spark-hive Catalyst nodes.

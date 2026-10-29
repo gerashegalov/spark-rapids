@@ -147,8 +147,15 @@ def _lambda_body_end(tokens, start):
         return len(tokens) if close is None else close + 1
 
     stack = []
+    statement_starters = {
+        "class", "def", "enum", "export", "given", "import", "object", "package",
+        "trait", "type", "val", "var",
+    }
     for index in range(start, len(tokens)):
         value = tokens[index].value
+        if (index > start and not stack and tokens[index].line > tokens[index - 1].line and
+                value in statement_starters):
+            return index
         if value in OPEN_TO_CLOSE:
             stack.append(OPEN_TO_CLOSE[value])
         elif value in CLOSE_TO_OPEN:

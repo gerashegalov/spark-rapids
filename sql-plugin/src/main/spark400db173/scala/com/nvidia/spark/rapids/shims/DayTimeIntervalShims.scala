@@ -41,12 +41,12 @@ import org.apache.spark.unsafe.types.CalendarInterval
  */
 object DayTimeIntervalShims {
 
-  private def createAbsMeta(
+  private class AbsMetaImpl(
       a: Abs,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new UnaryAstExprMeta[Abs](a, conf, p, r) {
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends UnaryAstExprMeta[Abs](a, conf, p, r) {
         val ansiEnabled = SQLConf.get.ansiEnabled
 
         override def tagSelfForAst(): Unit = {
@@ -59,14 +59,38 @@ object DayTimeIntervalShims {
         override def convertToGpu(child: Expression): GpuExpression = GpuAbs(child, ansiEnabled)
       }
 
+  private def createAbsMeta(
+      a: Abs,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new AbsMetaImpl(a, conf, p, r)
+
+  private class MultiplyDTIntervalMetaImpl(
+      a: MultiplyDTInterval,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends BinaryExprMeta[MultiplyDTInterval](a, conf, p, r) {
+        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
+          GpuMultiplyDTInterval(lhs, rhs)
+      }
+
   private def createMultiplyDTIntervalMeta(
       a: MultiplyDTInterval,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new BinaryExprMeta[MultiplyDTInterval](a, conf, p, r) {
+    new MultiplyDTIntervalMetaImpl(a, conf, p, r)
+
+  private class DivideDTIntervalMetaImpl(
+      a: DivideDTInterval,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends BinaryExprMeta[DivideDTInterval](a, conf, p, r) {
         override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuMultiplyDTInterval(lhs, rhs)
+          GpuDivideDTInterval(lhs, rhs)
       }
 
   private def createDivideDTIntervalMeta(
@@ -74,17 +98,14 @@ object DayTimeIntervalShims {
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new BinaryExprMeta[DivideDTInterval](a, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuDivideDTInterval(lhs, rhs)
-      }
+    new DivideDTIntervalMetaImpl(a, conf, p, r)
 
-  private def createTimestampAddIntervalMeta(
+  private class TimestampAddIntervalMetaImpl(
       timeAdd: TimestampAddInterval,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new BinaryExprMeta[TimestampAddInterval](timeAdd, conf, p, r) {
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends BinaryExprMeta[TimestampAddInterval](timeAdd, conf, p, r) {
         override def tagExprForGpu(): Unit = {
           GpuOverrides.extractLit(timeAdd.interval).foreach { lit =>
             lit.dataType match {
@@ -101,6 +122,13 @@ object DayTimeIntervalShims {
         override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
           GpuTimestampAddInterval(lhs, rhs)
       }
+
+  private def createTimestampAddIntervalMeta(
+      timeAdd: TimestampAddInterval,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new TimestampAddIntervalMetaImpl(timeAdd, conf, p, r)
   def exprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = Seq(
     GpuOverrides.expr[Abs](
       "Absolute value",

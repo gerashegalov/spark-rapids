@@ -92,6 +92,12 @@ class ReplacementRuleMetaLambdaLintSuite(unittest.TestCase):
           val unrelated = new UnrelatedMeta(a, b, c, d)
         """, [])
 
+    def test_inferred_semicolon_ends_unbraced_lambda_body(self):
+        self.assert_factories("""
+          val factory = (a, b, c, d) => named(a, b, c, d)
+          val unrelated = new UnrelatedMeta(a, b, c, d)
+        """, [])
+
     def test_main_requires_zero_violations(self):
         with tempfile.TemporaryDirectory() as root:
             source_dir = os.path.join(root, "module", "src", "main", "scala")

@@ -38,12 +38,34 @@ import org.apache.spark.sql.execution.datasources.v2.rapids.{GpuAtomicCreateTabl
 import org.apache.spark.sql.types.{DateType, TimestampType}
 
 abstract class IcebergProviderBase extends IcebergProvider {
+  private class BatchQueryScanMetaImpl(
+    a: Scan,
+    conf: com.nvidia.spark.rapids.RapidsConf,
+    p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+    r: com.nvidia.spark.rapids.DataFromReplacementRule) extends ScanMeta[Scan](a, conf, p, r) {
+      private lazy val convertedScan: Try[GpuSparkScan] = GpuSparkScan.tryConvert(a, this.conf)
+
+      override def supportsRuntimeFilters: Boolean = true
+
+      override def tagSelfForGpu(): Unit = {
+        GpuSparkScan.tagForGpu(this, convertedScan)
+      }
+
+      override def convertToGpu(): GpuScan = convertedScan.get
+    }
+
   private def createBatchQueryScanMeta(
     a: Scan,
     conf: com.nvidia.spark.rapids.RapidsConf,
     p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
     r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new ScanMeta[Scan](a, conf, p, r) {
+    new BatchQueryScanMetaImpl(a, conf, p, r)
+
+  private class CopyOnWriteScanMetaImpl(
+    a: Scan,
+    conf: com.nvidia.spark.rapids.RapidsConf,
+    p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+    r: com.nvidia.spark.rapids.DataFromReplacementRule) extends ScanMeta[Scan](a, conf, p, r) {
       private lazy val convertedScan: Try[GpuSparkScan] = GpuSparkScan.tryConvert(a, this.conf)
 
       override def supportsRuntimeFilters: Boolean = true
@@ -60,17 +82,7 @@ abstract class IcebergProviderBase extends IcebergProvider {
     conf: com.nvidia.spark.rapids.RapidsConf,
     p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
     r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new ScanMeta[Scan](a, conf, p, r) {
-      private lazy val convertedScan: Try[GpuSparkScan] = GpuSparkScan.tryConvert(a, this.conf)
-
-      override def supportsRuntimeFilters: Boolean = true
-
-      override def tagSelfForGpu(): Unit = {
-        GpuSparkScan.tagForGpu(this, convertedScan)
-      }
-
-      override def convertToGpu(): GpuScan = convertedScan.get
-    }
+    new CopyOnWriteScanMetaImpl(a, conf, p, r)
 
   override def getScans: Map[Class[_ <: Scan], ScanRule[_ <: Scan]] = {
     val cpuBatchQueryScanClass = ShimReflectionUtils.loadClass(

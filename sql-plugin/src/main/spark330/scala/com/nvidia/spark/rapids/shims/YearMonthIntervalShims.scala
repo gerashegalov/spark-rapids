@@ -61,14 +61,31 @@ import org.apache.spark.sql.rapids.shims.{GpuDivideYMInterval, GpuMultiplyYMInte
 
 object YearMonthIntervalShims {
 
+  private class MultiplyYMIntervalMetaImpl(
+      a: MultiplyYMInterval,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends BinaryExprMeta[MultiplyYMInterval](a, conf, p, r) {
+        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
+          GpuMultiplyYMInterval(lhs, rhs)
+      }
+
   private def createMultiplyYMIntervalMeta(
       a: MultiplyYMInterval,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new BinaryExprMeta[MultiplyYMInterval](a, conf, p, r) {
+    new MultiplyYMIntervalMetaImpl(a, conf, p, r)
+
+  private class DivideYMIntervalMetaImpl(
+      a: DivideYMInterval,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends BinaryExprMeta[DivideYMInterval](a, conf, p, r) {
         override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuMultiplyYMInterval(lhs, rhs)
+          GpuDivideYMInterval(lhs, rhs)
       }
 
   private def createDivideYMIntervalMeta(
@@ -76,10 +93,7 @@ object YearMonthIntervalShims {
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new BinaryExprMeta[DivideYMInterval](a, conf, p, r) {
-        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
-          GpuDivideYMInterval(lhs, rhs)
-      }
+    new DivideYMIntervalMetaImpl(a, conf, p, r)
   def exprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = Seq(
     GpuOverrides.expr[MultiplyYMInterval](
       "Year-month interval * number",

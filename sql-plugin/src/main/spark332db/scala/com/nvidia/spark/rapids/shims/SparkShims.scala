@@ -28,14 +28,21 @@ import org.apache.spark.sql.rapids.GpuV1WriteUtils.GpuEmpty2Null
 
 object SparkShimImpl extends Spark332PlusDBShims with SparkCatalogPartitionShims {
 
+  private class Empty2NullMetaImpl(
+      a: Empty2Null,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends UnaryExprMeta[Empty2Null](a, conf, p, r) {
+          override def convertToGpu(child: Expression): GpuExpression = GpuEmpty2Null(child)
+        }
+
   private def createEmpty2NullMeta(
       a: Empty2Null,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new UnaryExprMeta[Empty2Null](a, conf, p, r) {
-          override def convertToGpu(child: Expression): GpuExpression = GpuEmpty2Null(child)
-        }
+    new Empty2NullMetaImpl(a, conf, p, r)
   override def isExpressionStateful(expr: Expression): Boolean = expr match {
     case _: Stateful | _: InvokeLike | _: ExternalMapToCatalyst => true
     case _ => false

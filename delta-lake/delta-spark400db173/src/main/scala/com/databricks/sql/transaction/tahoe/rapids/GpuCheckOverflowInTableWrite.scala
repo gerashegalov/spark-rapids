@@ -56,12 +56,12 @@ case class GpuCheckOverflowInTableWrite(
 }
 
 object GpuCheckOverflowInTableWrite {
-  private def createCheckOverflowInTableWriteMeta(
+  private class CheckOverflowInTableWriteMetaImpl(
     check: CheckOverflowInTableWrite,
     conf: com.nvidia.spark.rapids.RapidsConf,
     parent: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-    rule: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new UnaryExprMeta[CheckOverflowInTableWrite](check, conf, parent, rule) {
+    rule: com.nvidia.spark.rapids.DataFromReplacementRule)
+    extends UnaryExprMeta[CheckOverflowInTableWrite](check, conf, parent, rule) {
       override def convertToGpu(child: Expression): GpuExpression = child match {
         case gpuChild: GpuExpression =>
           val sourceType = check.child.children.headOption
@@ -72,6 +72,13 @@ object GpuCheckOverflowInTableWrite {
           throw new IllegalStateException("Expression child cannot run on the GPU")
       }
     }
+
+  private def createCheckOverflowInTableWriteMeta(
+    check: CheckOverflowInTableWrite,
+    conf: com.nvidia.spark.rapids.RapidsConf,
+    parent: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+    rule: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new CheckOverflowInTableWriteMetaImpl(check, conf, parent, rule)
 
   val exprRule: ExprRule[CheckOverflowInTableWrite] =
     GpuOverrides.expr[CheckOverflowInTableWrite](

@@ -67,12 +67,12 @@ import org.apache.spark.sql.types._
  */
 object ProtobufExprShims extends org.apache.spark.internal.Logging {
 
-  private def createUnaryExpressionMeta(
+  private class UnaryExpressionMetaImpl(
       e: UnaryExpression,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new UnaryExprMeta[UnaryExpression](e, conf, p, r) {
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends UnaryExprMeta[UnaryExpression](e, conf, p, r) {
 
         private var failOnErrors: Boolean = _
         private var malformedRowsAsNullFields: Boolean = _
@@ -205,6 +205,13 @@ object ProtobufExprShims extends org.apache.spark.internal.Logging {
           GpuFromProtobuf(e.dataType.asInstanceOf[StructType], flatSchema, failOnErrors,
             malformedRowsAsNullFields, child)
       }
+
+  private def createUnaryExpressionMeta(
+      e: UnaryExpression,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new UnaryExpressionMetaImpl(e, conf, p, r)
   private[this] val protobufDataToCatalystClassName =
     "org.apache.spark.sql.protobuf.ProtobufDataToCatalyst"
 

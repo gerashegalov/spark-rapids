@@ -64,18 +64,25 @@ trait Spark321PlusDBShims extends SparkShims
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
     new GpuRunningWindowExecMeta(runningWindowFunctionExec, conf, p, r)
 
-  private def createEphemeralSubstringMeta(
+  private class EphemeralSubstringMetaImpl(
       in: EphemeralSubstring,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new TernaryExprMeta[EphemeralSubstring](in, conf, p, r) {
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends TernaryExprMeta[EphemeralSubstring](in, conf, p, r) {
           override def convertToGpu(
               column: Expression,
               position: Expression,
               length: Expression): GpuExpression =
             GpuSubstring(column, position, length)
         }
+
+  private def createEphemeralSubstringMeta(
+      in: EphemeralSubstring,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new EphemeralSubstringMetaImpl(in, conf, p, r)
   override def isCastingStringToNegDecimalScaleSupported: Boolean = true
 
   override def getFileScanRDD(

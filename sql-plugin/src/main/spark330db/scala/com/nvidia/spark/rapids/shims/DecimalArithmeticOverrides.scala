@@ -60,12 +60,12 @@ import org.apache.spark.sql.types.DecimalType
 
 object DecimalArithmeticOverrides {
 
-  private def createMultiplyMeta(
+  private class MultiplyMetaImpl(
       a: Multiply,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
-      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new BinaryAstExprMeta[Multiply](a, conf, p, r) {
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends BinaryAstExprMeta[Multiply](a, conf, p, r) {
           override def tagExprForGpu(): Unit = {
             // Check if this Multiply expression is in TRY mode context
             if (TryModeShim.isTryMode(a)) {
@@ -99,12 +99,19 @@ object DecimalArithmeticOverrides {
           }
         }
 
-  private def createDivideMeta(
-      a: Divide,
+  private def createMultiplyMeta(
+      a: Multiply,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new BinaryExprMeta[Divide](a, conf, p, r) {
+    new MultiplyMetaImpl(a, conf, p, r)
+
+  private class DivideMetaImpl(
+      a: Divide,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends BinaryExprMeta[Divide](a, conf, p, r) {
           override def tagExprForGpu(): Unit = {
             // Check if this Divide expression is in TRY mode context
             if (TryModeShim.isTryMode(a)) {
@@ -121,12 +128,19 @@ object DecimalArithmeticOverrides {
             }
         }
 
-  private def createIntegralDivideMeta(
-      a: IntegralDivide,
+  private def createDivideMeta(
+      a: Divide,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new BinaryExprMeta[IntegralDivide](a, conf, p, r) {
+    new DivideMetaImpl(a, conf, p, r)
+
+  private class IntegralDivideMetaImpl(
+      a: IntegralDivide,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends BinaryExprMeta[IntegralDivide](a, conf, p, r) {
           override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
             if (lhs.dataType.isInstanceOf[DecimalType] && rhs.dataType.isInstanceOf[DecimalType]) {
               GpuIntegralDecimalDivide(lhs, rhs)
@@ -135,12 +149,19 @@ object DecimalArithmeticOverrides {
             }
         }
 
-  private def createRemainderMeta(
-      a: Remainder,
+  private def createIntegralDivideMeta(
+      a: IntegralDivide,
       conf: com.nvidia.spark.rapids.RapidsConf,
       p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
       r: com.nvidia.spark.rapids.DataFromReplacementRule) =
-    new BinaryExprMeta[Remainder](a, conf, p, r) {
+    new IntegralDivideMetaImpl(a, conf, p, r)
+
+  private class RemainderMetaImpl(
+      a: Remainder,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule)
+      extends BinaryExprMeta[Remainder](a, conf, p, r) {
           override def tagExprForGpu(): Unit = {
             // Check if this Remainder expression is in TRY mode context
             if (TryModeShim.isTryMode(a)) {
@@ -155,6 +176,13 @@ object DecimalArithmeticOverrides {
               GpuRemainder(lhs, rhs)
             }
         }
+
+  private def createRemainderMeta(
+      a: Remainder,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new RemainderMetaImpl(a, conf, p, r)
   def exprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = {
     // We don't override PromotePrecision or CheckOverflow for Spark 3.4
     Seq(
