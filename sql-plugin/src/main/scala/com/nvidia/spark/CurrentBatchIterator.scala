@@ -105,8 +105,17 @@ abstract class CurrentBatchIterator(
 
   onTaskCompletion(close())
 
+  private var closed = false
+
   override def close(): Unit = {
-    parquetFileReader.close()
+    if (!closed) {
+      closed = true
+      try {
+        parquetFileReader.close()
+      } finally {
+        columnarBatch.close()
+      }
+    }
   }
 
   @throws[IOException]

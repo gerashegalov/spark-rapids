@@ -529,6 +529,8 @@ def find_package_private_access(layout_entries, runtime_classes, runtime_label,
                 continue
             for declaring_class, member in _find_members(
                     runtime_classes, plugin_classes, reference.owner, reference):
+                if not runtime_classes.get(declaring_class, ()):
+                    continue
                 if _package_name(caller.name) != _package_name(declaring_class):
                     continue
                 reason = None
@@ -617,6 +619,7 @@ def main(argv=None):
             raise RuntimeError("assembled layout contains no Spark plugin classes")
         callers = set()
         findings = set()
+        spark_findings = set()
         for selection in runtime_selections:
             runtime_path = selection.path
             if runtime_path is None:
@@ -641,8 +644,7 @@ def main(argv=None):
         spark_by_version = collections.defaultdict(list)
         for selection in spark_selections:
             if not selection.path:
-                raise RuntimeError("Spark runtime path is missing for %s" %
-                                   selection.build_version)
+                continue
             spark_by_version[selection.build_version].append(selection.path)
         for build_version, paths in sorted(spark_by_version.items()):
             runtime_classes = CombinedClassRepository(paths, _is_spark_entry)
@@ -657,6 +659,7 @@ def main(argv=None):
                     SPARK_PREFIX)
                 callers.update(runtime_callers)
                 findings.update(runtime_findings)
+                spark_findings.update(runtime_findings)
             finally:
                 runtime_classes.close()
     except (IOError, OSError, IOException, BadBytecode,
@@ -664,9 +667,11 @@ def main(argv=None):
         print("Package-private access audit failed: %s" % error, file=sys.stderr)
         return 2
 
-    violations = sorted(finding for finding in findings if not _is_root_entry(finding.entry))
+    # A root class can still be loaded separately from Spark under --jars.
+    violations = sorted(finding for finding in findings
+                        if finding in spark_findings or not _is_root_entry(finding.entry))
     if violations:
-        print("Package-private access must be root-safe; found non-root callers:",
+        print("Package-private access must be classloader-safe; found unsafe callers:",
               file=sys.stderr)
         for entry in sorted(set(finding.entry for finding in violations)):
             entry_findings = [finding for finding in violations if finding.entry == entry]
@@ -676,8 +681,10 @@ def main(argv=None):
                 print("    -> %s [%s; %s]" % (finding.target.replace("/", "."),
                                                finding.reason, finding.runtime),
                       file=sys.stderr)
-        print("Move each caller to a module listed in dist/root-safe-module-classes.txt "
-              "or promote it with dist/unshimmed-common-from-single-shim.txt.", file=sys.stderr)
+        print("Use reflection for Spark package-private access. For Iceberg, move callers "
+              "to a root-safe module or promote them with "
+              "dist/unshimmed-common-from-single-shim.txt or "
+              "dist/unshimmed-from-each-spark3xx.txt.", file=sys.stderr)
         return 1
 
     print("Package-private access audit passed: %d caller classes are at the jar root "

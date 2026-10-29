@@ -15,7 +15,6 @@
  */
 
 try {
-  val parquet = "org.apache.spark.sql.execution.datasources.parquet."
   val serializer = "com.nvidia.spark.ParquetCachedBatchSerializer"
   require(spark.conf.get("spark.sql.cache.serializer") == serializer)
 
@@ -54,12 +53,8 @@ try {
   require(source.collect().length == 2000)
   require(view.collect().length == 2000)
 
-  val sparkLoader = Class.forName(parquet + "ParquetColumnVector").getClassLoader
-  val callerLoader = Class.forName(parquet + "ShimCurrentBatchIterator").getClassLoader
-  require(callerLoader == sparkLoader,
-    s"Package-private caller loader $callerLoader differs from Spark loader $sparkLoader")
   println("ROOT_SAFETY_PASS: cached table, view, and derived cache returned 2000 rows; " +
-    "columnar reader returned 2000 rows from the Spark classloader")
+    "columnar reader returned 2000 rows with --jars")
   System.exit(0)
 } catch {
   case error: Throwable =>

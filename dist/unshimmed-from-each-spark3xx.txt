@@ -13,6 +13,6 @@ com/nvidia/spark/rapids/PlanShims*
 org/apache/spark/sql/execution/datasources/parquet/ParquetColumnVectorBridge330*
 org/apache/spark/sql/execution/datasources/parquet/ParquetColumnVectorBridgeWithDefault*
 org/apache/spark/sql/execution/datasources/parquet/ParquetColumnVectorBridge350DB143*
-org/apache/spark/sql/execution/datasources/parquet/ParquetColumnVectorBridge400*
+org/apache/spark/sql/execution/datasources/parquet/ParquetColumnVectorBridge400DB173*
 org/apache/spark/sql/execution/datasources/parquet/ParquetColumnVectorBridge411*
 spark-*-info.properties

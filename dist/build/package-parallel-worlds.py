@@ -331,7 +331,7 @@ with open(runtime_manifest, 'w') as manifest:
         else:
             manifest.write("%s\t-\n" % buildver)
 
-def databricks_spark_runtime_paths():
+def databricks_spark_runtime_paths(buildver):
     # The generated BOM is the build's source of truth for system-scoped jars.
     pom_root = source_basedir if scala_version == '2.12' else os.path.join(
         source_basedir, 'scala2.13')
@@ -341,6 +341,9 @@ def databricks_spark_runtime_paths():
     properties = root.find('m:properties', namespace)
     directories = {element.tag.rsplit('}', 1)[-1]: element.text.strip()
                    for element in properties} if properties is not None else {}
+    if directories.get('rapids.audit.databricks.buildver') != buildver:
+        raise Exception('Databricks BOM %s does not identify spark%s' %
+                        (bom_path, buildver))
     paths = set()
     found_classes = set()
     required_classes = {
@@ -374,37 +377,42 @@ def databricks_spark_runtime_paths():
     return sorted(paths)
 
 
-# Each classifier was compiled against a distinct Spark version. Resolve its
-# Spark jars so the audit can inspect inherited members across modules.
-spark_repository = os.path.join(maven_repository, 'org', 'apache', 'spark')
-databricks_paths = None
+# Each classifier was compiled against a distinct Spark version. Resolve the
+# same fixed set of Spark modules for every build, independent of local cache contents.
+spark_audit_modules = [
+    'spark-core', 'spark-catalyst', 'spark-sql', 'spark-hive', 'spark-avro',
+    'spark-unsafe', 'spark-network-common', 'spark-network-shuffle',
+]
+skip_spark_buildvers = set(filter(None, re.split(
+    r'[,\s]+', project.getProperty('rapids.spark.audit.skip.buildvers') or '')))
+unknown_skips = skip_spark_buildvers - set(buildver_list)
+if unknown_skips:
+    raise Exception('Spark audit skip build versions are not included: %s' %
+                    ', '.join(sorted(unknown_skips)))
+databricks_buildvers = [buildver for buildver in buildver_list if 'db' in buildver]
 with open(spark_runtime_manifest, 'w') as manifest:
     for buildver in sorted(buildver_list):
+        if buildver in skip_spark_buildvers:
+            print('Skipping Spark package-private audit for spark%s by explicit request' %
+                  buildver)
+            manifest.write('%s\t-\n' % buildver)
+            continue
         if 'db' in buildver:
-            if databricks_paths is None:
-                databricks_paths = databricks_spark_runtime_paths()
-            runtime_paths = databricks_paths
+            if len(databricks_buildvers) != 1:
+                raise Exception('Databricks Spark audit requires one included Databricks '
+                                'build version or explicit skip for the others')
+            runtime_paths = databricks_spark_runtime_paths(buildver)
         else:
             spark_version = project.getProperty('spark%s.version' % buildver)
             if not spark_version:
                 raise Exception('Spark version is missing for build version %s' % buildver)
-            runtime_paths = []
-            for artifact_id in sorted(os.listdir(spark_repository)):
-                if (artifact_id.endswith('_2.12') or artifact_id.endswith('_2.13')) and \
-                        not artifact_id.endswith('_' + scala_version):
-                    continue
-                version_dir = os.path.join(spark_repository, artifact_id, spark_version)
-                jar_path = os.path.join(
-                    version_dir, '%s-%s.jar' % (artifact_id, spark_version))
-                if artifact_id.startswith('spark-') and os.path.isfile(jar_path):
-                    runtime_paths.append(jar_path)
-            required = ['spark-core_%s' % scala_version,
-                        'spark-catalyst_%s' % scala_version,
-                        'spark-sql_%s' % scala_version]
-            missing = [name for name in required if not any(
-                os.path.basename(path).startswith(name + '-') for path in runtime_paths)]
-            if missing:
-                raise Exception('Spark audit runtime for %s is missing %s' %
-                                (buildver, ', '.join(missing)))
+            modules = list(spark_audit_modules)
+            if tuple(int(part) for part in spark_version.split('.')[:2]) >= (3, 4):
+                modules.append('spark-protobuf')
+            if tuple(int(part) for part in spark_version.split('.')[:2]) >= (3, 5):
+                modules.extend(['spark-sql-api', 'spark-common-utils'])
+            runtime_paths = [ensure_external_artifact(
+                'org.apache.spark', '%s_%s' % (module, scala_version), spark_version)
+                for module in modules]
         for path in runtime_paths:
             manifest.write('%s\t%s\n' % (buildver, path))

@@ -54,12 +54,18 @@ manifest. Fix failures by making the caller root-safe through
 The same package-phase audit also checks package-private and runtime-package-dependent
 protected accesses to Spark classes. It inspects the Spark jars for each selected build
 version, including class and member references from `org/apache/spark/` plugin classes.
+For upstream Spark, packaging resolves a fixed set of Spark modules for each version;
+the audit does not depend on which jars happen to be in the local Maven cache.
 For Databricks classifiers, it reads the Spark jars from the generated system-scope
-dependency BOM under `shim-deps/databricks` instead of the Maven repository. The generated
-`target/spark-audit-runtimes.txt` records the selected jars. A caller in
-`spark-shared` or a Spark-specific nested directory fails when its access requires the
-same runtime package as Spark. The Parquet cache bridge is an example: code referring to
-Spark's package-private `ParquetColumnVector` must be promoted to the jar root.
+dependency BOM under `shim-deps/databricks` instead of the Maven repository. That BOM
+must identify the single Databricks build version being audited. Off-cluster distribution
+jobs may explicitly skip unavailable Databricks runtimes with
+`-Drapids.spark.audit.skip.buildvers=350db143,400db173`; Databricks cluster builds
+run the audit against their own runtime. The generated
+`target/spark-audit-runtimes.txt` records the selected jars. Direct access to a
+Spark package-private class or member fails the audit even at the JAR root:
+`--jars` can load that root through a different classloader from Spark. The Parquet
+cache reader uses reflection for `ParquetColumnVector` to work in either layout.
 
 To exercise this access through a local Spark cache scan, run
 `SPARK_HOME=/path/to/spark dist/scripts/tests/run-spark-cache-root-safety.sh

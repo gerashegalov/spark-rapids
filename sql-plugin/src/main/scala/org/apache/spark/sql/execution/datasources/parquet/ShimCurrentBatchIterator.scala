@@ -93,11 +93,10 @@ class ShimCurrentBatchIterator(
   }
 
   val sparkSchema = parquetColumn.sparkType.asInstanceOf[StructType]
-  val parquetColumnVectors: Array[ParquetColumnVector] =
+  val parquetColumnVectors: Array[AnyRef] =
     (for (i <- 0 until sparkSchema.fields.length) yield {
     newParquetCV(sparkSchema, i, parquetColumn.children.apply(i),
-      vectors(i), capacity, MemoryMode.OFF_HEAP, missingColumns, true)
-      .asInstanceOf[ParquetColumnVector]
+      vectors(i), capacity, MemoryMode.ON_HEAP, missingColumns, true)
   }).toArray
 
   private def containsPath(parquetType: Type, path: Array[String]): Boolean =
@@ -142,8 +141,8 @@ class ShimCurrentBatchIterator(
   }
 
   @throws[IOException]
-  private def initColumnReader(pages: PageReadStore, cv: ParquetColumnVector): Unit = {
-    val column = cv.getColumn
+  private def initColumnReader(pages: PageReadStore, cv: AnyRef): Unit = {
+    val column = ParquetColumnVectorAccess.getColumn(cv)
     if (!missingColumns.contains(column)) {
       if (column.isPrimitive) {
         val reader = newColumnReader(
@@ -151,10 +150,10 @@ class ShimCurrentBatchIterator(
           column.required,
           pages,
           writerVersion)
-        cv.setColumnReader(reader)
+        ParquetColumnVectorAccess.setColumnReader(cv, reader)
       }
       else { // Not in missing columns and is a complex type: this must be a struct
-        for (childCv <- cv.getChildren.asScala) {
+        for (childCv <- ParquetColumnVectorAccess.getChildren(cv).asScala) {
           initColumnReader(pages, childCv)
         }
       }
@@ -180,7 +179,7 @@ class ShimCurrentBatchIterator(
    */
   def nextBatch: Boolean = {
     for (vector <- parquetColumnVectors) {
-      vector.reset()
+      ParquetColumnVectorAccess.reset(vector)
     }
     columnarBatch.setNumRows(0)
     if (rowsReturned >= totalRowCount) return false
@@ -188,18 +187,18 @@ class ShimCurrentBatchIterator(
 
     val num = Math.min(capacity.toLong, totalCountLoadedSoFar - rowsReturned).toInt
     for (cv <- parquetColumnVectors){
-      for (leafCv <- cv.getLeaves.asScala) {
-        val columnReader = leafCv.getColumnReader
+      for (leafCv <- ParquetColumnVectorAccess.getLeaves(cv).asScala) {
+        val columnReader = ParquetColumnVectorAccess.getColumnReader(leafCv)
         if (columnReader != null) {
           ParquetVectorizedReader.readBatchMethod.invoke(
             columnReader,
             num.asInstanceOf[AnyRef],
-            leafCv.getValueVector.asInstanceOf[AnyRef],
-            leafCv.getRepetitionLevelVector.asInstanceOf[AnyRef],
-            leafCv.getDefinitionLevelVector.asInstanceOf[AnyRef])
+            ParquetColumnVectorAccess.getValueVector(leafCv),
+            ParquetColumnVectorAccess.getRepetitionLevelVector(leafCv),
+            ParquetColumnVectorAccess.getDefinitionLevelVector(leafCv))
         }
       }
-      cv.assemble()
+      ParquetColumnVectorAccess.assemble(cv)
     }
     rowsReturned += num
     columnarBatch.setNumRows(num)

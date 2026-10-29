@@ -921,7 +921,18 @@ class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer {
         // go over the batch and get the next non-degenerate iterator
         // and return if it hasNext
         while ((iter == null || !iter.hasNext) && cbIter.hasNext) {
+          iter match {
+            case closeable: AutoCloseable => closeable.close()
+            case _ =>
+          }
           iter = getIterator
+        }
+        if (iter != null && !iter.hasNext) {
+          iter match {
+            case closeable: AutoCloseable => closeable.close()
+            case _ =>
+          }
+          iter = null
         }
         iter != null && iter.hasNext
       }

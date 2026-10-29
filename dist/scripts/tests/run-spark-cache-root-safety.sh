@@ -32,8 +32,6 @@ trap 'rm -f "$run_log"' EXIT
 printf ':load %s/spark-cache-root-safety.scala\n' "$test_dir" |
   "$SPARK_HOME/bin/spark-shell" --master 'local[2]' --driver-memory 6g \
     --jars "$plugin_jar" \
-    --driver-class-path "$plugin_jar" \
-    --conf "spark.executor.extraClassPath=$plugin_jar" \
     --conf spark.sql.cache.serializer=com.nvidia.spark.ParquetCachedBatchSerializer \
     --conf spark.rapids.sql.enabled=false \
     --conf spark.sql.adaptive.enabled=false \

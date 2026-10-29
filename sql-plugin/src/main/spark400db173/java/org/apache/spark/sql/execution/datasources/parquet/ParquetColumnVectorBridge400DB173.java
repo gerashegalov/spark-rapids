@@ -37,6 +37,9 @@ public final class ParquetColumnVectorBridge400DB173 {
       Set<ParquetColumn> missingColumns,
       boolean isTopLevel,
       Object defaultValue) {
-    return new ParquetColumnVector(column, vector, capacity, missingColumns, isTopLevel, defaultValue, "");
+    return ParquetColumnVectorAccess.newVector(
+        new Class<?>[] {ParquetColumn.class, WritableColumnVector.class, int.class,
+            Set.class, boolean.class, Object.class, String.class},
+        column, vector, capacity, missingColumns, isTopLevel, defaultValue, "");
   }
 }

@@ -1092,10 +1092,9 @@ class IcebergPackagePrivateAccessTest(unittest.TestCase):
             with captured_stream("stderr"):
                 self.assertEqual(2, LINT.main([layout, runtime]))
 
-    def test_spark_parquet_package_private_class_requires_root(self):
+    def test_spark_parquet_package_private_class_requires_reflection(self):
         parquet = "org.apache.spark.sql.execution.datasources.parquet"
-        for prefix, expected in (("", 0), ("spark-shared/", 1),
-                                 ("spark350/", 1)):
+        for prefix in ("", "spark-shared/", "spark350/"):
             with temporary_directory() as root:
                 layout = os.path.join(root, "layout")
                 runtime = os.path.join(root, "spark-sql")
@@ -1117,10 +1116,9 @@ class IcebergPackagePrivateAccessTest(unittest.TestCase):
                         "--runtime-manifest", iceberg_manifest,
                         "--spark-runtime-manifest", spark_manifest,
                         "--expected-build-versions", "350", layout])
-                self.assertEqual(expected, result)
-                if expected:
-                    self.assertIn("ParquetColumnVector", stderr.getvalue())
-                    self.assertIn("package-private class", stderr.getvalue())
+                self.assertEqual(1, result)
+                self.assertIn("ParquetColumnVector", stderr.getvalue())
+                self.assertIn("package-private class", stderr.getvalue())
 
     def test_spark_package_private_member_across_runtime_jars(self):
         with temporary_directory() as root:
@@ -1147,6 +1145,44 @@ class IcebergPackagePrivateAccessTest(unittest.TestCase):
                     "--spark-runtime-manifest", spark_manifest, layout])
             self.assertEqual(1, result)
             self.assertIn("package-private method", stderr.getvalue())
+
+    def test_spark_plugin_package_private_member_in_same_world_passes(self):
+        with temporary_directory() as root:
+            layout = os.path.join(root, "layout")
+            runtime = os.path.join(root, "spark-sql")
+            iceberg_manifest = os.path.join(root, "iceberg.txt")
+            spark_manifest = os.path.join(root, "spark.txt")
+            write_class(runtime, "org/apache/spark/p/Runtime.class",
+                        "org.apache.spark.p.Runtime")
+            write_class(layout, "spark-shared/org/apache/spark/p/Helper.class",
+                        "org.apache.spark.p.Helper", methods=((0, "hidden", "()V"),),
+                        references=(("method", "org.apache.spark.p.Helper", "hidden", "()V"),))
+            write_class(layout, "spark-shared/org/apache/spark/p/Caller.class",
+                        "org.apache.spark.p.Caller",
+                        references=(("method", "org.apache.spark.p.Helper", "hidden", "()V"),))
+            with open(iceberg_manifest, "w") as output:
+                output.write("350\t-\n")
+            with open(spark_manifest, "w") as output:
+                output.write("350\t%s\n" % runtime)
+            self.assertEqual(0, LINT.main([
+                "--runtime-manifest", iceberg_manifest,
+                "--spark-runtime-manifest", spark_manifest, layout]))
+
+    def test_explicit_spark_runtime_skip_passes(self):
+        with temporary_directory() as root:
+            layout = os.path.join(root, "layout")
+            iceberg_manifest = os.path.join(root, "iceberg.txt")
+            spark_manifest = os.path.join(root, "spark.txt")
+            write_class(layout, "spark350db143/org/apache/spark/p/Caller.class",
+                        "org.apache.spark.p.Caller")
+            with open(iceberg_manifest, "w") as output:
+                output.write("350db143\t-\n")
+            with open(spark_manifest, "w") as output:
+                output.write("350db143\t-\n")
+            self.assertEqual(0, LINT.main([
+                "--runtime-manifest", iceberg_manifest,
+                "--spark-runtime-manifest", spark_manifest,
+                "--expected-build-versions", "350db143", layout]))
 
     def test_spark_runtime_requires_spark_plugin_classes(self):
         with temporary_directory() as root:
