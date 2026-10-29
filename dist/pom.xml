@@ -61,6 +61,7 @@
             <properties>
                 <dyn.shim.include.buildvers.skip>false</dyn.shim.include.buildvers.skip>
                 <dyn.shim.buildver>no_snap_with_databricks</dyn.shim.buildver>
+                <rapids.spark.audit.skip.buildvers>databricks</rapids.spark.audit.skip.buildvers>
             </properties>
         </profile>
         <profile>
@@ -68,6 +69,7 @@
             <properties>
                 <dyn.shim.include.buildvers.skip>false</dyn.shim.include.buildvers.skip>
                 <dyn.shim.buildver>snap_and_no_snap_with_databricks</dyn.shim.buildver>
+                <rapids.spark.audit.skip.buildvers>databricks</rapids.spark.audit.skip.buildvers>
             </properties>
         </profile>
         <profile>

@@ -60,7 +60,9 @@ For Databricks classifiers, it reads the Spark jars from the generated system-sc
 dependency BOM under `shim-deps/databricks` instead of the Maven repository. That BOM
 must identify the single Databricks build version being audited. Off-cluster distribution
 jobs may explicitly skip unavailable Databricks runtimes with
-`-Drapids.spark.audit.skip.buildvers=350db143,400db173`; Databricks cluster builds
+`-Drapids.spark.audit.skip.buildvers=350db143,400db173`. The two off-cluster
+Databricks distribution profiles use `databricks` to skip all included Databricks
+classifiers; Databricks cluster builds
 run the audit against their own runtime. The generated
 `target/spark-audit-runtimes.txt` records the selected jars. Direct access to a
 Spark package-private class or member fails the audit even at the JAR root:

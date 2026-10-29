@@ -385,6 +385,9 @@ spark_audit_modules = [
 ]
 skip_spark_buildvers = set(filter(None, re.split(
     r'[,\s]+', project.getProperty('rapids.spark.audit.skip.buildvers') or '')))
+if 'databricks' in skip_spark_buildvers:
+    skip_spark_buildvers.remove('databricks')
+    skip_spark_buildvers.update(buildver for buildver in buildver_list if 'db' in buildver)
 unknown_skips = skip_spark_buildvers - set(buildver_list)
 if unknown_skips:
     raise Exception('Spark audit skip build versions are not included: %s' %
