@@ -15,8 +15,9 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark":["334","342","343","344","351","352","353","354","355","356","357"],"carryForward":"none"}
-{"spark":["358","400","402","420"],"carryForward":"all"}
+{"spark":["334","342"],"carryForward":"sameMinor"}
+{"spark":["351","352","353","354","355","356","357"],"carryForward":"none"}
+{"spark":["358","400","420"],"carryForward":"all"}
 {"spark":["400db173","410db183"],"carryForward":"none"}
 spark-rapids-shim-json-lines ***/
 

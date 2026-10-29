@@ -19,7 +19,7 @@ limitations under the License.
 The four Apache-licensed `shimpler_source_*.py` modules in this directory are
 vendored unchanged from the `shimpler-source-tools` directory of public
 `NVIDIA/spark-rapids-common` PR #64 at commit
-`f197646e158e8320bc642cbf4bc389d48a329e26`. This is a provisional pin
+`220cedf8881236d6e43c182f2ef1e37412ed1c14`. This is a provisional pin
 until PR #64 merges; update the pin to the merged commit before merging this PR.
 
 The public POMs omit legacy exact targets `330db`, `332db`, and `341db`.

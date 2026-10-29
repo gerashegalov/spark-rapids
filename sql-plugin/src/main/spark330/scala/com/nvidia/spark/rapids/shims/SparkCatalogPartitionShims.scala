@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 /*** spark-rapids-shim-json-lines
-{"spark":["330","350","400","402","420"],"carryForward":"all"}
+{"spark":["330","350","400","420"],"carryForward":"all"}
 {"spark":["330db","332db","350db143"],"carryForward":"none"}
 spark-rapids-shim-json-lines ***/
 

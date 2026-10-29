@@ -347,7 +347,7 @@ def path_signals(paths):
     families = {m[3] + "/" + m[4] for p in paths
                 if p.endswith((".scala", ".java")) and (m := VERSIONED.fullmatch(p))}
     matrix = any(p in ("pom.xml", "scala2.13/pom.xml", "build/get_buildvers.py",
-                       "build/shimplify.py", "build/dyn_shim_detection.py", "build/buildall",
+                       "build/shim_source_task.py", "build/dyn_shim_detection.py", "build/buildall",
                        "jenkins/version-def.sh", "jenkins/spark-premerge-build.sh",
                        ".github/workflows/mvn-verify-check.yml")
                  or p.startswith("shim-deps/") or p.startswith("scala2.13/shim-deps/")

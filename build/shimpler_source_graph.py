@@ -14,7 +14,7 @@
 
 """Read and validate source-parent relationships from Maven build target profiles.
 
-This module is shared with Shimplify's Jython 2.7 build task. A source parent
+This module is shared with the Jython 2.7 shim-source build task. A source parent
 changes source selection only where an annotated source uses an introduction
 selector; it does not change dependencies or the generated Spark identity.
 """
@@ -47,7 +47,7 @@ def load_source_graph(pom_path):
         if target in graph:
             raise ValueError('Duplicate build target %s in %s' % (target, pom_path))
         properties = profile.find(POM_NAMESPACE + 'properties')
-        if properties is not None and not (profile_id and profile_id.startswith('release')):
+        if properties is not None:
             declared_buildver = properties.findtext(POM_NAMESPACE + 'buildver')
             if declared_buildver is not None and declared_buildver.strip() != target:
                 raise ValueError('Profile %s activates buildver %s but declares %s' %

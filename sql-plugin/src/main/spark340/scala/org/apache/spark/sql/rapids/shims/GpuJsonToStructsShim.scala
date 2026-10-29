@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 /*** spark-rapids-shim-json-lines
-{"spark":["340","341","342","343","344","350db143","400db173","410db183"],"carryForward":"none"}
-{"spark":["350","400","402","420"],"carryForward":"all"}
+{"spark":["340"],"carryForward":"sameMinor"}
+{"spark":["350","400","420"],"carryForward":"all"}
+{"spark":["350db143","400db173","410db183"],"carryForward":"none"}
 spark-rapids-shim-json-lines ***/
 
 package org.apache.spark.sql.rapids.shims

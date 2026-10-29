@@ -15,7 +15,7 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark":["350","351","352","353","354","355","356","357","358","359","400","401","402","403","404","411","412","413"],"carryForward":"none"}
+{"spark":["350","400","411"],"carryForward":"sameMinor"}
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.iceberg
 

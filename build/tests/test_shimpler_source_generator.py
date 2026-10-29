@@ -58,12 +58,12 @@ class SourceGeneratorTest(unittest.TestCase):
     def test_exact_target_outside_active_profile_graph(self):
         self.source('355', 'Example.scala',
                     ['{"spark":["355"],"carryForward":"all"}'])
-        vendor = self.source('vendor', 'Example.scala',
-                             ['{"spark":["vendor"],"carryForward":"none"}'])
+        vendor = self.source('330db', 'Example.scala',
+                             ['{"spark":["330db"],"carryForward":"none"}'])
         graph = dict(self.graph)
-        graph['vendor'] = None
-        selected = generate_sources(str(self.module), str(self.generated), graph, 'vendor',
-                                    set(self.graph), {'vendor'})
+        graph['330db'] = None
+        selected = generate_sources(str(self.module), str(self.generated), graph, '330db',
+                                    set(self.graph), {'330db'})
         self.assertEqual(selected['src/main/scala/pkg/Example.scala'].physical_path, str(vendor))
 
     def test_removes_stale_outputs_and_interpolates_package(self):
@@ -73,7 +73,7 @@ class SourceGeneratorTest(unittest.TestCase):
         stale = self.generated / 'main' / 'scala' / 'pkg' / 'Stale.scala'
         stale.parent.mkdir(parents=True)
         stale.write_text('stale', encoding='utf-8')
-        marker = self.generated / '.shimplify-cache-marker'
+        marker = self.generated / '.shim-source-cache-marker'
         marker.write_text('', encoding='utf-8')
         generate_sources(str(self.module), str(self.generated), self.graph, '356')
         self.assertFalse(stale.exists())

@@ -15,10 +15,9 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark":["334"],"carryForward":"none"}
+{"spark":["334"],"carryForward":"sameMinor"}
 spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.rapids.shims
 
 object RapidsErrorUtils extends RapidsErrorUtils330To334Base
   with SequenceSizeTooLongUnsuccessfulErrorBuilder with ArrayInvalidArgumentErrorUtils
-
