@@ -15,7 +15,8 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark":["350"],"carryForward":"all"}
+{"spark":["350"],"carryForward":"sameMinor"}
+{"spark":["400","401","402","403","404","411","412","413"],"carryForward":"none"}
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.iceberg
 
@@ -27,7 +28,6 @@ import ai.rapids.cudf.{ColumnVector => CudfColumnVector}
 import com.nvidia.spark.rapids.{GpuColumnVector, RapidsConf}
 import com.nvidia.spark.rapids.Arm.{closeOnExcept, withResource}
 import com.nvidia.spark.rapids.iceberg.parquet._
-import com.nvidia.spark.rapids.iceberg.parquet.converter.FromIcebergShaded.unshade
 import com.nvidia.spark.rapids.parquet.ParquetFileInfoWithBlockMeta
 import com.nvidia.spark.rapids.spill.SpillFramework
 import org.apache.hadoop.fs.Path
@@ -89,7 +89,7 @@ class GpuPostProcessorSuite extends AnyFunSuite with BeforeAndAfterAll {
       filePath = new Path("/test/file.parquet"),
       blocks = Seq(block),
       partValues = InternalRow.empty,
-      schema = unshade(shadedSchema),
+      schema = ShimUtils.getParquetUnshader().unshade(shadedSchema),
       readSchema = StructType(Seq.empty),
       dateRebaseMode = null,
       timestampRebaseMode = null,
@@ -117,7 +117,7 @@ class GpuPostProcessorSuite extends AnyFunSuite with BeforeAndAfterAll {
       filePath = new Path("/test/file.parquet"),
       blocks = blocks,
       partValues = InternalRow.empty,
-      schema = unshade(shadedSchema),
+      schema = ShimUtils.getParquetUnshader().unshade(shadedSchema),
       readSchema = StructType(Seq.empty),
       dateRebaseMode = null,
       timestampRebaseMode = null,
@@ -1413,6 +1413,28 @@ class GpuPostProcessorSuite extends AnyFunSuite with BeforeAndAfterAll {
 
     assertBatch(numRows = 2, firstPosition = 500L)
     assertBatch(numRows = 4, firstPosition = 502L)
+  }
+
+  test("Metadata-only partition constants prevent incompatible file combining") {
+    val parquetSchema = new ShadedMessageType("test", Seq.empty[ShadedType].asJava)
+    val expectedSchema = new Schema(
+      Types.NestedField.optional(1, "a", Types.LongType.get()))
+    val (parquetInfo, shadedSchema) = createParquetInfo(parquetSchema)
+
+    def processor(value: Long): GpuParquetReaderPostProcessor = {
+      val constants = new JHashMap[Integer, Any]()
+      constants.put(1, value)
+      new GpuParquetReaderPostProcessor(
+        parquetInfo, constants, expectedSchema, shadedSchema, Map.empty)
+    }
+
+    val first = processor(10L)
+    val same = processor(10L)
+    val different = processor(20L)
+    assert(first.compatibleForCombining(same))
+    assert(same.compatibleForCombining(first))
+    assert(!first.compatibleForCombining(different))
+    assert(!different.compatibleForCombining(first))
   }
 
   test("Physical lineage constants prevent incompatible file combining") {
