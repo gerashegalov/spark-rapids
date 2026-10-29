@@ -50,7 +50,8 @@ def task_impl():
         generated_root = os.path.join(str(project.getBaseDir()), 'target',
                                       'spark%s' % buildver, 'generated', 'src')
         selected = generate_sources(module_root, generated_root, graph, buildver,
-                                    valid_targets, EXTERNAL_EXACT_TARGETS)
+                                    valid_targets, EXTERNAL_EXACT_TARGETS,
+                                    output_root=str(project.getBaseDir()))
     except ValueError as error:
         _fail('Invalid shim source selection: %s' % error)
         return
