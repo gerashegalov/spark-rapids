@@ -42,15 +42,11 @@ case class GpuScalaUDF(
 }
 
 object GpuScalaUDFMeta {
-  def exprMeta: ExprRule[ScalaUDF] = GpuOverrides.expr[ScalaUDF](
-    "User Defined Function, the UDF can choose to implement a RAPIDS accelerated interface " +
-        "to get better performance.",
-    ExprChecks.projectOnly(
-      GpuUserDefinedFunction.udfTypeSig,
-      TypeSig.all,
-      repeatingParamCheck =
-        Some(RepeatingParamCheck("param", GpuUserDefinedFunction.udfTypeSig, TypeSig.all))),
-    (expr, conf, p, r) => new ExprMeta(expr, conf, p, r) {
+  private def createScalaUdfMeta(
+      expr: ScalaUDF,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new ExprMeta(expr, conf, p, r) {
       lazy val opRapidsFunc = GpuScalaUDF.getRapidsUDFInstance(expr.function)
 
       override def tagExprForGpu(): Unit = {
@@ -89,7 +85,17 @@ object GpuScalaUDFMeta {
             expr.udfDeterministic)
         }
       }
-    })
+    }
+
+  def exprMeta: ExprRule[ScalaUDF] = GpuOverrides.expr[ScalaUDF](
+    "User Defined Function, the UDF can choose to implement a RAPIDS accelerated interface " +
+        "to get better performance.",
+    ExprChecks.projectOnly(
+      GpuUserDefinedFunction.udfTypeSig,
+      TypeSig.all,
+      repeatingParamCheck =
+        Some(RepeatingParamCheck("param", GpuUserDefinedFunction.udfTypeSig, TypeSig.all))),
+    createScalaUdfMeta)
 }
 
 case class GpuRowBasedScalaUDF(

@@ -59,18 +59,13 @@ import org.apache.spark.sql.rapids.{DecimalMultiplyChecks, GpuAnsi, GpuDecimalDi
 import org.apache.spark.sql.types.DecimalType
 
 object DecimalArithmeticOverrides {
-  def exprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = {
-    // We don't override PromotePrecision or CheckOverflow for Spark 3.4
-    Seq(
-      expr[Multiply](
-        "Multiplication",
-        ExprChecks.binaryProjectAndAst(
-          TypeSig.implicitCastsAstTypes,
-          TypeSig.gpuNumeric,
-          TypeSig.cpuNumeric,
-          ("lhs", TypeSig.gpuNumeric, TypeSig.cpuNumeric),
-          ("rhs", TypeSig.gpuNumeric, TypeSig.cpuNumeric)),
-        (a, conf, p, r) => new BinaryAstExprMeta[Multiply](a, conf, p, r) {
+
+  private def createMultiplyMeta(
+      a: Multiply,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new BinaryAstExprMeta[Multiply](a, conf, p, r) {
           override def tagExprForGpu(): Unit = {
             // Check if this Multiply expression is in TRY mode context
             if (TryModeShim.isTryMode(a)) {
@@ -102,17 +97,14 @@ object DecimalArithmeticOverrides {
                 GpuMultiply(lhs, rhs)(a.origin)
             }
           }
-        }),
-      expr[Divide](
-        "Division",
-        ExprChecks.binaryProject(
-          TypeSig.DOUBLE + TypeSig.DECIMAL_128,
-          TypeSig.DOUBLE + TypeSig.DECIMAL_128,
-          ("lhs", TypeSig.DOUBLE + TypeSig.DECIMAL_128,
-              TypeSig.DOUBLE + TypeSig.DECIMAL_128),
-          ("rhs", TypeSig.DOUBLE + TypeSig.DECIMAL_128,
-              TypeSig.DOUBLE + TypeSig.DECIMAL_128)),
-        (a, conf, p, r) => new BinaryExprMeta[Divide](a, conf, p, r) {
+        }
+
+  private def createDivideMeta(
+      a: Divide,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new BinaryExprMeta[Divide](a, conf, p, r) {
           override def tagExprForGpu(): Unit = {
             // Check if this Divide expression is in TRY mode context
             if (TryModeShim.isTryMode(a)) {
@@ -127,29 +119,28 @@ object DecimalArithmeticOverrides {
               case _ =>
                 GpuDivide(lhs, rhs)(a.origin)
             }
-        }),
-      expr[IntegralDivide](
-        "Division with a integer result",
-        ExprChecks.binaryProject(
-          TypeSig.LONG, TypeSig.LONG,
-          ("lhs", TypeSig.LONG + TypeSig.DECIMAL_128, TypeSig.LONG + TypeSig.DECIMAL_128),
-          ("rhs", TypeSig.LONG + TypeSig.DECIMAL_128, TypeSig.LONG + TypeSig.DECIMAL_128)),
-        (a, conf, p, r) => new BinaryExprMeta[IntegralDivide](a, conf, p, r) {
+        }
+
+  private def createIntegralDivideMeta(
+      a: IntegralDivide,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new BinaryExprMeta[IntegralDivide](a, conf, p, r) {
           override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression =
             if (lhs.dataType.isInstanceOf[DecimalType] && rhs.dataType.isInstanceOf[DecimalType]) {
               GpuIntegralDecimalDivide(lhs, rhs)
             } else {
               GpuIntegralDivide(lhs, rhs)(a.origin)
             }
-        }),
+        }
 
-      expr[Remainder](
-        "Remainder or modulo",
-        ExprChecks.binaryProject(
-          TypeSig.gpuNumeric, TypeSig.cpuNumeric,
-          ("lhs", TypeSig.gpuNumeric, TypeSig.cpuNumeric),
-          ("rhs", TypeSig.gpuNumeric, TypeSig.cpuNumeric)),
-        (a, conf, p, r) => new BinaryExprMeta[Remainder](a, conf, p, r) {
+  private def createRemainderMeta(
+      a: Remainder,
+      conf: com.nvidia.spark.rapids.RapidsConf,
+      p: Option[com.nvidia.spark.rapids.RapidsMeta[_, _, _]],
+      r: com.nvidia.spark.rapids.DataFromReplacementRule) =
+    new BinaryExprMeta[Remainder](a, conf, p, r) {
           override def tagExprForGpu(): Unit = {
             // Check if this Remainder expression is in TRY mode context
             if (TryModeShim.isTryMode(a)) {
@@ -163,7 +154,44 @@ object DecimalArithmeticOverrides {
             } else {
               GpuRemainder(lhs, rhs)
             }
-        })
+        }
+  def exprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = {
+    // We don't override PromotePrecision or CheckOverflow for Spark 3.4
+    Seq(
+      expr[Multiply](
+        "Multiplication",
+        ExprChecks.binaryProjectAndAst(
+          TypeSig.implicitCastsAstTypes,
+          TypeSig.gpuNumeric,
+          TypeSig.cpuNumeric,
+          ("lhs", TypeSig.gpuNumeric, TypeSig.cpuNumeric),
+          ("rhs", TypeSig.gpuNumeric, TypeSig.cpuNumeric)),
+        createMultiplyMeta),
+      expr[Divide](
+        "Division",
+        ExprChecks.binaryProject(
+          TypeSig.DOUBLE + TypeSig.DECIMAL_128,
+          TypeSig.DOUBLE + TypeSig.DECIMAL_128,
+          ("lhs", TypeSig.DOUBLE + TypeSig.DECIMAL_128,
+              TypeSig.DOUBLE + TypeSig.DECIMAL_128),
+          ("rhs", TypeSig.DOUBLE + TypeSig.DECIMAL_128,
+              TypeSig.DOUBLE + TypeSig.DECIMAL_128)),
+        createDivideMeta),
+      expr[IntegralDivide](
+        "Division with a integer result",
+        ExprChecks.binaryProject(
+          TypeSig.LONG, TypeSig.LONG,
+          ("lhs", TypeSig.LONG + TypeSig.DECIMAL_128, TypeSig.LONG + TypeSig.DECIMAL_128),
+          ("rhs", TypeSig.LONG + TypeSig.DECIMAL_128, TypeSig.LONG + TypeSig.DECIMAL_128)),
+        createIntegralDivideMeta),
+
+      expr[Remainder](
+        "Remainder or modulo",
+        ExprChecks.binaryProject(
+          TypeSig.gpuNumeric, TypeSig.cpuNumeric,
+          ("lhs", TypeSig.gpuNumeric, TypeSig.cpuNumeric),
+          ("rhs", TypeSig.gpuNumeric, TypeSig.cpuNumeric)),
+        createRemainderMeta)
     ).map(r => (r.getClassFor.asSubclass(classOf[Expression]), r)).toMap
   }
 }

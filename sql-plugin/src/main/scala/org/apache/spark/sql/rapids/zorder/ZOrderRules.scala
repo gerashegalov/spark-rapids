@@ -16,7 +16,9 @@
 
 package org.apache.spark.sql.rapids.zorder
 
-import com.nvidia.spark.rapids.{ExprChecks, ExprMeta, ExprRule, GpuExpression, GpuMetric, GpuRangePartitioner, GpuSorter, RepeatingParamCheck, ShimReflectionUtils, TypeSig, UnaryExprMeta}
+import com.nvidia.spark.rapids.{DataFromReplacementRule, ExprChecks, ExprMeta, ExprRule,
+  GpuExpression, GpuMetric, GpuRangePartitioner, GpuSorter, RapidsConf, RapidsMeta,
+  RepeatingParamCheck, ShimReflectionUtils, TypeSig, UnaryExprMeta}
 import com.nvidia.spark.rapids.GpuOverrides.{expr, pluginSupportedOrderableSig}
 
 import org.apache.spark.sql.catalyst.InternalRow
@@ -30,23 +32,11 @@ import org.apache.spark.sql.catalyst.expressions.codegen.LazilyGeneratedOrdering
  */
 object ZOrderRules {
 
-  private[this] def readFieldWithReflection[T](instance: T, fieldName: String): Any = {
-    val clazz = instance.getClass
-    val field = clazz.getDeclaredField(fieldName)
-    field.setAccessible(true)
-    field.get(instance)
-  }
-
-  def partExprRule(partExprClass: Class[_ <: Expression]): ExprRule[_ <: Expression] =
-    expr[UnaryExpression](
-      "Partitioning for zorder (normalize a column)",
-      ExprChecks.unaryProject(
-        TypeSig.INT,
-        TypeSig.INT,
-        // Same as RangePartitioningExec
-        pluginSupportedOrderableSig,
-        TypeSig.orderable),
-      (a, conf, p, r) => new UnaryExprMeta[UnaryExpression](a, conf, p, r) {
+  private def createPartitionExprMeta(
+      a: UnaryExpression,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new UnaryExprMeta[UnaryExpression](a, conf, p, r) {
         def getBoundsNOrder: (Array[InternalRow], SortOrder) = {
           // We have to pull pick apart the partitioner apart, but we have to use reflection
           // to do it, because what we want is private
@@ -84,7 +74,47 @@ object ZOrderRules {
           val gpuPart = new GpuRangePartitioner(rangeBounds, sorter)
           GpuPartitionerExpr(child, gpuPart)
         }
-      })
+      }
+
+  private def createInterleaveBitsMeta(
+      a: Expression,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new ExprMeta[Expression](a, conf, p, r) {
+          override def convertToGpuImpl(): GpuExpression =
+            GpuInterleaveBits(childExprs.map(_.convertToGpu()))
+        }
+
+  private def createHilbertLongIndexMeta(hilbertClazz: Class[Expression])(
+      a: Expression,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new ExprMeta[Expression](a, conf, p, r) {
+          override def convertToGpuImpl(): GpuExpression = {
+            val numBitsField = hilbertClazz.getDeclaredField("numBits")
+            numBitsField.setAccessible(true)
+            val numBits = numBitsField.get(a).asInstanceOf[java.lang.Integer]
+            GpuHilbertLongIndex(numBits, childExprs.map(_.convertToGpu()))
+          }
+        }
+
+  private[this] def readFieldWithReflection[T](instance: T, fieldName: String): Any = {
+    val clazz = instance.getClass
+    val field = clazz.getDeclaredField(fieldName)
+    field.setAccessible(true)
+    field.get(instance)
+  }
+
+  def partExprRule(partExprClass: Class[_ <: Expression]): ExprRule[_ <: Expression] =
+    expr[UnaryExpression](
+      "Partitioning for zorder (normalize a column)",
+      ExprChecks.unaryProject(
+        TypeSig.INT,
+        TypeSig.INT,
+        // Same as RangePartitioningExec
+        pluginSupportedOrderableSig,
+        TypeSig.orderable),
+      createPartitionExprMeta)
 
   def openSourceExprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = {
     try {
@@ -100,10 +130,7 @@ object ZOrderRules {
             Some(RepeatingParamCheck("input",
               TypeSig.INT,
               TypeSig.INT))),
-        (a, conf, p, r) => new ExprMeta[Expression](a, conf, p, r) {
-          override def convertToGpuImpl(): GpuExpression =
-            GpuInterleaveBits(childExprs.map(_.convertToGpu()))
-        })
+        createInterleaveBitsMeta)
 
       val partExprClass =
         ShimReflectionUtils.loadClass("org.apache.spark.sql.delta.expressions.PartitionerExpr")
@@ -132,14 +159,7 @@ object ZOrderRules {
             Some(RepeatingParamCheck("input",
               TypeSig.INT,
               TypeSig.INT))),
-        (a, conf, p, r) => new ExprMeta[Expression](a, conf, p, r) {
-          override def convertToGpuImpl(): GpuExpression = {
-            val numBitsField = hilbertClazz.getDeclaredField("numBits")
-            numBitsField.setAccessible(true)
-            val numBits = numBitsField.get(a).asInstanceOf[java.lang.Integer]
-            GpuHilbertLongIndex(numBits, childExprs.map(_.convertToGpu()))
-          }
-        })
+        createHilbertLongIndexMeta(hilbertClazz))
 
       val partExprClass =
         ShimReflectionUtils.loadClass("com.databricks.sql.expressions.PartitionerExpr")

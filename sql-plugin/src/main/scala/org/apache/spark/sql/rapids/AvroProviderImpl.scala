@@ -29,6 +29,26 @@ import org.apache.spark.util.SerializableConfiguration
 
 class AvroProviderImpl extends AvroProvider {
 
+  private def createAvroScanMeta(
+      a: AvroScan,
+      conf: RapidsConf,
+      p: Option[RapidsMeta[_, _, _]],
+      r: DataFromReplacementRule) = new ScanMeta[AvroScan](a, conf, p, r) {
+          override def tagSelfForGpu(): Unit = GpuAvroScan.tagSupport(this)
+
+          override def convertToGpu(): GpuScan =
+            GpuAvroScan(a.sparkSession,
+              a.fileIndex,
+              a.dataSchema,
+              a.readDataSchema,
+              a.readPartitionSchema,
+              a.options,
+              a.pushedFilters,
+              this.conf,
+              a.partitionFilters,
+              a.dataFilters)
+        }
+
   /** If the file format is supported as an external source */
   def isSupportedFormat(format: Class[_ <: FileFormat]): Boolean = {
     format == classOf[AvroFileFormat]
@@ -79,21 +99,7 @@ class AvroProviderImpl extends AvroProvider {
     Seq(
       GpuOverrides.scan[AvroScan](
         "Avro parsing",
-        (a, conf, p, r) => new ScanMeta[AvroScan](a, conf, p, r) {
-          override def tagSelfForGpu(): Unit = GpuAvroScan.tagSupport(this)
-
-          override def convertToGpu(): GpuScan =
-            GpuAvroScan(a.sparkSession,
-              a.fileIndex,
-              a.dataSchema,
-              a.readDataSchema,
-              a.readPartitionSchema,
-              a.options,
-              a.pushedFilters,
-              this.conf,
-              a.partitionFilters,
-              a.dataFilters)
-        })
+        createAvroScanMeta)
     ).map(r => (r.getClassFor.asSubclass(classOf[Scan]), r)).toMap
   }
 }
