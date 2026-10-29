@@ -300,6 +300,7 @@ def task_impl():
     """Ant task entry point """
     sys.path.insert(0, os.path.join(__ant_proj_prop('spark.rapids.source.basedir'), 'build'))
     from shimpler_source_graph import load_source_graph
+    from shimpler_source_targets import EXTERNAL_EXACT_TARGETS
     try:
         source_graph = load_source_graph(
             os.path.join(__ant_proj_prop('spark.rapids.project.basedir'), 'pom.xml'))
@@ -370,7 +371,7 @@ def task_impl():
                                       'spark%s' % buildver, 'generated', 'src')
         try:
             selected = generate_sources(__src_basedir, generated_root, source_graph, buildver,
-                                        valid_targets)
+                                        valid_targets, EXTERNAL_EXACT_TARGETS)
         except ValueError as error:
             __fail('Invalid shim source selection: %s' % error)
         __log.info('Generated %d shim sources for %s', len(selected), buildver)
@@ -379,6 +380,7 @@ def __traverse_source_tree_of_all_shims(src_type, func):
     """Walks src/<src_type>/sparkXYZ"""
     from shimpler_source_graph import load_source_graph
     from shimpler_source_selectors import parse_selector_line, selector_membership
+    from shimpler_source_targets import EXTERNAL_EXACT_TARGETS
     source_root = __ant_proj_prop('spark.rapids.source.basedir')
     graph = {}
     for pom in ('pom.xml', 'scala2.13/pom.xml'):
@@ -402,7 +404,7 @@ def __traverse_source_tree_of_all_shims(src_type, func):
                     "orphan shim files should be deleted"
                 buildvers = set()
                 for line in shim_arr:
-                    selector = parse_selector_line(line, graph, allow_unmapped_exact=True)
+                    selector = parse_selector_line(line, graph, EXTERNAL_EXACT_TARGETS)
                     buildvers.update(selector_membership(graph, selector))
                 build_ver_arr = sorted(buildvers)
                 __log.debug("extracted shims %s", build_ver_arr)

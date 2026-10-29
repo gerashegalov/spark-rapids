@@ -31,6 +31,7 @@ import time
 from get_buildvers import _get_buildvers
 from shimpler_source_graph import load_source_graph, source_lineage
 from shimpler_source_resolver import resolve_sources_with_ties, scan_module_sources
+from shimpler_source_targets import EXTERNAL_EXACT_TARGETS
 
 
 MAX_PEER_CHECKS = 5
@@ -154,7 +155,7 @@ def coverage(root, modules, requested):
             raise PreflightError("Missing module source directory: " + str(main))
         try:
             variants, unannotated = scan_module_sources(
-                str(root / module), set(graph_by_target))
+                str(root / module), set(graph_by_target), EXTERNAL_EXACT_TARGETS)
         except ValueError as error:
             raise PreflightError('Invalid shim selectors in %s: %s' % (module, error)) from error
         unannotated_main = [path for path in unannotated if '/src/main/' in path]

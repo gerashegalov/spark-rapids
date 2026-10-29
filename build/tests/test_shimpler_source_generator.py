@@ -63,7 +63,7 @@ class SourceGeneratorTest(unittest.TestCase):
         graph = dict(self.graph)
         graph['vendor'] = None
         selected = generate_sources(str(self.module), str(self.generated), graph, 'vendor',
-                                    set(self.graph))
+                                    set(self.graph), {'vendor'})
         self.assertEqual(selected['src/main/scala/pkg/Example.scala'].physical_path, str(vendor))
 
     def test_removes_stale_outputs_and_interpolates_package(self):

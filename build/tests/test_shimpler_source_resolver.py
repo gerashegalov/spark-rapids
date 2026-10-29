@@ -29,6 +29,7 @@ from shimpler_source_generator import generate_sources
 from shimpler_source_resolver import (candidate_inherited_sources, discover_shim_modules,
                                      resolve_sources, scan_module_sources, validate_legacy_shadow)
 from shimpler_source_selectors import SourceSelector, selector_membership
+from shimpler_source_targets import EXTERNAL_EXACT_TARGETS
 
 
 def selector(descendants, *targets):
@@ -94,7 +95,8 @@ class SourceResolverTest(unittest.TestCase):
             for target in ('400', '500'):
                 generated = Path(temp) / target
                 selected = generate_sources(str(ROOT / 'sql-plugin'), str(generated),
-                                            graphs[1], target, known_targets)
+                                            graphs[1], target, known_targets,
+                                            EXTERNAL_EXACT_TARGETS)
                 self.assertTrue(selected)
 
     def setUp(self):
@@ -217,7 +219,7 @@ class SourceResolverTest(unittest.TestCase):
         modules = discover_shim_modules(str(ROOT))
         self.assertIn(str(ROOT / 'delta-lake' / 'common'), modules)
         for module in modules:
-            variants, _ = scan_module_sources(module, targets)
+            variants, _ = scan_module_sources(module, targets, EXTERNAL_EXACT_TARGETS)
             legacy_variants = []
             for variant in variants:
                 selectors = []
@@ -232,7 +234,7 @@ class SourceResolverTest(unittest.TestCase):
                 for selector in expanded:
                     if selector.kind == 'minor':
                         # Preserve today's exact membership in the legacy oracle.
-                        selectors.extend(SourceSelector('exact', (target,), {})
+                        selectors.extend(SourceSelector('exact', (target,))
                                          for target in sorted(selector_membership(graph, selector)))
                     elif selector.kind == 'descendants' and selector.targets == ('330',):
                         # These sources have version-specific replacements after their last
@@ -243,37 +245,37 @@ class SourceResolverTest(unittest.TestCase):
                             legacy_targets = ('330', '331', '332', '333')
                         else:
                             legacy_targets = ('330', '331', '332', '333', '334')
-                        selectors.extend(SourceSelector('exact', (target,), {})
+                        selectors.extend(SourceSelector('exact', (target,))
                                          for target in legacy_targets)
                     elif selector.kind == 'descendants' and selector.targets == ('331',):
-                        selectors.extend(SourceSelector('exact', (target,), {})
+                        selectors.extend(SourceSelector('exact', (target,))
                                          for target in ('331', '332', '333', '334'))
                     elif selector.kind == 'descendants' and selector.targets == ('332',):
-                        selectors.extend(SourceSelector('exact', (target,), {})
+                        selectors.extend(SourceSelector('exact', (target,))
                                          for target in ('332', '333', '334'))
                     elif selector.kind == 'descendants' and selector.targets == ('350',):
-                        selectors.extend(SourceSelector('exact', (target,), {})
+                        selectors.extend(SourceSelector('exact', (target,))
                                          for target in ('350', '351'))
                     elif selector.kind == 'descendants' and selector.targets == ('358',):
-                        selectors.extend(SourceSelector('exact', (target,), {})
+                        selectors.extend(SourceSelector('exact', (target,))
                                          for target in ('358', '359'))
                     elif selector.kind == 'descendants' and selector.targets == ('400',):
-                        selectors.extend(SourceSelector('exact', (target,), {})
+                        selectors.extend(SourceSelector('exact', (target,))
                                          for target in ('400', '401'))
                     elif selector.kind == 'descendants' and selector.targets == ('402',):
-                        selectors.extend(SourceSelector('exact', (target,), {})
+                        selectors.extend(SourceSelector('exact', (target,))
                                          for target in ('402', '403'))
                     elif selector.kind == 'descendants' and selector.targets == ('403',):
-                        selectors.extend(SourceSelector('exact', (target,), {})
+                        selectors.extend(SourceSelector('exact', (target,))
                                          for target in ('403', '404'))
                     elif selector.kind == 'descendants' and selector.targets == ('411',):
-                        selectors.extend(SourceSelector('exact', (target,), {})
+                        selectors.extend(SourceSelector('exact', (target,))
                                          for target in ('411', '412'))
                     elif selector.kind == 'descendants' and selector.targets == ('412',):
-                        selectors.extend(SourceSelector('exact', (target,), {})
+                        selectors.extend(SourceSelector('exact', (target,))
                                          for target in ('412', '413'))
                     elif selector.kind == 'descendants' and selector.targets == ('420',):
-                        selectors.extend(SourceSelector('exact', (target,), {})
+                        selectors.extend(SourceSelector('exact', (target,))
                                          for target in ('420', '500'))
                     else:
                         selectors.append(selector)
@@ -297,7 +299,7 @@ class SourceResolverTest(unittest.TestCase):
         targets = set(graph) | set(scala_213_graph)
         modules = []
         for module in discover_shim_modules(str(ROOT)):
-            variants, _ = scan_module_sources(module, targets)
+            variants, _ = scan_module_sources(module, targets, EXTERNAL_EXACT_TARGETS)
             modules.append((Path(module).relative_to(ROOT).as_posix(), variants))
         for target, expected in LEGACY_SOURCE_SNAPSHOTS.items():
             target_graph = graph if target in graph else scala_213_graph
@@ -313,7 +315,8 @@ class SourceResolverTest(unittest.TestCase):
         graphs = (load_source_graph(str(ROOT / 'pom.xml')),
                   load_source_graph(str(ROOT / 'scala2.13' / 'pom.xml')))
         targets = set(graphs[0]) | set(graphs[1])
-        variants, _ = scan_module_sources(str(ROOT / 'sql-plugin'), targets)
+        variants, _ = scan_module_sources(str(ROOT / 'sql-plugin'), targets,
+                                          EXTERNAL_EXACT_TARGETS)
         logical = 'src/main/scala/org/apache/spark/sql/rapids/shims/RapidsErrorUtils.scala'
         expected = {
             '350db143': 'spark350db143',
