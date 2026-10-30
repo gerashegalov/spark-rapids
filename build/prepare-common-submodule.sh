@@ -22,14 +22,12 @@ submodule=thirdparty/spark-rapids-common
 generator="$repo_root/$submodule/spark-home-deps/gen-spark-home-deps.py"
 
 # A CI job may copy prepared source to a node without its Git metadata.
-if [[ ! -e "$repo_root/.git" || ! -e "$repo_root/$submodule/.git" ]]; then
+if [[ ! -e "$repo_root/.git" ]]; then
     if [[ -f "$generator" ]]; then
         exit 0
     fi
-    if [[ ! -e "$repo_root/.git" ]]; then
-        echo "Missing common tooling in a source copy without Git metadata" >&2
-        exit 1
-    fi
+    echo "Missing common tooling in a source copy without Git metadata" >&2
+    exit 1
 fi
 
 pinned=$(git -C "$repo_root" ls-files --stage -- "$submodule" | awk '$1 == "160000" { print $2 }')
