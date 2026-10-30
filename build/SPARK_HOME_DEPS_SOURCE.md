@@ -18,7 +18,8 @@ limitations under the License.
 
 `thirdparty/spark-rapids-common` is a submodule pinned to a compatible commit of
 `NVIDIA/spark-rapids-common`. The Databricks build runs
-`spark-home-deps/gen-spark-home-deps.py` from that checkout. Initialize it with
-`git submodule update --init -- thirdparty/spark-rapids-common` before a local build.
+`spark-home-deps/gen-spark-home-deps.py` from that checkout.
+`build/prepare-common-submodule.sh` initializes the pinned commit when needed.
+The Databricks build runs it locally, and CI runs it before copying source to a node.
 Release branches should pin their own tested common commit. Updating the pin
 requires an explicit consumer change; a build does not follow common's `main`.

@@ -193,10 +193,7 @@ if [ -n "$EXTRA_ENVS" ]; then
 fi
 
 initialize
-if [[ ! -f thirdparty/spark-rapids-common/spark-home-deps/gen-spark-home-deps.py ]]; then
-    echo "Initialize the common submodule with git submodule update --init -- thirdparty/spark-rapids-common" >&2
-    exit 1
-fi
+./build/prepare-common-submodule.sh
 generate_dependencies
 
 if [[ "$WITH_BLOOP" == "1" ]]; then
