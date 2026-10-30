@@ -215,7 +215,9 @@ void checkoutCode(String url, String sha) {
         ]
     )
     sh "git submodule update --init -- thirdparty/parquet-testing"
-    sh "./build/prepare-common-submodule.sh"
+    if (fileExists('build/prepare-common-submodule.sh')) {
+        sh './build/prepare-common-submodule.sh'
+    }
     if (!common.isSubmoduleInit(this)) {
         error "Failed to clone submodule : thirdparty/parquet-testing"
     }
