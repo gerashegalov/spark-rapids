@@ -18,7 +18,6 @@
 import argparse
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
 import threading
@@ -186,6 +185,11 @@ def _properties(contents):
 
 
 def store(root, archive):
+    from jarray import zeros
+    from java.io import FileInputStream, FileOutputStream
+    from java.util.jar import JarFile, JarOutputStream
+    from java.util.zip import CRC32, ZipEntry
+
     root, archive = str(root), str(archive)
     entries = []
     for directory, unused_dirs, names in os.walk(root):
@@ -202,18 +206,93 @@ def store(root, archive):
                 chunk = os.path.join(library + ".chunks", "%05d" % index)
                 if not os.path.isfile(chunk):
                     raise IOError("Missing native chunk %s" % chunk)
-                entries.append(os.path.relpath(chunk, root).replace(os.sep, "/"))
+                entries.append(
+                    os.path.relpath(chunk, root).replace(os.sep, "/")
+                )
     if not entries:
         return 0
-    subprocess.check_call(
-        ["jar", "u0f", os.path.abspath(archive)] + entries,
-        cwd=root,
+    replacements = set(entries)
+    descriptor, temporary = tempfile.mkstemp(
+        prefix=os.path.basename(archive) + ".tmp-",
+        dir=os.path.dirname(os.path.abspath(archive)),
     )
+    os.close(descriptor)
+    buffer = zeros(1024 * 1024, "b")
+    try:
+        original = JarFile(archive)
+        try:
+            output = JarOutputStream(FileOutputStream(temporary))
+            try:
+                if original.getComment() is not None:
+                    output.setComment(original.getComment())
+                for old_entry in original.entries():
+                    name = old_entry.getName()
+                    if name in replacements:
+                        continue
+                    entry = ZipEntry(name)
+                    entry.setMethod(old_entry.getMethod())
+                    if old_entry.getTime() >= 0:
+                        entry.setTime(old_entry.getTime())
+                    if old_entry.getComment() is not None:
+                        entry.setComment(old_entry.getComment())
+                    if old_entry.getExtra() is not None:
+                        entry.setExtra(old_entry.getExtra())
+                    if old_entry.getMethod() == ZipEntry.STORED:
+                        entry.setSize(old_entry.getSize())
+                        entry.setCrc(old_entry.getCrc())
+                    output.putNextEntry(entry)
+                    if not old_entry.isDirectory():
+                        input_stream = original.getInputStream(old_entry)
+                        try:
+                            _copy_stream(input_stream, output, buffer)
+                        finally:
+                            input_stream.close()
+                    output.closeEntry()
+                for name in entries:
+                    path = os.path.join(root, name.replace("/", os.sep))
+                    size = os.path.getsize(path)
+                    checksum = CRC32()
+                    input_stream = FileInputStream(path)
+                    try:
+                        while True:
+                            read = input_stream.read(buffer, 0, len(buffer))
+                            if read < 0:
+                                break
+                            checksum.update(buffer, 0, read)
+                    finally:
+                        input_stream.close()
+                    entry = ZipEntry(name)
+                    entry.setMethod(ZipEntry.STORED)
+                    entry.setSize(size)
+                    entry.setCrc(checksum.getValue())
+                    output.putNextEntry(entry)
+                    input_stream = FileInputStream(path)
+                    try:
+                        _copy_stream(input_stream, output, buffer)
+                    finally:
+                        input_stream.close()
+                    output.closeEntry()
+            finally:
+                output.close()
+        finally:
+            original.close()
+        os.rename(temporary, archive)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
     with zipfile.ZipFile(archive) as jar:
         for name in entries:
             if jar.getinfo(name).compress_type != zipfile.ZIP_STORED:
                 raise RuntimeError("Native chunk is not STORED: %s" % name)
     return len(entries)
+
+
+def _copy_stream(source, output, buffer):
+    while True:
+        read = source.read(buffer, 0, len(buffer))
+        if read < 0:
+            return
+        output.write(buffer, 0, read)
 
 
 def verify(archive):
