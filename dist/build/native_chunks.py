@@ -23,7 +23,6 @@ import sys
 import tempfile
 import threading
 import zipfile
-import zlib
 
 try:
     import Queue as queue
@@ -45,32 +44,36 @@ def _file_state(path):
 
 
 def _compress(source, output, offset, length, level):
-    crc = 0
-    with open(source, "rb") as input_file, open(output, "wb") as output_file:
-        input_file.seek(offset)
-        process = subprocess.Popen(
-            ["zstd", "--quiet", "--single-thread", "-%d" % level, "--stdout"],
-            stdin=subprocess.PIPE,
-            stdout=output_file,
-        )
+    from com.github.luben.zstd import ZstdOutputStreamNoFinalizer
+    from java.io import FileInputStream, FileOutputStream
+    from java.util.zip import CRC32
+    from jarray import zeros
+
+    checksum = CRC32()
+    input_stream = FileInputStream(source)
+    try:
+        input_stream.getChannel().position(offset)
+        output_stream = FileOutputStream(output)
         try:
-            while length:
-                data = input_file.read(min(1024 * 1024, length))
-                if not data:
-                    raise IOError("Native library changed during chunking: %s" % source)
-                process.stdin.write(data)
-                crc = zlib.crc32(data, crc)
-                length -= len(data)
-            process.stdin.close()
-            if process.wait() != 0:
-                raise RuntimeError(
-                    "zstd failed for %s at offset %d" % (source, offset)
-                )
-        except BaseException:
-            process.kill()
-            process.wait()
-            raise
-    return crc & 0xFFFFFFFF
+            compressed = ZstdOutputStreamNoFinalizer(output_stream, level)
+            try:
+                buffer = zeros(1024 * 1024, "b")
+                while length:
+                    read = input_stream.read(buffer, 0, min(len(buffer), length))
+                    if read < 0:
+                        raise IOError(
+                            "Native library changed during chunking: %s" % source
+                        )
+                    compressed.write(buffer, 0, read)
+                    checksum.update(buffer, 0, read)
+                    length -= read
+            finally:
+                compressed.close()
+        finally:
+            output_stream.close()
+    finally:
+        input_stream.close()
+    return checksum.getValue()
 
 
 def _compress_all(source, temporary, size, chunk_size, level, workers):
@@ -214,57 +217,71 @@ def store(root, archive):
 
 
 def verify(archive):
+    from com.github.luben.zstd import ZstdInputStreamNoFinalizer
+    from java.util.jar import JarFile
+    from java.util.zip import CRC32
+    from jarray import zeros
+
     checked = 0
     with zipfile.ZipFile(str(archive)) as jar:
         names = set(jar.namelist())
-        for manifest_name in sorted(
-            name for name in names if name.endswith(".chunks.properties")
-        ):
-            properties = _properties(jar.read(manifest_name))
-            if properties.get("chunk.compression") != "zstd":
-                continue
-            if properties.get("format.version") != "1":
-                raise RuntimeError("Unsupported chunk format: %s" % manifest_name)
-            library_name = manifest_name[: -len(".chunks.properties")]
-            if library_name in names:
-                raise RuntimeError(
-                    "Conventional library beside %s" % manifest_name
-                )
-            size = int(properties["library.size"])
-            chunk_size = int(properties["chunk.size"])
-            count = int(properties["chunk.count"])
-            if (
-                size <= 0
-                or chunk_size <= 0
-                or count != (size + chunk_size - 1) // chunk_size
+        native_jar = JarFile(str(archive))
+        try:
+            for manifest_name in sorted(
+                name for name in names if name.endswith(".chunks.properties")
             ):
-                raise RuntimeError("Invalid chunk layout: %s" % manifest_name)
-            for index in range(count):
-                name = library_name + ".chunks/%05d" % index
-                entry = jar.getinfo(name)
-                if entry.compress_type != zipfile.ZIP_STORED:
-                    raise RuntimeError("Native chunk is not STORED: %s" % name)
-                process = subprocess.Popen(
-                    ["zstd", "-q", "-d", "--stdout"],
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                )
-                output, error = process.communicate(jar.read(entry))
-                if process.returncode:
-                    raise subprocess.CalledProcessError(
-                        process.returncode, "zstd", error
-                    )
-                expected_size = min(chunk_size, size - index * chunk_size)
-                expected_crc = int(properties["chunk.%05d.crc32" % index], 16)
-                if (
-                    len(output) != expected_size
-                    or zlib.crc32(output) & 0xFFFFFFFF != expected_crc
-                ):
+                properties = _properties(jar.read(manifest_name))
+                if properties.get("chunk.compression") != "zstd":
+                    continue
+                if properties.get("format.version") != "1":
                     raise RuntimeError(
-                        "Native chunk size or CRC mismatch: %s" % name
+                        "Unsupported chunk format: %s" % manifest_name
                     )
-                checked += 1
+                library_name = manifest_name[: -len(".chunks.properties")]
+                if library_name in names:
+                    raise RuntimeError(
+                        "Conventional library beside %s" % manifest_name
+                    )
+                size = int(properties["library.size"])
+                chunk_size = int(properties["chunk.size"])
+                count = int(properties["chunk.count"])
+                if (
+                    size <= 0
+                    or chunk_size <= 0
+                    or count != (size + chunk_size - 1) // chunk_size
+                ):
+                    raise RuntimeError("Invalid chunk layout: %s" % manifest_name)
+                for index in range(count):
+                    name = library_name + ".chunks/%05d" % index
+                    entry = jar.getinfo(name)
+                    if entry.compress_type != zipfile.ZIP_STORED:
+                        raise RuntimeError("Native chunk is not STORED: %s" % name)
+                    compressed = ZstdInputStreamNoFinalizer(
+                        native_jar.getInputStream(native_jar.getJarEntry(name))
+                    )
+                    try:
+                        buffer = zeros(1024 * 1024, "b")
+                        checksum = CRC32()
+                        total = 0
+                        while True:
+                            read = compressed.read(buffer, 0, len(buffer))
+                            if read < 0:
+                                break
+                            total += read
+                            if total > min(chunk_size, size - index * chunk_size):
+                                raise RuntimeError("Oversized native chunk: %s" % name)
+                            checksum.update(buffer, 0, read)
+                    finally:
+                        compressed.close()
+                    expected_size = min(chunk_size, size - index * chunk_size)
+                    expected_crc = int(properties["chunk.%05d.crc32" % index], 16)
+                    if total != expected_size or checksum.getValue() != expected_crc:
+                        raise RuntimeError(
+                            "Native chunk size or CRC mismatch: %s" % name
+                        )
+                    checked += 1
+        finally:
+            native_jar.close()
     return checked
 
 
