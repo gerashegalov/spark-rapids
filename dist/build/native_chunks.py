@@ -18,6 +18,7 @@
 import argparse
 import os
 import shutil
+import stat
 import sys
 import tempfile
 import threading
@@ -276,6 +277,7 @@ def store(root, archive):
                 output.close()
         finally:
             original.close()
+        os.chmod(temporary, stat.S_IMODE(os.stat(archive).st_mode))
         os.rename(temporary, archive)
     finally:
         if os.path.exists(temporary):
