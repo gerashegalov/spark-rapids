@@ -63,8 +63,11 @@ def produce(
     size = source_stat.st_size
     chunks = Path(str(source) + ".chunks")
     manifest = Path(str(source) + ".chunks.properties")
-    if chunks.exists() or manifest.exists():
-        raise RuntimeError("Chunk output already exists for %s" % source)
+    # Maven may copy a rebuilt library over the previous output while leaving
+    # its old chunks in target/classes. Replace those chunks for this source.
+    shutil.rmtree(chunks, ignore_errors=True)
+    if manifest.exists():
+        manifest.unlink()
     temporary = Path(
         tempfile.mkdtemp(
             prefix=source.name + ".chunks.tmp-", dir=str(source.parent)
