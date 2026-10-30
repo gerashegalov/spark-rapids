@@ -302,6 +302,7 @@
                         <id>clean-any-prior-output</id>
                         <configuration>
                             <target>
+                                <taskdef resource="net/sf/antcontrib/antcontrib.properties"/>
                                 <delete dir="${project.build.directory}/parallel-world"
                                         includeemptydirs="true"/>
                                 <delete>
@@ -309,6 +310,14 @@
                                 </delete>
                                 <delete dir="${project.build.directory}/deps" includeemptydirs="true"/>
                                 <delete dir="${dist.native.chunking.metadata.dir}" includeemptydirs="true"/>
+                                <ac:if xmlns:ac="antlib:net.sf.antcontrib">
+                                    <not><istrue value="${rapids.jni.unpack.skip}"/></not>
+                                    <then>
+                                        <delete dir="${project.build.directory}/jni-deps" includeemptydirs="true"/>
+                                        <delete dir="${project.build.directory}/dependency-maven-plugin-markers"
+                                                includeemptydirs="true"/>
+                                    </then>
+                                </ac:if>
                                 <mkdir dir="${project.build.directory}/deps"/>
                             </target>
                         </configuration>
